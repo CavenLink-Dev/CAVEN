@@ -12,7 +12,7 @@ export default function App() {
   const [page, setPage] = useState<Page>('main');
   const [muted, setMutedState] = useState(isMuted());
   const [typed, setTyped] = useState('');
-  const { state, amplitude, transcript, reply, locked, cards, toggle, toggleLock, cancel, updateCard, closeCard, runCommand } = useCaven();
+  const { state, amplitude, transcript, reply, locked, conversing, cards, toggle, toggleLock, cancel, updateCard, closeCard, runCommand } = useCaven();
 
   // Autoplay is gated behind a user gesture — start the ambient bed on first interaction.
   useEffect(() => {
@@ -21,9 +21,11 @@ export default function App() {
     return () => window.removeEventListener('pointerdown', kick);
   }, []);
 
+  // Enter sends immediately and gets the same Claude reply as speaking does.
+  // It works mid-turn too, interrupting CAVEN rather than being ignored.
   const submitTyped = () => {
     const text = typed.trim();
-    if (!text || state !== 'idle') return;
+    if (!text) return;
     setTyped('');
     runCommand(text);
   };
@@ -70,7 +72,7 @@ export default function App() {
               {transcript}
             </div>
           )}
-          {(state === 'speaking' || state === 'complete') && reply && (
+          {reply && state !== 'listening' && (
             <div
               className="mb-4 max-w-[280px] rounded-2xl px-4 py-2.5 text-center text-sm anim-fade-up metal-surface"
               style={{ color: 'var(--caven-cyan-bright)', boxShadow: '0 0 22px rgba(63,208,255,0.22)' }}
@@ -79,7 +81,7 @@ export default function App() {
               {reply}
             </div>
           )}
-          <CavenCore state={state} amplitude={amplitude} locked={locked} onToggle={toggle} onLock={toggleLock} />
+          <CavenCore state={state} amplitude={amplitude} locked={locked} conversing={conversing} onToggle={toggle} onLock={toggleLock} />
         </div>
       </div>
 
@@ -95,11 +97,10 @@ export default function App() {
         <input
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
-          placeholder="Type a command…"
-          disabled={state !== 'idle'}
+          placeholder="Say something to CAVEN…"
           className="metal-surface h-9 w-full rounded-full px-3 text-sm outline-none placeholder:opacity-40"
           style={{ color: 'var(--caven-steel-light)' }}
-          aria-label="Type a command to CAVEN"
+          aria-label="Type a message to CAVEN"
         />
       </form>
 
@@ -127,7 +128,7 @@ export default function App() {
           </svg>
         </button>
 
-        {locked && (
+        {(locked || conversing) && (
           <button
             onClick={cancel}
             className="rounded-full px-3 py-1.5 font-display text-[10px] tracking-[0.2em] metal-surface"

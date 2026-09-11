@@ -1,7 +1,15 @@
 import { useCallback, useRef, useState } from 'react';
 import { playSfx } from './sfx';
 import { useCavenStore } from './store';
-import { askCaven, startListening, speak, stopListening, voiceSupported, type ChatTurn } from './voice';
+import {
+  abortListening,
+  askCaven,
+  speak,
+  startListening,
+  stopSpeaking,
+  voiceSupported,
+  type ChatTurn,
+} from './voice';
 
 export type CavenState = 'idle' | 'listening' | 'thinking' | 'acting' | 'speaking' | 'complete';
 
@@ -24,28 +32,71 @@ export type CardInstance = {
   fullscreen?: boolean;
 };
 
-type Route = { kind: CardKind; title: string; reply: string };
+type Route = { kind: CardKind; title: string };
 
-const DEMO_COMMAND = 'Remind me on September 5th at 6pm — dinner with Mom.';
+// Spoken only when Claude is unreachable. It must never claim to have done
+// something — that was the old "added that to your tasks" bug.
+const OFFLINE_LINE = "I'm afraid I can't reach my thoughts just now. Do try me again in a moment.";
+const NO_SPEECH_LINE = 'Speech recognition is not available in this browser — type to me instead.';
 
-// Very small keyword router that maps a phrase to a card + spoken reply.
-function route(text: string): Route {
-  const t = text.toLowerCase();
-  if (/remind|dinner|appointment|pick up|don't forget|dont forget/.test(t))
-    return { kind: 'reminder', title: 'Reminder set', reply: "Done. I'll see that you're prompted in good time." };
-  if (/spend|budget|money|finance|cost|paid|bought|bank/.test(t))
-    return { kind: 'finance', title: 'Finances', reply: "Here is how the month stands. The overspend is the only figure that needs attention." };
-  if (/journal|felt|feeling|mood|today was|write down/.test(t))
-    return { kind: 'journal', title: 'Journal', reply: "Journal is open. Take your time." };
-  if (/habit|streak|water|meds|routine/.test(t))
-    return { kind: 'habits', title: 'Habits', reply: "Your habits are here. You are keeping them up rather well." };
-  if (/calendar|schedule|agenda|today|tomorrow|events/.test(t))
-    return { kind: 'calendar', title: 'Today', reply: "Here is how the day is arranged. I would notify you if anything collided." };
-  if (/note|remember that|idea/.test(t))
-    return { kind: 'voicenote', title: 'Voice note', reply: "Noted. I'll have it when you need it." };
-  if (/brain|know about me|interests|about me/.test(t))
-    return { kind: 'brain', title: 'CAVEN Brain', reply: "This is what I've come to understand about you." };
-  return { kind: 'tasks', title: 'CAVEN', reply: "Good. I'm here. What would you like to deal with first?" };
+// Plain conversation. If it looks like this, CAVEN just talks; no card, no capture.
+const CHITCHAT =
+  /^\s*(hey|hi|hiya|hello|yo|oi|sup|morning|evening|afternoon|good (morning|afternoon|evening|night)|how (are|is|'?s|s) (you|it going|things|we)|how (you|ya|u) (going|doing|been)|how'?s it going|what'?s up|whats up|you (there|alright|ok)|are you (there|awake|listening)|thanks|thank you|cheers|nice one|well done|lovely|ok|okay|cool|right|nothing|never ?mind|forget it|stop|who are you|what are you|what can you do|tell me a joke|say something|talk to me|test|testing)\b/i;
+
+// Explicit intent only — each pattern needs the user to actually ask for the thing.
+const INTENTS: Array<{ re: RegExp; kind: CardKind; title: string }> = [
+  {
+    re: /\b(remind me|set a reminder|reminder for|don'?t let me forget|dont let me forget|nudge me|wake me)\b/i,
+    kind: 'reminder',
+    title: 'Reminder set',
+  },
+  {
+    re: /\b(add (a |an )?task|new task|another task|to-?do list|my tasks|task list|add .+ to my (list|tasks)|put .+ on my list|tick .+ off|cross .+ off)\b/i,
+    kind: 'tasks',
+    title: 'Tasks',
+  },
+  {
+    re: /\b(my habits|habit tracker|show me my habits|my streaks?|check my streak|did i (take|drink|do) my)\b/i,
+    kind: 'habits',
+    title: 'Habits',
+  },
+  {
+    re: /\b(my calendar|my schedule|my agenda|my diary|what'?s on (today|tomorrow|this week)|whats on (today|tomorrow|this week)|what have i got on|book .+ (for|on|at)|schedule .+ (for|on|at))\b/i,
+    kind: 'calendar',
+    title: 'Today',
+  },
+  {
+    re: /\b(journal|diary entry|log how i|write this down in my)\b/i,
+    kind: 'journal',
+    title: 'Journal',
+  },
+  {
+    re: /\b(my budget|my finances|my spending|how much (did|have) i (spend|spent)|my expenses|my transactions|my bank balance|what did i spend)\b/i,
+    kind: 'finance',
+    title: 'Finances',
+  },
+  {
+    re: /\b(voice note|make a note|take a note|note this down|jot (this|that) down|remember that i)\b/i,
+    kind: 'voicenote',
+    title: 'Voice note',
+  },
+  {
+    re: /\b(caven brain|my brain|what do you know about me|my profile|my interests)\b/i,
+    kind: 'brain',
+    title: 'CAVEN Brain',
+  },
+];
+
+// Returns null for conversation — the overwhelming majority of what gets said.
+export function route(text: string): Route | null {
+  const t = text.trim();
+  if (!t) return null;
+  // A bare greeting is never a command, even if it happens to contain a keyword.
+  if (CHITCHAT.test(t) && t.split(/\s+/).length <= 6) return null;
+  for (const intent of INTENTS) {
+    if (intent.re.test(t)) return { kind: intent.kind, title: intent.title };
+  }
+  return null;
 }
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -57,12 +108,16 @@ export function useCaven() {
   const [transcript, setTranscript] = useState('');
   const [reply, setReply] = useState(''); // CAVEN's latest spoken line, for the chat box
   const [locked, setLocked] = useState(false);
+  const [conversing, setConversing] = useState(false); // mic loop is running
   const [cards, setCards] = useState<CardInstance[]>([]);
 
   const lockedRef = useRef(false);
+  const conversingRef = useRef(false);
   const stateRef = useRef<CavenState>('idle');
   const historyRef = useRef<ChatTurn[]>([]); // rolling conversation for continuity
-  const demoTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Bumped whenever a turn is interrupted, so a stale async turn can't resume.
+  const genRef = useRef(0);
+
   const set = (s: CavenState) => {
     stateRef.current = s;
     setState(s);
@@ -77,24 +132,17 @@ export function useCaven() {
   const startMicRef = useRef<() => void>(() => {});
   const processRef = useRef<(text: string) => void>(() => {});
 
-  // Open the mic (real or demo). Stays open until stopMic().
+  // Open the mic. It closes itself the moment the user stops talking.
   const startMic = useCallback(() => {
     setTranscript('');
-    setReply('');
     playSfx('start');
     set('listening');
 
     if (!voiceSupported()) {
-      // Demo fallback: type out a scripted command, then process on stop.
-      let i = 0;
-      demoTimer.current = setInterval(() => {
-        setAmplitude(0.4 + Math.random() * 0.6);
-        setTranscript(DEMO_COMMAND.slice(0, (i += 2)));
-        if (i >= DEMO_COMMAND.length && demoTimer.current) {
-          clearInterval(demoTimer.current);
-          demoTimer.current = null;
-        }
-      }, 55);
+      conversingRef.current = false;
+      setConversing(false);
+      setReply(NO_SPEECH_LINE);
+      set('idle');
       return;
     }
 
@@ -105,116 +153,148 @@ export function useCaven() {
       },
       (final) => processRef.current(final),
       (fatal) => {
-        // Mic unavailable/denied (common in embedded previews): still respond,
-        // so CAVEN never just sits on "Listening". Run the demo command.
-        if (fatal) {
-          setAmplitude(0);
-          processRef.current(DEMO_COMMAND);
-        }
+        // Mic denied or unavailable — say so plainly and stand down rather
+        // than pretending to have heard a command.
+        if (!fatal) return;
+        conversingRef.current = false;
+        lockedRef.current = false;
+        setConversing(false);
+        setLocked(false);
+        setAmplitude(0);
+        setReply('I cannot reach your microphone. Do grant access, or type to me instead.');
+        set('idle');
       },
     );
   }, []);
   startMicRef.current = startMic;
 
-  // Runs the full state sequence once a command is captured.
+  // Re-open the mic after CAVEN finishes speaking, so it is a conversation.
+  const rearm = useCallback(() => {
+    if (!conversingRef.current && !lockedRef.current) return;
+    // Small gap so the tail of CAVEN's own voice isn't captured as input.
+    setTimeout(() => {
+      if ((conversingRef.current || lockedRef.current) && stateRef.current === 'idle') startMicRef.current();
+    }, 400);
+  }, []);
+
+  // One full turn: hear → Claude → (maybe) card → speak → listen again.
   const process = useCallback(
     async (text: string) => {
+      const gen = ++genRef.current;
+      const alive = () => genRef.current === gen;
       const said = text.trim();
+
       if (!said) {
-        // Heard nothing. Stay silent in background mode; otherwise reply politely.
-        if (lockedRef.current) {
-          set('idle');
-          setAmplitude(0);
-          startMicRef.current();
-          return;
-        }
-        const line = "My apologies — I didn't quite catch that. Do try again.";
-        setReply(line);
-        set('speaking');
-        await speak(line, setAmplitude);
+        // Heard nothing at all. Don't nag — just open the ear again.
         set('idle');
         setAmplitude(0);
+        rearm();
         return;
       }
-      setTranscript(said);
-      const r = route(said);
 
+      setTranscript(said);
+      setReply('');
       set('thinking');
-      // Fetch CAVEN's live reply while the "thinking" beat plays. Keyword routing
-      // still decides which card surfaces; the spoken line now comes from Claude.
-      const [live] = await Promise.all([askCaven(said, historyRef.current), wait(1300)]);
-      const line = live ?? r.reply;
-      set('acting');
-      await wait(1000);
-      surface(r, said);
-      capture(r.kind, said);
-      playSfx('notification');
+
+      // The spoken line always comes from Claude. Keyword routing only decides
+      // whether a card is worth surfacing alongside it.
+      const [live] = await Promise.all([askCaven(said, historyRef.current), wait(320)]);
+      if (!alive()) return;
+      const line = live ?? OFFLINE_LINE;
+
+      // Only surface/capture when the user clearly asked for it, and never on
+      // a failed turn — a card would imply CAVEN understood when it didn't.
+      const r = live ? route(said) : null;
+      if (r) {
+        set('acting');
+        await wait(600);
+        if (!alive()) return;
+        surface(r, said);
+        capture(r.kind, said);
+        playSfx('notification');
+      }
+
       setReply(line);
-      // Remember the exchange (trimmed) so follow-ups have context.
-      historyRef.current = [
-        ...historyRef.current,
+      const turns: ChatTurn[] = [
         { role: 'user', content: said },
         { role: 'assistant', content: line },
-      ].slice(-8);
+      ];
+      historyRef.current = [...historyRef.current, ...turns].slice(-8);
+
       set('speaking');
       await speak(line, setAmplitude);
-      set('complete');
-      playSfx('success');
-      await wait(700);
+      if (!alive()) return;
+
+      if (r) {
+        set('complete');
+        playSfx('success');
+        await wait(500);
+        if (!alive()) return;
+      }
+
       set('idle');
       setAmplitude(0);
-      // In locked/background mode, re-arm the mic automatically.
-      if (lockedRef.current) startMicRef.current();
+      rearm();
     },
-    [surface, capture],
+    [surface, capture, rearm],
   );
   processRef.current = process;
 
+  // Typed commands take the same path, and interrupt whatever is in flight.
   const runCommand = useCallback((text: string) => {
-    if (stateRef.current !== 'idle') return;
-    processRef.current(text);
+    const said = text.trim();
+    if (!said) return;
+    genRef.current++;
+    abortListening();
+    stopSpeaking();
+    setAmplitude(0);
+    processRef.current(said);
   }, []);
 
-  const stopMic = useCallback(() => {
-    playSfx('off');
-    if (demoTimer.current) {
-      clearInterval(demoTimer.current);
-      demoTimer.current = null;
-      processRef.current(DEMO_COMMAND);
-      return;
-    }
-    stopListening(); // triggers onEnd → process()
-  }, []);
-
-  // Single click on the core: toggle the mic.
-  const toggle = useCallback(() => {
-    if (stateRef.current === 'listening') stopMic();
-    else if (stateRef.current === 'idle') startMic();
-    // ignore clicks while thinking/acting/speaking
-  }, [startMic, stopMic]);
-
-  // Double click: lock into background listening mode (for a house speaker).
-  const toggleLock = useCallback(() => {
-    const next = !lockedRef.current;
-    lockedRef.current = next;
-    setLocked(next);
-    if (next && stateRef.current === 'idle') startMic();
-    if (!next && stateRef.current === 'listening') stopListening();
-  }, [startMic]);
-
-  const cancel = useCallback(() => {
-    playSfx('fade');
-    if (demoTimer.current) {
-      clearInterval(demoTimer.current);
-      demoTimer.current = null;
-    }
-    stopListening();
-    lockedRef.current = false;
-    setLocked(false);
+  // Stop everything: cancel the turn, close the mic, hush the voice.
+  const endConversation = useCallback(() => {
+    genRef.current++;
+    conversingRef.current = false;
+    setConversing(false);
+    abortListening();
+    stopSpeaking();
     set('idle');
     setAmplitude(0);
     setTranscript('');
   }, []);
+
+  // Single click on the core: start talking, or stop the whole conversation.
+  const toggle = useCallback(() => {
+    if (conversingRef.current || stateRef.current !== 'idle') {
+      playSfx('off');
+      endConversation();
+      return;
+    }
+    conversingRef.current = true;
+    setConversing(true);
+    startMic();
+  }, [startMic, endConversation]);
+
+  // Double click: lock into always-on background listening (house speaker).
+  const toggleLock = useCallback(() => {
+    const next = !lockedRef.current;
+    lockedRef.current = next;
+    setLocked(next);
+    if (next) {
+      conversingRef.current = true;
+      setConversing(true);
+      if (stateRef.current === 'idle') startMic();
+    } else {
+      endConversation();
+    }
+  }, [startMic, endConversation]);
+
+  const cancel = useCallback(() => {
+    playSfx('fade');
+    lockedRef.current = false;
+    setLocked(false);
+    endConversation();
+  }, [endConversation]);
 
   const updateCard = useCallback((id: string, patch: Partial<CardInstance>) => {
     setCards((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
@@ -224,5 +304,19 @@ export function useCaven() {
     setCards((prev) => prev.filter((c) => c.id !== id));
   }, []);
 
-  return { state, amplitude, transcript, reply, locked, cards, toggle, toggleLock, cancel, updateCard, closeCard, runCommand };
+  return {
+    state,
+    amplitude,
+    transcript,
+    reply,
+    locked,
+    conversing,
+    cards,
+    toggle,
+    toggleLock,
+    cancel,
+    updateCard,
+    closeCard,
+    runCommand,
+  };
 }

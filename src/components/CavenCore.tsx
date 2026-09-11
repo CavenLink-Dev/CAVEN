@@ -5,6 +5,7 @@ type Props = {
   state: CavenState;
   amplitude: number;
   locked: boolean;
+  conversing: boolean;
   onToggle: () => void;
   onLock: () => void;
 };
@@ -17,6 +18,15 @@ const STATE_LABEL: Record<CavenState, string> = {
   speaking: 'SPEAKING',
   complete: 'COMPLETE',
 };
+
+// The hint under the status readout. CAVEN now hears the end of an utterance
+// on its own, so there is never a "click to send" step.
+function subLabel(state: CavenState, locked: boolean, conversing: boolean): string {
+  if (locked) return state === 'listening' ? 'JUST TALK — DOUBLE-CLICK TO UNLOCK' : 'BACKGROUND · DOUBLE-CLICK TO UNLOCK';
+  if (state === 'listening') return 'JUST TALK — CLICK TO STOP';
+  if (state === 'idle') return conversing ? 'CLICK TO STOP' : 'CLICK TO SPEAK';
+  return 'CLICK TO STOP';
+}
 
 // Ticks around the outer bezel.
 function Ticks({ count = 60 }: { count?: number }) {
@@ -46,7 +56,7 @@ function Ticks({ count = 60 }: { count?: number }) {
   );
 }
 
-export function CavenCore({ state, amplitude, locked, onToggle, onLock }: Props) {
+export function CavenCore({ state, amplitude, locked, conversing, onToggle, onLock }: Props) {
   // Transient color feedback: green = turning on, red = turning off, blue = lock.
   const [pulse, setPulse] = useState<'on' | 'off' | 'lock' | null>(null);
   const pulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -67,7 +77,7 @@ export function CavenCore({ state, amplitude, locked, onToggle, onLock }: Props)
       onLock();
       return;
     }
-    flash(state === 'listening' ? 'off' : 'on');
+    flash(conversing ? 'off' : 'on');
     clickTimer.current = setTimeout(() => {
       clickTimer.current = null;
       onToggle();
@@ -89,7 +99,7 @@ export function CavenCore({ state, amplitude, locked, onToggle, onLock }: Props)
     <div className="relative flex flex-col items-center">
       <button
         onClick={handleClick}
-        aria-label="Talk to CAVEN — click to speak, double-click to lock"
+        aria-label="Talk to CAVEN — click to start talking, click again to stop, double-click for background listening"
         className="relative grid place-items-center outline-none"
         style={{ width: 260, height: 260 }}
       >
@@ -194,7 +204,7 @@ export function CavenCore({ state, amplitude, locked, onToggle, onLock }: Props)
         </div>
         <div className="mt-1 h-px w-24" style={{ background: 'linear-gradient(90deg,transparent,var(--caven-cyan),transparent)' }} />
         <div className="mt-2 text-[9px] tracking-[0.25em]" style={{ color: 'var(--caven-steel)' }}>
-          {state === 'idle' ? (locked ? 'BACKGROUND · DOUBLE-CLICK TO UNLOCK' : 'CLICK TO SPEAK') : state === 'listening' ? 'CLICK TO SEND' : ''}
+          {subLabel(state, locked, conversing)}
         </div>
         {locked && (
           <div
