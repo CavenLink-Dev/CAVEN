@@ -46,7 +46,14 @@ export type AddressCheck = { ok: true; term: string } | { ok: false; reason: str
  * no markup and names what is wrong without repeating what he said back to him.
  */
 export function checkAddress(raw: unknown, spokenTo: string): AddressCheck {
-  const term = typeof raw === 'string' ? raw.trim().replace(/\s+/g, ' ') : '';
+  const source = typeof raw === 'string' ? raw : '';
+  // Checked BEFORE whitespace is collapsed. A newline in a courtesy title only
+  // ever means someone probing the briefing, so refuse it rather than quietly
+  // flattening it into a space.
+  if (/[\r\n\t\u0000-\u001f\u007f]/.test(source)) {
+    return { ok: false, reason: `That is not a name I can use, ${spokenTo}. Nothing has changed.` };
+  }
+  const term = source.trim().replace(/\s+/g, ' ');
 
   if (!term) return { ok: false, reason: `What should I call you, ${spokenTo}? Nothing has changed.` };
   if (term.length > ADDRESS_LIMIT) {
@@ -54,7 +61,7 @@ export function checkAddress(raw: unknown, spokenTo: string): AddressCheck {
   }
   // Letters, spaces, hyphens and apostrophes cover every real honorific and
   // keep markup, control characters and the ACT syntax out of the prompt.
-  if (!/^[\p{L}][\p{L} '’-]*$/u.test(term)) {
+  if (!/^[\p{L}][\p{L} .'’-]*$/u.test(term)) {
     return { ok: false, reason: `Letters only for that, ${spokenTo}. Nothing has changed.` };
   }
   const folded = fold(term);

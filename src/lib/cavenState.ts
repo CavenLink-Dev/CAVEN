@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { addressOf, DEFAULT_ADDRESS } from '../../shared/address';
 import { parseActions } from '../../shared/actions';
 import { playSfx } from './sfx';
 import { useCavenStore } from './store';
@@ -28,8 +29,8 @@ type Route = { kind: CardKind; title: string };
 
 // Spoken only when Claude is unreachable. It must never claim to have done
 // something — that was the old "added that to your tasks" bug.
-const OFFLINE_LINE = "I'm afraid I've lost the thread there, sir. Do give me a moment and try again.";
-const NO_SPEECH_LINE = "This browser won't let me listen, I'm afraid, sir. Do type to me instead.";
+const OFFLINE_LINE = (a: string) => `I'm afraid I've lost the thread there, ${a}. Do give me a moment and try again.`;
+const NO_SPEECH_LINE = (a: string) => `This browser won't let me listen, I'm afraid, ${a}. Do type to me instead.`;
 
 // Plain conversation. If it looks like this, CAVEN just talks; no card, no capture.
 const CHITCHAT =
@@ -79,7 +80,7 @@ export function route(text: string): Route | null {
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function useCaven() {
-  const { capture, perform } = useCavenStore();
+  const { data, capture, perform } = useCavenStore();
   const [state, setState] = useState<CavenState>('idle');
   const [amplitude, setAmplitude] = useState(0);
   const [transcript, setTranscript] = useState('');
@@ -93,6 +94,9 @@ export function useCaven() {
   const historyRef = useRef<ChatTurn[]>([]); // rolling conversation for continuity
   // Bumped whenever a turn is interrupted, so a stale async turn can't resume.
   const genRef = useRef(0);
+  // Refreshed every render, so changing the form of address takes effect at once.
+  const addressRef = useRef(DEFAULT_ADDRESS);
+  addressRef.current = addressOf(data);
 
   // speak() streams amplitude every animation frame. Pushing all ~60 of those
   // into state per second re-rendered the whole board (TopBar, MusicMenu, every
@@ -132,7 +136,7 @@ export function useCaven() {
     if (!voiceSupported()) {
       conversingRef.current = false;
       setConversing(false);
-      setReply(NO_SPEECH_LINE);
+      setReply(NO_SPEECH_LINE(addressRef.current));
       set('idle');
       return;
     }
@@ -152,7 +156,7 @@ export function useCaven() {
         setConversing(false);
         setLocked(false);
         resetAmp();
-        setReply("I can't get at your microphone, sir. Grant me access, or simply type it.");
+        setReply(`I can't get at your microphone, ${addressRef.current}. Grant me access, or simply type it.`);
         set('idle');
       },
     );
@@ -198,13 +202,13 @@ export function useCaven() {
         if (!alive()) return;
         // Provider unreachable. Say so; never attempt actions on a turn we never had.
         if (raw === null) {
-          line = OFFLINE_LINE;
+          line = OFFLINE_LINE(addressRef.current);
           return;
         }
         const { spoken, actions } = parseActions(raw);
         line = spoken;
         if (!actions.length) {
-          if (!line) line = OFFLINE_LINE;
+          if (!line) line = OFFLINE_LINE(addressRef.current);
           return;
         }
         try {
@@ -218,7 +222,7 @@ export function useCaven() {
           // Nothing was saved. Whatever cheerful thing Claude wrote is now a lie,
           // so it is discarded and the user hears exactly what went wrong instead.
           changed = false;
-          line = error instanceof Error ? error.message : 'That did not save, sir. Please retry.';
+          line = error instanceof Error ? error.message : `That did not save, ${addressRef.current}. Please retry.`;
         }
       };
 
@@ -231,7 +235,7 @@ export function useCaven() {
           if (changed) line = result.message;
           else await converse();
         } catch (error) {
-          line = error instanceof Error ? error.message : 'That did not save, sir. Please retry.';
+          line = error instanceof Error ? error.message : `That did not save, ${addressRef.current}. Please retry.`;
         }
       } else {
         await converse();

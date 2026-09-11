@@ -74,7 +74,7 @@ function DailyOverviewCardBase({ isVisible = true }: { isVisible?: boolean }) {
         {!ready ? (
           <PanelNote>{status}</PanelNote>
         ) : rows.length === 0 ? (
-          <PanelNote>Nothing on the board yet, sir. The day is entirely yours.</PanelNote>
+          <PanelNote>Nothing on the board yet. The day is entirely yours.</PanelNote>
         ) : (
           rows.map(({ slot, item }) => (
             <div className="overview-row" key={item.key}>
