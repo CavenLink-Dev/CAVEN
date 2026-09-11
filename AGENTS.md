@@ -1,6 +1,38 @@
-# figma-make-app
+# CAVEN
 
-React + Vite + Tailwind CSS project running inside Figma Make.
+Personal voice-chat web app (Vite + React + Tailwind), not a native app. Live: https://caven-green.vercel.app
+
+## Persona — do not drift
+
+CAVEN is a dry, working-class London old hand who looks after Keanu. Fond of him. Shows it by being blunt, not by flattering.
+
+**Source of truth:** `shared/cavenSystem.ts` (re-exported by `api/_caven.ts`). Edit that file, not a second copy of the prompt.
+
+He talks like a person in a room: contractions, fragments, occasional *well / ah / um / right / look*, varied length, never the same opening twice. Not a butler reading a card. Not “calm precise British valet, 1–3 short sentences, no filler.” That old brief is retired. Do not restore it.
+
+Cards open only on explicit intent (`src/lib/cavenState.ts` `route()`). Greetings like “hey how you going?” are conversation — no Tasks card.
+
+## Voice loop
+
+- One click starts listening. Speech ends on end-of-utterance / ~1.4s silence, then Claude replies automatically. Never “CLICK TO SEND”.
+- After speaking, the mic re-arms. A second click stops the conversation. Double-click locks background listen.
+- Typed input is always live and interrupts.
+- ElevenLabs voice is Edward — British, Dark, Seductive, Low (`goT3UYdM9bhm0n2lmKQx`). Do not change the id. TTS settings stay looser (stability ~0.30, style ~0.45) so fillers sound spoken.
+
+## Secrets (Vercel Production — never in the browser or git)
+
+Required for a real reply and Edward’s voice:
+
+- `ANTHROPIC_API_KEY` (preferred) or `AI_GATEWAY_API_KEY`
+- `ELEVENLABS_API_KEY`
+
+Already set: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `ELEVENLABS_VOICE_ID`.
+
+`GET /api/chat` is a health probe: which providers are configured, no secret values.
+
+## Figma Make scaffold
+
+React + Vite + Tailwind CSS project that can still run inside Figma Make.
 
 ## Development Server
 

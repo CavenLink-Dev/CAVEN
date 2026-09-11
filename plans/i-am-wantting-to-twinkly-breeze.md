@@ -1,5 +1,7 @@
 # CAVEN — Personal J.A.R.V.I.S. Web App
 
+> **Superseded for persona and voice.** Current product rules live in `AGENTS.md` and `shared/cavenSystem.ts`. CAVEN is a dry London old hand, not a valet. Voice auto-replies. Do not restore “1–3 short sentences / no filler / mock-data only.”
+
 ## Context
 
 The user wants a personal assistant web app (a "JARVIS from Iron Man" called **CAVEN**), targeted at **iPhone (iOS, e.g. 13 Pro Max) Safari** as a mobile web app. It is explicitly **not** a business tool — it exists to make everyday life easier, with a focus on people with ADHD / autism / auADHD: reminders, goals, tasks, and morning/night/other routines.
