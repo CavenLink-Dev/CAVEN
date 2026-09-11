@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { playSfx } from '../lib/sfx';
-import { WIDGETS, WidgetOverlay } from './widgetData';
+import { useWidgets, WidgetOverlay } from './widgetData';
 
 // Scattered luminescent cloud: phyllotaxis spread on a plane with depth so
 // every tile faces the viewer and stays readable (nothing wraps out of sight).
@@ -21,6 +21,7 @@ const clampPan = (v: number) => Math.max(-PAN, Math.min(PAN, v));
 // The WIDGETS board: the same scattered 3D holographic field as the plasma
 // board, but with no plasma ball at its center.
 function FlatBoardBase() {
+  const widgets = useWidgets();
   const stageRef = useRef<HTMLDivElement>(null);
   const pan = useRef({ x: 0, y: 0 });
   const dragging = useRef(false);
@@ -89,7 +90,7 @@ function FlatBoardBase() {
       onWheel={onWheel}
     >
       <div className="absolute left-1/2 top-1/2 h-0 w-0" style={{ transformStyle: 'preserve-3d' }} ref={stageRef}>
-        {WIDGETS.map((wgt, i) => (
+        {widgets.map((wgt, i) => (
           <div
             key={wgt.title}
             className="absolute"

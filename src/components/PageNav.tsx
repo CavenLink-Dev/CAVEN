@@ -25,7 +25,7 @@ export function PageNav({ page, onChange }: { page: Page; onChange: (p: Page) =>
             >
               <span style={{ color: active ? 'var(--caven-cyan-bright)' : 'var(--caven-steel)' }}>{it.icon}</span>
               <span
-                className="font-display text-[10px] tracking-[0.2em]"
+                className="hidden font-display text-[10px] tracking-[0.2em] sm:inline"
                 style={{ color: active ? 'var(--caven-cyan-bright)' : 'var(--caven-steel)' }}
               >
                 {it.label.toUpperCase()}

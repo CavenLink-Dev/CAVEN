@@ -33,6 +33,21 @@ export default defineConfig(({ mode }) => {
       host: process.env.FIGMA_DEV_SERVER_HOST || '0.0.0.0',
       port: parseInt(process.env.PORT || '8443'),
       strictPort: true,
+      proxy: {
+        '/api': {
+          target: 'https://egtzpvitcgquzppvlcrj.supabase.co',
+          changeOrigin: true,
+          rewrite: (p) => `/functions/v1/make-server-3159d1b2${p.replace(/^\/api/, '')}`,
+          configure(proxy) {
+            proxy.on('proxyReq', (proxyReq) => {
+              proxyReq.setHeader(
+                'Authorization',
+                'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVndHpwdml0Y2dxdXpwcHZsY3JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkwODc4MjksImV4cCI6MjEwNDY2MzgyOX0.UvjHvUZdwVK_-FTbyHb9rsWGvCJvRkETld0Q2fQ1ywA',
+              )
+            })
+          },
+        },
+      },
       watch: {
         ignored: [
           '**/.figma/**',

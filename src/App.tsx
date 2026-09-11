@@ -11,7 +11,8 @@ import { isMuted, setMuted, startAmbient } from './lib/sfx';
 export default function App() {
   const [page, setPage] = useState<Page>('main');
   const [muted, setMutedState] = useState(isMuted());
-  const { state, amplitude, transcript, reply, locked, cards, toggle, toggleLock, cancel, updateCard, closeCard } = useCaven();
+  const [typed, setTyped] = useState('');
+  const { state, amplitude, transcript, reply, locked, cards, toggle, toggleLock, cancel, updateCard, closeCard, runCommand } = useCaven();
 
   // Autoplay is gated behind a user gesture — start the ambient bed on first interaction.
   useEffect(() => {
@@ -20,14 +21,20 @@ export default function App() {
     return () => window.removeEventListener('pointerdown', kick);
   }, []);
 
+  const submitTyped = () => {
+    const text = typed.trim();
+    if (!text || state !== 'idle') return;
+    setTyped('');
+    runCommand(text);
+  };
+
   return (
     <div className="relative size-full overflow-hidden">
       <div className="caven-backdrop" />
 
-      {/* Header — bulky wordmark with the page nav to its right */}
-      <div className="fixed left-5 top-4 z-40 flex items-center gap-4">
+      <div className="fixed left-4 top-4 z-40 flex max-w-[calc(100%-6.5rem)] flex-wrap items-center gap-3 sm:left-5 sm:max-w-none">
         <div
-          className="font-display text-4xl font-black tracking-[0.32em]"
+          className="font-display text-2xl font-black tracking-[0.28em] sm:text-4xl sm:tracking-[0.32em]"
           style={{ color: 'var(--caven-cyan-bright)', textShadow: '0 0 22px var(--caven-glow), 0 0 6px var(--caven-cyan)' }}
         >
           CAVEN
@@ -35,17 +42,15 @@ export default function App() {
         <PageNav page={page} onChange={setPage} />
       </div>
 
-      {/* Top-right: background music picker */}
-      <div className="fixed right-5 top-4 z-40">
+      <div className="fixed right-4 top-4 z-40 sm:right-5">
         <MusicMenu />
       </div>
 
-      {/* Page content */}
       <div className="relative z-10 h-full">
         {page === 'main' ? (
           <FlatBoard />
         ) : (
-          <div className="flex h-full justify-start overflow-y-auto px-5 pb-10 pt-20 pr-[46%]">
+          <div className="flex h-full justify-start overflow-y-auto px-5 pb-72 pt-20 md:pr-[46%] md:pb-10">
             <div key={page} className="anim-fade-up w-full">
               {page === 'finance' && <FinancePage />}
               {page === 'journal' && <JournalPage />}
@@ -55,10 +60,8 @@ export default function App() {
         )}
       </div>
 
-      {/* CAVEN core — anchored to the right, vertically centered */}
-      <div className="pointer-events-none fixed right-2 top-1/2 z-30 -translate-y-1/2 sm:right-8">
-        <div className="pointer-events-auto flex flex-col items-center">
-          {/* Chat box: your words while listening, CAVEN's reply while speaking */}
+      <div className="pointer-events-none fixed bottom-16 left-1/2 z-30 -translate-x-1/2 md:bottom-auto md:left-auto md:right-8 md:top-1/2 md:translate-x-0 md:-translate-y-1/2">
+        <div className="pointer-events-auto flex origin-bottom flex-col items-center md:origin-center max-md:scale-[0.72]">
           {state === 'listening' && transcript && (
             <div
               className="mb-4 max-w-[260px] rounded-2xl px-4 py-2 text-center text-sm anim-fade-up metal-surface"
@@ -82,7 +85,24 @@ export default function App() {
 
       <CardLayer cards={cards} onClose={closeCard} onUpdate={updateCard} />
 
-      {/* Bottom-left controls: mute (and STOP while locked) */}
+      <form
+        className="fixed bottom-4 left-1/2 z-40 flex w-[min(92vw,22rem)] -translate-x-1/2 items-center gap-2 md:left-16 md:translate-x-0"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submitTyped();
+        }}
+      >
+        <input
+          value={typed}
+          onChange={(e) => setTyped(e.target.value)}
+          placeholder="Type a command…"
+          disabled={state !== 'idle'}
+          className="metal-surface h-9 w-full rounded-full px-3 text-sm outline-none placeholder:opacity-40"
+          style={{ color: 'var(--caven-steel-light)' }}
+          aria-label="Type a command to CAVEN"
+        />
+      </form>
+
       <div className="fixed bottom-4 left-4 z-40 flex items-center gap-2">
         <button
           onClick={() => {

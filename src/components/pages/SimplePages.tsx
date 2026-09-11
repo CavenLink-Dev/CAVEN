@@ -1,4 +1,4 @@
-import { brainMetrics, brainNotes, budgets, interests, journal, transactions } from '../../lib/mockData';
+import { useCavenStore } from '../../lib/store';
 import { Bar, Panel, Ring, Row } from '../widgets';
 
 function money(n: number) {
@@ -6,6 +6,8 @@ function money(n: number) {
 }
 
 export function FinancePage() {
+  const { data } = useCavenStore();
+  const { budgets, transactions } = data;
   const balance = transactions.reduce((s, t) => s + t.amount, 0);
   return (
     <div className="w-full max-w-md space-y-3">
@@ -44,6 +46,8 @@ export function FinancePage() {
 }
 
 export function JournalPage() {
+  const { data } = useCavenStore();
+  const { journal } = data;
   return (
     <div className="w-full max-w-md space-y-3">
       <Panel>
@@ -65,6 +69,8 @@ export function JournalPage() {
 }
 
 export function BrainPage() {
+  const { data } = useCavenStore();
+  const { brainMetrics, brainNotes, interests } = data;
   return (
     <div className="w-full max-w-md space-y-3">
       <Panel>

@@ -1,17 +1,5 @@
 import type { CardKind } from '../../lib/cavenState';
-import {
-  brainMetrics,
-  brainNotes,
-  budgets,
-  calendar,
-  habits,
-  interests,
-  journal,
-  reminders,
-  tasks,
-  transactions,
-  voiceNotes,
-} from '../../lib/mockData';
+import { useCavenStore } from '../../lib/store';
 import { Bar, Dot, Ring, Row } from '../widgets';
 
 function money(n: number) {
@@ -19,9 +7,24 @@ function money(n: number) {
 }
 
 export function CardContent({ kind }: { kind: CardKind }) {
+  const { data } = useCavenStore();
+  const {
+    brainMetrics,
+    brainNotes,
+    budgets,
+    calendar,
+    habits,
+    interests,
+    journal,
+    reminders,
+    tasks,
+    transactions,
+    voiceNotes,
+  } = data;
   switch (kind) {
     case 'reminder': {
       const r = reminders[0];
+      if (!r) return <div className="text-sm opacity-70">No reminders yet — say “remind me…” and I’ll keep it.</div>;
       return (
         <div className="space-y-3">
           <div className="text-lg font-semibold" style={{ color: 'var(--caven-cyan-bright)' }}>

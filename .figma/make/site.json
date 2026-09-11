@@ -1,0 +1,8 @@
+{
+  "title": "CAVEN",
+  "description": "Personal J.A.R.V.I.S. web app — voice-first reminders, tasks, and everyday support.",
+  "language": "en",
+  "robots": {
+    "index": false
+  }
+}

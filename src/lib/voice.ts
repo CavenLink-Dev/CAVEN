@@ -53,8 +53,24 @@ function stopMeter() {
   stream = null;
 }
 
-// Click-to-talk: mic stays open until stopListening() is called, then onEnd
-// fires with whatever was captured.
+// Hands-free listening: the recogniser ends on end-of-utterance (continuous =
+// false) and a silence timer backs that up on browsers that linger. onEnd fires
+// as soon as the user stops talking — no second click required.
+const SILENCE_MS = 1400; // quiet gap that counts as "they've finished"
+const LEAD_IN_MS = 6000; // grace period before any speech has been heard
+const MAX_UTTERANCE_MS = 20000; // hard ceiling so the mic never hangs open
+
+let silenceTimer: ReturnType<typeof setTimeout> | null = null;
+let maxTimer: ReturnType<typeof setTimeout> | null = null;
+let aborted = false;
+
+function clearTimers() {
+  if (silenceTimer) clearTimeout(silenceTimer);
+  if (maxTimer) clearTimeout(maxTimer);
+  silenceTimer = null;
+  maxTimer = null;
+}
+
 export function startListening(
   onPartial: (text: string, amp: number) => void,
   onEnd: (text: string) => void,
@@ -64,57 +80,95 @@ export function startListening(
   const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition;
   if (!Ctor) return onError(true);
 
+  // Tear down anything still running so we never stack two recognisers.
+  try {
+    recognition?.abort?.();
+  } catch {
+    /* noop */
+  }
+
+  aborted = false;
   recognition = new Ctor();
-  recognition.lang = 'en-US';
+  recognition.lang = 'en-AU';
   recognition.interimResults = true;
-  recognition.continuous = true;
+  // The crux of the fix: end the utterance automatically instead of staying
+  // open until a second click.
+  recognition.continuous = false;
+  recognition.maxAlternatives = 1;
 
   let amp = 0;
   let finalText = '';
-  // Guard so error+end don't both settle (which would double-process).
   let settled = false;
   startMeter((a) => (amp = a));
+
+  const stopRecogniser = () => {
+    try {
+      recognition?.stop();
+    } catch {
+      /* noop */
+    }
+  };
+
+  const armSilence = (ms: number) => {
+    if (silenceTimer) clearTimeout(silenceTimer);
+    silenceTimer = setTimeout(stopRecogniser, ms);
+  };
 
   const finish = () => {
     if (settled) return;
     settled = true;
+    clearTimers();
     stopMeter();
+    if (aborted) return; // cancelled on purpose — swallow the utterance
     onEnd(finalText.trim());
   };
 
   recognition.onresult = (e: any) => {
     let text = '';
-    for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
-    finalText = text;
-    onPartial(text, amp);
+    for (let i = e.resultIndex ?? 0; i < e.results.length; i++) text += e.results[i][0].transcript;
+    // Some browsers replay earlier results; keep the longest read we have seen.
+    finalText = text.trim() || finalText;
+    onPartial(finalText, amp);
+    armSilence(SILENCE_MS);
   };
+
+  recognition.onspeechend = () => armSilence(400);
+
   recognition.onerror = (e: any) => {
     if (settled) return;
-    // Permission/hardware denial is fatal — nothing will ever come through.
     const fatal = e?.error === 'not-allowed' || e?.error === 'service-not-allowed' || e?.error === 'audio-capture';
     if (fatal) {
       settled = true;
+      clearTimers();
       stopMeter();
       onError(true);
       return;
     }
-    // Otherwise (e.g. no-speech, network) settle normally and process what we have.
+    // 'no-speech' / 'aborted' / 'network': settle with whatever we captured.
     finish();
   };
+
   recognition.onend = () => finish();
+
+  // If nothing at all is said, close the mic politely rather than hanging.
+  armSilence(LEAD_IN_MS);
+  maxTimer = setTimeout(stopRecogniser, MAX_UTTERANCE_MS);
 
   try {
     recognition.start();
   } catch {
     if (!settled) {
       settled = true;
+      clearTimers();
       stopMeter();
       onError(true);
     }
   }
 }
 
+// Graceful stop — whatever was captured is still processed.
 export function stopListening() {
+  clearTimers();
   try {
     recognition?.stop();
   } catch {
@@ -123,11 +177,19 @@ export function stopListening() {
   stopMeter();
 }
 
-import { projectId, publicAnonKey } from '../../utils/supabase/info';
+// Hard cancel — the utterance is discarded and onEnd never fires.
+export function abortListening() {
+  aborted = true;
+  clearTimers();
+  try {
+    recognition?.abort?.() ?? recognition?.stop?.();
+  } catch {
+    /* noop */
+  }
+  stopMeter();
+}
 
-const BASE = `https://${projectId}.supabase.co/functions/v1/make-server-3159d1b2`;
-const TTS_URL = `${BASE}/tts`;
-const CHAT_URL = `${BASE}/chat`;
+import { apiFetch } from './backend';
 
 export type ChatTurn = { role: 'user' | 'assistant'; content: string };
 
@@ -135,9 +197,8 @@ export type ChatTurn = { role: 'user' | 'assistant'; content: string };
 // back to a canned line rather than leaving the user without a response.
 export async function askCaven(message: string, history: ChatTurn[] = []): Promise<string | null> {
   try {
-    const res = await fetch(CHAT_URL, {
+    const res = await apiFetch('chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${publicAnonKey}` },
       body: JSON.stringify({ message, history }),
     });
     if (!res.ok) throw new Error(`chat ${res.status}`);
@@ -150,14 +211,30 @@ export async function askCaven(message: string, history: ChatTurn[] = []): Promi
   }
 }
 
-// Speak with CAVEN's ElevenLabs (Edward) voice via the edge function.
+// Handle on the currently playing TTS, so a new turn can interrupt CAVEN.
+let speaking: { stop: () => void } | null = null;
+
+export function stopSpeaking() {
+  try {
+    speaking?.stop();
+  } catch {
+    /* noop */
+  }
+  speaking = null;
+  try {
+    window.speechSynthesis?.cancel();
+  } catch {
+    /* noop */
+  }
+}
+
+// Speak with CAVEN's ElevenLabs (Edward) voice via /api/tts.
 // Falls back to the browser voice if the request fails. onAmp streams the
 // live audio amplitude so the core reacts to the actual speech.
 export async function speak(text: string, onAmp?: (a: number) => void): Promise<void> {
   try {
-    const res = await fetch(TTS_URL, {
+    const res = await apiFetch('tts', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${publicAnonKey}` },
       body: JSON.stringify({ text }),
     });
     if (!res.ok) throw new Error(`tts ${res.status}`);
@@ -178,12 +255,30 @@ function playWithMeter(buf: ArrayBuffer, onAmp?: (a: number) => void): Promise<v
     const Ctx = window.AudioContext || (window as any).webkitAudioContext;
     if (!Ctx) {
       const audio = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/mpeg' })));
-      audio.onended = () => resolve();
-      audio.onerror = () => resolve();
-      audio.play().catch(() => resolve());
+      const done = () => {
+        speaking = null;
+        resolve();
+      };
+      audio.onended = done;
+      audio.onerror = done;
+      speaking = {
+        stop: () => {
+          audio.pause();
+          done();
+        },
+      };
+      audio.play().catch(done);
       return;
     }
     const ctx: AudioContext = new Ctx();
+    let finished = false;
+    const done = () => {
+      if (finished) return;
+      finished = true;
+      speaking = null;
+      ctx.close().catch(() => {});
+      resolve();
+    };
     ctx.decodeAudioData(
       buf.slice(0),
       (decoded) => {
@@ -207,16 +302,23 @@ function playWithMeter(buf: ArrayBuffer, onAmp?: (a: number) => void): Promise<v
         };
         src.onended = () => {
           cancelAnimationFrame(raf);
-          ctx.close().catch(() => {});
-          resolve();
+          done();
+        };
+        speaking = {
+          stop: () => {
+            cancelAnimationFrame(raf);
+            try {
+              src.stop();
+            } catch {
+              /* already ended */
+            }
+            done();
+          },
         };
         src.start();
         tick();
       },
-      () => {
-        ctx.close().catch(() => {});
-        resolve();
-      },
+      () => done(),
     );
   });
 }

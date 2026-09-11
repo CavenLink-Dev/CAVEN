@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { playSfx } from './sfx';
+import { useCavenStore } from './store';
 import { askCaven, startListening, speak, stopListening, voiceSupported, type ChatTurn } from './voice';
 
 export type CavenState = 'idle' | 'listening' | 'thinking' | 'acting' | 'speaking' | 'complete';
@@ -31,25 +32,26 @@ const DEMO_COMMAND = 'Remind me on September 5th at 6pm — dinner with Mom.';
 function route(text: string): Route {
   const t = text.toLowerCase();
   if (/remind|dinner|appointment|pick up|don't forget|dont forget/.test(t))
-    return { kind: 'reminder', title: 'Reminder set', reply: "Very good. I've noted that reminder, and I'll see that you're prompted in good time." };
+    return { kind: 'reminder', title: 'Reminder set', reply: "Done. I'll see that you're prompted in good time." };
   if (/spend|budget|money|finance|cost|paid|bought|bank/.test(t))
-    return { kind: 'finance', title: 'Finances', reply: 'Certainly. Here is how your finances stand this month.' };
+    return { kind: 'finance', title: 'Finances', reply: "Here is how the month stands. The overspend is the only figure that needs attention." };
   if (/journal|felt|feeling|mood|today was|write down/.test(t))
-    return { kind: 'journal', title: 'Journal', reply: "I've opened your journal. Take your time — I'm listening whenever you're ready." };
+    return { kind: 'journal', title: 'Journal', reply: "Journal is open. Take your time." };
   if (/habit|streak|water|meds|routine/.test(t))
-    return { kind: 'habits', title: 'Habits', reply: 'Of course. Here are your habits, and you are keeping them up rather well.' };
+    return { kind: 'habits', title: 'Habits', reply: "Your habits are here. You are keeping them up rather well." };
   if (/calendar|schedule|agenda|today|tomorrow|events/.test(t))
-    return { kind: 'calendar', title: 'Today', reply: 'Right away. Here is how your day is arranged.' };
+    return { kind: 'calendar', title: 'Today', reply: "Here is how the day is arranged. I would notify you if anything collided." };
   if (/note|remember that|idea/.test(t))
-    return { kind: 'voicenote', title: 'Voice note', reply: "Noted and safely kept. I'll have it ready the moment you need it." };
+    return { kind: 'voicenote', title: 'Voice note', reply: "Noted. I'll have it when you need it." };
   if (/brain|know about me|interests|about me/.test(t))
-    return { kind: 'brain', title: 'CAVEN Brain', reply: "Here is everything I've come to understand about you." };
-  return { kind: 'tasks', title: 'Tasks', reply: 'Consider it done — I have added that to your tasks.' };
+    return { kind: 'brain', title: 'CAVEN Brain', reply: "This is what I've come to understand about you." };
+  return { kind: 'tasks', title: 'CAVEN', reply: "Good. I'm here. What would you like to deal with first?" };
 }
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function useCaven() {
+  const { capture } = useCavenStore();
   const [state, setState] = useState<CavenState>('idle');
   const [amplitude, setAmplitude] = useState(0);
   const [transcript, setTranscript] = useState('');
@@ -145,6 +147,7 @@ export function useCaven() {
       set('acting');
       await wait(1000);
       surface(r, said);
+      capture(r.kind, said);
       playSfx('notification');
       setReply(line);
       // Remember the exchange (trimmed) so follow-ups have context.
@@ -163,9 +166,14 @@ export function useCaven() {
       // In locked/background mode, re-arm the mic automatically.
       if (lockedRef.current) startMicRef.current();
     },
-    [surface],
+    [surface, capture],
   );
   processRef.current = process;
+
+  const runCommand = useCallback((text: string) => {
+    if (stateRef.current !== 'idle') return;
+    processRef.current(text);
+  }, []);
 
   const stopMic = useCallback(() => {
     playSfx('off');
@@ -216,5 +224,5 @@ export function useCaven() {
     setCards((prev) => prev.filter((c) => c.id !== id));
   }, []);
 
-  return { state, amplitude, transcript, reply, locked, cards, toggle, toggleLock, cancel, updateCard, closeCard };
+  return { state, amplitude, transcript, reply, locked, cards, toggle, toggleLock, cancel, updateCard, closeCard, runCommand };
 }

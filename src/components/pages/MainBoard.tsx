@@ -1,8 +1,10 @@
-import { calendar, habits, tasks, voiceNotes } from '../../lib/mockData';
+import { useCavenStore } from '../../lib/store';
 import { Bar, Dot, Panel, Ring } from '../widgets';
 
 // Summary tiles that frame the core on the main screen.
 export function MainBoard() {
+  const { data } = useCavenStore();
+  const { calendar, habits, tasks, voiceNotes } = data;
   const doneTasks = tasks.filter((t) => t.done).length;
   const next = calendar.find((c) => c.title === 'Dinner with Mom') ?? calendar[0];
 
@@ -42,9 +44,9 @@ export function MainBoard() {
       </Panel>
 
       <Panel title="Voice note">
-        <div className="text-xs opacity-80 line-clamp-3">{voiceNotes[0].text}</div>
+        <div className="text-xs opacity-80 line-clamp-3">{voiceNotes[0]?.text ?? 'Say a note and I’ll keep it here.'}</div>
         <div className="mt-2 text-[10px] tracking-widest" style={{ color: 'var(--caven-steel)' }}>
-          {voiceNotes[0].when}
+          {voiceNotes[0]?.when ?? ''}
         </div>
       </Panel>
     </div>
