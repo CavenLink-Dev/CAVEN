@@ -6,7 +6,6 @@ import { DailyOverviewCard } from './components/board/DailyOverviewCard';
 import { RemindersCard } from './components/board/RemindersCard';
 import { TasksCard } from './components/board/TasksCard';
 import { TopBar, type Page } from './components/board/TopBar';
-import { VoiceBar } from './components/board/VoiceBar';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { BrainPage, FinancePage, JournalPage } from './components/pages/SimplePages';
 import { useCaven } from './lib/cavenState';
@@ -98,8 +97,6 @@ export default function App() {
           {page === 'settings' && <SettingsPage />}
         </div>
       )}
-
-      <VoiceBar state={state} amplitude={amplitude} onToggle={toggle} />
 
       <div className="mx-auto mt-3 flex w-[min(570px,100%)] items-center gap-2">
         <button
