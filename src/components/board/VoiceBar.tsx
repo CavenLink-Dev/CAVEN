@@ -42,6 +42,7 @@ export function VoiceBar({
   onToggle: () => void
 }) {
   const line = COPY[state]
+  const actionLabel = state === 'idle' ? 'Start speaking to CAVEN' : 'Stop the conversation with CAVEN'
 
   return (
     <button
@@ -49,7 +50,7 @@ export function VoiceBar({
       className="voice-bar"
       type="button"
       data-state={state}
-      aria-label={state === 'idle' ? 'Start speaking to CAVEN' : 'Stop CAVEN listening'}
+      aria-label={`${actionLabel}. ${line.title}`}
     >
       <span className="waveform" aria-hidden="true">
         {Array.from({ length: BARS }, (_, i) => (

@@ -32,6 +32,15 @@ export default function App() {
     <main className="app-shell">
       <TopBar page={page} onPageChange={setPage} actions={<MusicMenu />} />
 
+      {/* Announce speech capture and CAVEN's replies to assistive tech. */}
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {state === 'listening' && transcript
+          ? transcript
+          : reply && state !== 'listening'
+            ? `CAVEN said: ${reply}`
+            : ''}
+      </div>
+
       {page === 'main' ? (
         <div className="board-grid">
           <div className="board-left">
@@ -137,7 +146,7 @@ export default function App() {
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
             placeholder="Say something to CAVEN…"
-            className="metal-surface h-9 w-full rounded-full px-3 text-sm outline-none placeholder:opacity-40"
+            className="caven-text-input metal-surface h-9 w-full rounded-full px-3 text-sm placeholder:opacity-40"
             style={{ color: 'var(--caven-steel-light)' }}
             aria-label="Type a message to CAVEN"
           />

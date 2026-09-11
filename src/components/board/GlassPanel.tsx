@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { useId, type ReactNode } from "react"
 
 export function GlassPanel({
   label,
@@ -19,8 +19,10 @@ export function GlassPanel({
   showTitle?: boolean
   headerRelative?: boolean
 }) {
+  const headingId = useId()
   return (
     <section
+      aria-labelledby={headingId}
       className={`glass-panel holo-board ${
         isVisible ? "holo-in" : "holo-out"
       } ${className}`}
@@ -40,18 +42,19 @@ export function GlassPanel({
       >
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
-            <p
+            <h2
+              id={headingId}
               className={`hud-label${
                 largeLabel ? " hud-label--large" : ""
               } text-cyan-300/80`}
             >
               {label}
-            </p>
+            </h2>
           </div>
           {showTitle && (
-            <h2 className="mt-1 text-[48px] font-semibold tracking-[-0.02em] text-white/95 flex items-center gap-2">
+            <p className="mt-1 text-[48px] font-semibold tracking-[-0.02em] text-white/95 flex items-center gap-2">
               {title}
-            </h2>
+            </p>
           )}
         </div>
         <div className="flex items-center gap-1.5 mt-2">
