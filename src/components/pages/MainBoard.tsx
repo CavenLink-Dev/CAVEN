@@ -1,29 +1,32 @@
 import { useCavenStore } from '../../lib/store';
-import { Bar, Dot, Panel, Ring } from '../widgets';
+import { Dot, Panel, Ring } from '../widgets';
 
-// Summary tiles that frame the core on the main screen.
 export function MainBoard() {
   const { data } = useCavenStore();
   const { calendar, habits, tasks, voiceNotes } = data;
   const doneTasks = tasks.filter((t) => t.done).length;
-  const next = calendar.find((c) => c.title === 'Dinner with Mom') ?? calendar[0];
+  const next = calendar[0];
 
   return (
     <div className="grid w-full max-w-md grid-cols-2 gap-3">
       <Panel title="Habits">
-        <div className="flex flex-wrap gap-3">
-          {habits.slice(0, 4).map((h) => (
-            <div key={h.id} className="flex flex-col items-center gap-1">
-              <Ring value={Math.round((h.streak / h.goal) * 100)} label={h.icon} size={44} />
-              <span className="text-[10px] opacity-70">{h.streak}d</span>
-            </div>
-          ))}
-        </div>
+        {habits.length ? (
+          <div className="flex flex-wrap gap-3">
+            {habits.slice(0, 4).map((h) => (
+              <div key={h.id} className="flex flex-col items-center gap-1">
+                <Ring value={h.goal ? Math.round((h.streak / h.goal) * 100) : 0} label={h.icon} size={44} />
+                <span className="text-[10px] opacity-70">{h.streak}d</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-xs opacity-70">No habits yet.</div>
+        )}
       </Panel>
 
       <Panel title="Tasks">
         <div className="mb-2 text-xs opacity-70">
-          {doneTasks}/{tasks.length} done today
+          {tasks.length ? `${doneTasks}/${tasks.length} done` : 'No tasks yet.'}
         </div>
         {tasks.slice(0, 3).map((t) => (
           <div key={t.id} className="mb-1.5 flex items-center gap-2 text-sm">
@@ -34,13 +37,16 @@ export function MainBoard() {
       </Panel>
 
       <Panel title="Up next">
-        <div className="font-display text-2xl" style={{ color: 'var(--caven-cyan-bright)' }}>
-          {next.time}
-        </div>
-        <div className="text-sm">{next.title}</div>
-        <div className="mt-2">
-          <Bar value={40} />
-        </div>
+        {next ? (
+          <>
+            <div className="font-display text-2xl" style={{ color: 'var(--caven-cyan-bright)' }}>
+              {next.time}
+            </div>
+            <div className="text-sm">{next.title}</div>
+          </>
+        ) : (
+          <div className="text-xs opacity-70">Nothing coming up.</div>
+        )}
       </Panel>
 
       <Panel title="Voice note">

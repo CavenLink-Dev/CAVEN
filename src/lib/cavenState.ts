@@ -56,12 +56,7 @@ const INTENTS: Array<{ re: RegExp; kind: CardKind; title: string }> = [
     title: 'Tasks',
   },
   {
-    re: /\b(my habits|habit tracker|show me my habits|my streaks?|check my streak|did i (take|drink|do) my)\b/i,
-    kind: 'habits',
-    title: 'Habits',
-  },
-  {
-    re: /\b(my calendar|my schedule|my agenda|my diary|what'?s on (today|tomorrow|this week)|whats on (today|tomorrow|this week)|what have i got on|book .+ (for|on|at)|schedule .+ (for|on|at))\b/i,
+    re: /\b(my calendar|my schedule|my agenda|my diary|what'?s on (today|tomorrow|this week)|whats on (today|tomorrow|this week)|what have i got on)\b/i,
     kind: 'calendar',
     title: 'Today',
   },
@@ -71,19 +66,9 @@ const INTENTS: Array<{ re: RegExp; kind: CardKind; title: string }> = [
     title: 'Journal',
   },
   {
-    re: /\b(my budget|my finances|my spending|how much (did|have) i (spend|spent)|my expenses|my transactions|my bank balance|what did i spend)\b/i,
-    kind: 'finance',
-    title: 'Finances',
-  },
-  {
     re: /\b(voice note|make a note|take a note|note this down|jot (this|that) down|remember that i)\b/i,
     kind: 'voicenote',
     title: 'Voice note',
-  },
-  {
-    re: /\b(caven brain|my brain|what do you know about me|my profile|my interests)\b/i,
-    kind: 'brain',
-    title: 'CAVEN Brain',
   },
 ];
 

@@ -42,7 +42,7 @@ export function CardContent({ kind }: { kind: CardKind }) {
           </div>
           {r.note && <div className="text-sm opacity-80">{r.note}</div>}
           <div className="mt-2 rounded-xl px-3 py-2 text-xs" style={{ background: 'rgba(63,208,255,0.08)' }}>
-            I'll nudge you 30 minutes before, gently.
+            Saved on your board.
           </div>
         </div>
       );

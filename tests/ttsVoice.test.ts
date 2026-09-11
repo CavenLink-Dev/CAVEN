@@ -7,10 +7,10 @@ test('preferred voice uses the env id when set', () => {
   assert.equal(preferredVoice('  xru6qZB94sJdkyqP12qN  '), JAMES_VOICE);
 });
 
-test('preferred voice defaults to James when env is empty', () => {
-  assert.equal(preferredVoice(undefined), JAMES_VOICE);
-  assert.equal(preferredVoice(''), JAMES_VOICE);
-  assert.equal(preferredVoice('   '), JAMES_VOICE);
+test('preferred voice defaults to George when env is empty', () => {
+  assert.equal(preferredVoice(undefined), GEORGE_VOICE);
+  assert.equal(preferredVoice(''), GEORGE_VOICE);
+  assert.equal(preferredVoice('   '), GEORGE_VOICE);
 });
 
 test('402 on a library voice falls back to premade George', () => {

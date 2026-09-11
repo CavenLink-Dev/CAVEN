@@ -11,7 +11,7 @@ export function applyCommand(kind:ActionKind,text:string,prev:CavenData,now=new 
   const due=match.start.date();
   if(due.getTime()<=now.getTime())throw new Error('That time has already passed, sir. Please give me a future date and time.');
   const title=(said.slice(0,match.index)+said.slice(match.index+match.text.length)).replace(/^(?:caven[, ]*)?(?:remind me(?: to)?|set a reminder(?: for)?|nudge me(?: to)?|wake me|don'?t let me forget(?: to)?)\s*/i,'').replace(/\b(at|on|for)\s*$/i,'').trim()||'Reminder';
-  return {data:{...prev,reminders:[{id,title,date:due.toLocaleDateString('en-AU'),time:due.toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'}),dueAt:due.toISOString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone},...prev.reminders]},message:`It's down for ${due.toLocaleString('en-AU')}. I'll see to it.`,changed:true};
+  return {data:{...prev,reminders:[{id,title,date:due.toLocaleDateString('en-AU'),time:due.toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'}),dueAt:due.toISOString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone},...prev.reminders]},message:`It's on the board for ${due.toLocaleString('en-AU')}.`,changed:true};
  }
  if(kind==='tasks') {
   const done=said.match(/^(?:please )?(?:tick|cross) (.+?) off(?: my (?:list|tasks))?$/i)||said.match(/^(?:complete|finish|mark complete) (.+)$/i);

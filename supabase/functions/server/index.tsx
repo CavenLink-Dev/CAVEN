@@ -1,11 +1,9 @@
 import { Hono } from "npm:hono";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
-import * as kv from "./kv_store.tsx";
 
 const app = new Hono();
 const PREFIXES = ["", "/make-server-3159d1b2"];
-const STATE_KEY = "caven:state";
 const EDWARD_VOICE = Deno.env.get("ELEVENLABS_VOICE_ID") ?? "xru6qZB94sJdkyqP12qN";
 
 import { CAVEN_SYSTEM } from "./caven_system.ts";
@@ -146,26 +144,7 @@ mount("/tts", "post", async (c) => {
   }
 });
 
-mount("/state", "get", async (c) => {
-  try {
-    const value = await kv.get(STATE_KEY);
-    return c.json({ state: value ?? null });
-  } catch (err) {
-    console.error("CAVEN state get failed:", err);
-    return c.json({ error: "state_unavailable" }, 502);
-  }
-});
-
-mount("/state", "post", async (c) => {
-  try {
-    const body = await c.req.json();
-    const state = body?.state ?? body;
-    await kv.set(STATE_KEY, state);
-    return c.json({ ok: true });
-  } catch (err) {
-    console.error("CAVEN state set failed:", err);
-    return c.json({ error: "state_unavailable" }, 502);
-  }
-});
+mount("/state", "get", (c) => c.json({ error: "retired", message: "Use Vercel /api/state with a signed-in account." }, 410));
+mount("/state", "post", (c) => c.json({ error: "retired", message: "Use Vercel /api/state with a signed-in account." }, 410));
 
 Deno.serve(app.fetch);

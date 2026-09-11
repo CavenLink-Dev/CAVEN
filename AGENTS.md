@@ -24,7 +24,7 @@ Cards open only on explicit intent (`src/lib/cavenState.ts` `route()`). Greeting
 
 `api/chat.ts` is a provider table tried fastest-first, not a single hardcoded model. Set any of `GROQ_API_KEY` (free, fastest), `CEREBRAS_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `CHAT_BASE_URL`+`CHAT_API_KEY`, `ANTHROPIC_API_KEY`, `AI_GATEWAY_API_KEY`. Extra keys act as automatic fallbacks.
 
-Model ids expire — Groq retired `llama-3.3-70b-versatile` mid-build. On a 404 the route asks the provider what it serves and retries with the best match. **Don't hardcode a replacement when one breaks;** check `GET /api/chat?models=1`.
+Model ids expire — Groq retired `llama-3.3-70b-versatile` mid-build. On a 404 the route asks the provider what it serves and retries with the best match. **Don't hardcode a replacement when one breaks;** check `GET /api/chat?models=1`. Current default: `qwen/qwen3.8-27b` (verified live). Override with `GROQ_MODEL`.
 
 Keep `temperature: 0.9` on the OpenAI path. Lower and the fillers and varied sentence lengths get ironed flat, and the persona goes with them.
 
@@ -33,7 +33,7 @@ Keep `temperature: 0.9` on the OpenAI path. Lower and the fillers and varied sen
 - One click starts listening. Speech ends on end-of-utterance / ~1.4s silence, then the chat provider replies automatically. Never “CLICK TO SEND”.
 - After speaking, the mic re-arms. A second click stops the conversation. Double-click locks background listen.
 - Typed input is always live and interrupts.
-- ElevenLabs voice is Edward — British, Dark, Seductive, Low (`goT3UYdM9bhm0n2lmKQx`). Do not change the id. TTS settings stay looser (stability ~0.30, style ~0.45) so fillers sound spoken.
+- ElevenLabs voice is George — British premade (`JBFqnCBsd6RMkjVDRZzb`). Library voices such as Edward (`goT3UYdM9bhm0n2lmKQx`) and James (`xru6qZB94sJdkyqP12qN`) return 402 on a free ElevenLabs plan. `api/tts.ts` retries George if the env id is still a library voice. TTS settings stay looser (stability ~0.30, style ~0.45) so fillers sound spoken.
 
 ## Secrets (Vercel Production — never in the browser or git)
 
@@ -41,7 +41,7 @@ Chat is provider-agnostic (`api/chat.ts`). Prefer a free OpenAI-compatible key, 
 
 - `GROQ_API_KEY` (preferred for voice — free, low latency)
 - Optional fallbacks: `CEREBRAS_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`
-- `ELEVENLABS_API_KEY` (Edward’s voice)
+- `ELEVENLABS_API_KEY` (George’s voice)
 
 Already set: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `ELEVENLABS_VOICE_ID`, `ELEVENLABS_API_KEY`.
 
