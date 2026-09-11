@@ -149,6 +149,30 @@ button { font: inherit; }
 .glass-panel::before { content:''; position:absolute; inset:0; pointer-events:none; background:linear-gradient(115deg,rgba(150,245,252,.05) 0%,rgba(150,245,252,0) 40%); }
 .glass-panel:hover { border-color:rgba(123,205,220,.34); box-shadow:0 12px 32px rgba(0,0,0,.34); }
 
+/* ── Window behaviour: drag, shrink, expand, close ──────────────────────── */
+.glass-panel.is-draggable { cursor:grab; }
+.glass-panel.is-dragging { cursor:grabbing; z-index:60; user-select:none; border-color:rgba(123,205,220,.5); box-shadow:0 24px 60px rgba(0,0,0,.55); transition:none; }
+.glass-panel--collapsed { padding-bottom:var(--sp-5); }
+.glass-panel--expanded { position:fixed; inset:0; margin:auto; width:min(760px,92vw); height:min(560px,84vh); z-index:70; box-shadow:0 30px 80px rgba(0,0,0,.6); overflow-y:auto; }
+.panel-backdrop { position:fixed; inset:0; z-index:65; background:rgba(2,6,10,.55); backdrop-filter:blur(2px); animation:overlay-fade .25s ease; }
+
+/* macOS-style traffic lights — glyphs only surface on hover. */
+.win-lights { display:flex; align-items:center; gap:var(--sp-2); }
+.win-light { width:12px; height:12px; padding:0; border:0; border-radius:50%; display:grid; place-items:center; cursor:pointer; transition:filter .2s; }
+.win-light:hover { filter:brightness(1.12); }
+.win-light:focus-visible { outline:2px solid var(--ring); outline-offset:2px; }
+.win-light svg { width:8px; height:8px; opacity:0; color:rgba(30,15,5,.75); transition:opacity .15s; }
+.win-lights:hover .win-light svg,
+.win-light:focus-visible svg { opacity:1; }
+.win-light--close { background:#ff5f57; }
+.win-light--min { background:#febc2e; }
+.win-light--max { background:#28c840; }
+
+/* Slim placeholder left behind when a panel is closed, so it can return. */
+.panel-reopen { display:flex; align-items:center; gap:var(--sp-3); width:100%; padding:var(--sp-4) var(--sp-6); border:1px dashed var(--border); border-radius:var(--radius-panel); background:rgba(9,17,22,.4); text-align:left; transition:border-color .3s, background .3s; }
+.panel-reopen:hover { border-color:rgba(123,205,220,.34); background:rgba(9,17,22,.55); }
+.panel-reopen .win-light--max { cursor:default; }
+
 /* Metallic hologram board styling & beam in / beam out transitions */
 .holo-board { position:relative; }
 .holo-in { opacity:1; transform:perspective(1000px) rotateX(0deg) scale(1); filter:blur(0px); pointer-events:auto; }
@@ -718,7 +742,7 @@ button { font: inherit; }
 /* ═══════════════════════════════════════════════════════════════════════
    SHARED KEYFRAMES (upgraded board). `breathe` and `ripple` are the only
    names that collided with the production sheet — upgraded values win.
-   ═══════════════════════════════════════════════════════════════════════ */
+   ═════════════════════════════════════════���═════════════════════════════ */
 @keyframes spin { to { transform:rotate(360deg); } }
 @keyframes spinReverse { to { transform:rotate(-360deg); } }
 @keyframes breathe { 50% { transform:scale(1.035); opacity:.82; } }
