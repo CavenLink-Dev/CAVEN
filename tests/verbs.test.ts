@@ -37,8 +37,17 @@ test('every advertised verb actually performs', () => {
                    {do:'note.delete',text:'Boiler serviced in March'}]) {
     assert.equal(run(a).changed, true, `${(a as any).do} failed`);
   }
-  assert.equal(d.tasks.length, 0);
+  // the one verb that changes how he is spoken to rather than what is on the board
+  const named = run({do:'address.set', term:'Master'});
+  assert.equal(named.changed, true, 'address.set changed nothing');
+  assert.equal(d.address, 'Master');
+  assert.ok(named.message.includes('Master'), `address.set did not confirm in the new term: ${named.message}`);
+  assert.ok(!/\bsir\b/i.test(named.message), `address.set still said sir: ${named.message}`);
+  assert.ok(run({do:'task.add', title:'Water the plants'}).message.includes('Master'), 'the new term did not stick');
+
+  assert.equal(d.tasks.length, 1);
   assert.equal(d.reminders.length, 0);
+  assert.throws(() => runAction({do:'address.set', term:'<script>'}, d, now), /nothing has changed/i);
   console.log(`\n  ${ACTION_VERBS.length} verbs advertised, all exercised.`);
 });
 

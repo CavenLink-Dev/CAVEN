@@ -35,6 +35,10 @@ export function boardBrief(state: unknown): string {
   const s = state as Record<string, unknown>;
   const lines: string[] = [];
 
+  // Only when he has chosen something other than the default — the common case costs nothing.
+  const address = text(s.address);
+  if (address && address.toLowerCase() !== "sir") lines.push(`Address him as: ${address}`);
+
   const openTasks = list(s.tasks)
     .filter((t) => !t.done)
     .slice(0, 8)

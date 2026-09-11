@@ -9,27 +9,30 @@ import type {CavenData} from '../src/lib/store';
 export type ActionKind='reminder'|'tasks'|'journal'|'voicenote'|'calendar'|'habits'|'finance'|'brain';
 export type CavenAction={do:string;[key:string]:unknown};
 export type ActionResult={data:CavenData;message:string;changed:boolean};
+// Address rules live in shared/address.ts so the Settings field, the voice
+// verb and every spoken line agree on one definition of an acceptable term.
+import { addressOf, checkAddress } from './address.ts';
 export function applyCommand(kind:ActionKind,text:string,prev:CavenData,now=new Date()):ActionResult {
- const said=text.trim(), id=crypto.randomUUID(), day=now.toLocaleDateString('en-AU'), unchanged={data:prev,message:'Here it is.',changed:false};
+ const said=text.trim(), sir=addressOf(prev), id=crypto.randomUUID(), day=now.toLocaleDateString('en-AU'), unchanged={data:prev,message:'Here it is.',changed:false};
  // Queries and negations never mutate data. Viewing and writing are separate operations.
  if(/^(show|what|how|when|where|do i|did i|have i|can you show|tell me|open|check|don'?t (add|save|create|log|delete)|do not)\b/i.test(said)) return unchanged;
  if(kind==='reminder' && /\b(remind me|set a reminder|reminder for|nudge me|wake me|let me forget)\b/i.test(said)) {
   const match=chrono.en.GB.parse(said,now,{forwardDate:true})[0];
-  if(!match||!match.start.isCertain('hour'))throw new Error('What date and time should I remind you, sir? Nothing has been saved yet.');
+  if(!match||!match.start.isCertain('hour'))throw new Error(`What date and time should I remind you, ${sir}? Nothing has been saved yet.`);
   const due=match.start.date();
-  if(due.getTime()<=now.getTime())throw new Error('That time has already passed, sir. Please give me a future date and time.');
+  if(due.getTime()<=now.getTime())throw new Error(`That time has already passed, ${sir}. Please give me a future date and time.`);
   const title=(said.slice(0,match.index)+said.slice(match.index+match.text.length)).replace(/^(?:caven[, ]*)?(?:remind me(?: to)?|set a reminder(?: for)?|nudge me(?: to)?|wake me|don'?t let me forget(?: to)?)\s*/i,'').replace(/\b(at|on|for)\s*$/i,'').trim()||'Reminder';
   return {data:{...prev,reminders:[{id,title,date:due.toLocaleDateString('en-AU'),time:due.toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'}),dueAt:due.toISOString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone},...prev.reminders]},message:`It's on the board for ${due.toLocaleString('en-AU')}.`,changed:true};
  }
  if(kind==='tasks') {
   const done=said.match(/^(?:please )?(?:tick|cross) (.+?) off(?: my (?:list|tasks))?$/i)||said.match(/^(?:complete|finish|mark complete) (.+)$/i);
-  if(done){const target=prev.tasks.filter(t=>t.title.toLowerCase()===done[1].toLowerCase());if(target.length!==1)throw new Error('Please use the exact task name, sir. Nothing changed.');return{data:{...prev,tasks:prev.tasks.map(t=>t.id===target[0].id?{...t,done:true}:t)},message:"That's done.",changed:true};}
+  if(done){const target=prev.tasks.filter(t=>t.title.toLowerCase()===done[1].toLowerCase());if(target.length!==1)throw new Error(`Please use the exact task name, ${sir}. Nothing changed.`);return{data:{...prev,tasks:prev.tasks.map(t=>t.id===target[0].id?{...t,done:true}:t)},message:"That's done.",changed:true};}
   const add=said.match(/^(?:please )?(?:add (?:a |an )?task[: ]*|new task[: ]*|add )(.+?)(?: to my (?:tasks|list))?$/i);
   if(add)return{data:{...prev,tasks:[{id,title:add[1],done:false},...prev.tasks]},message:"Noted. It's on the list.",changed:true};
  }
  if(kind==='journal'&&/^(?:journal[: ]|(?:add|write|save|log)\b)/i.test(said))return{data:{...prev,journal:[{id,date:day,mood:'',title:'Journal entry',body:said.replace(/^journal[: ]*/i,'')},...prev.journal]},message:"It's in the journal.",changed:true};
  if(kind==='voicenote'&&/^(?:make|take|save|add|note|jot|remember)\b/i.test(said))return{data:{...prev,voiceNotes:[{id,text:said,when:day},...prev.voiceNotes]},message:"I've got that down.",changed:true};
- if(kind==='calendar'&&/^(book|schedule|add)\b/i.test(said))throw new Error('Calendar booking is not connected yet, sir. I can save a reminder with a date and time.');
+ if(kind==='calendar'&&/^(book|schedule|add)\b/i.test(said))throw new Error(`Calendar booking is not connected yet, ${sir}. I can save a reminder with a date and time.`);
  return unchanged;
 }
 
@@ -59,6 +62,7 @@ export const ACTION_VERBS: readonly string[] = [
   'budget.set',
   'brain.note',
   'interest.add',
+  'address.set',
 ];
 
 /** Loose value to trimmed string. Numbers are accepted; anything else is empty. */
@@ -99,14 +103,14 @@ function sameText(a: string, b: string): boolean {
  * nothing matches exactly do partial matches count, and then only if one survives.
  * Zero or several always throws — CAVEN never picks a record on your behalf.
  */
-function findOne<T>(rows: readonly T[], label: (row: T) => string, needle: string, noun: string): T {
+function findOne<T>(rows: readonly T[], label: (row: T) => string, needle: string, noun: string, sir: string): T {
   const want = needle.trim().toLowerCase();
   const exact = rows.filter((row) => label(row).trim().toLowerCase() === want);
   const pool = exact.length > 0 ? exact : rows.filter((row) => label(row).toLowerCase().includes(want));
-  if (pool.length === 0) throw new Error(`I've no ${noun} by the name of ${needle}, sir. Nothing has changed.`);
+  if (pool.length === 0) throw new Error(`I've no ${noun} by the name of ${needle}, ${sir}. Nothing has changed.`);
   if (pool.length > 1) {
     throw new Error(
-      `Several ${noun}s match ${needle}, sir. Give me the exact wording and I'll see to it. Nothing has changed.`,
+      `Several ${noun}s match ${needle}, ${sir}. Give me the exact wording and I'll see to it. Nothing has changed.`,
     );
   }
   return pool[0] as T;
@@ -116,18 +120,18 @@ function findOne<T>(rows: readonly T[], label: (row: T) => string, needle: strin
  * Natural language time, read exactly as the reminder fast path reads it.
  * A vague hour, or a moment already gone, is refused aloud rather than saved wrong.
  */
-function whenDate(said: string, now: Date, noun: 'reminder' | 'event'): Date {
+function whenDate(said: string, now: Date, noun: 'reminder' | 'event', sir: string): Date {
   const match = chrono.en.GB.parse(said, now, { forwardDate: true })[0];
   if (!match || !match.start.isCertain('hour')) {
     throw new Error(
       noun === 'reminder'
-        ? 'What date and time should I remind you, sir? Nothing has been saved yet.'
-        : 'What date and time is that, sir? Nothing has gone in the diary.',
+        ? `What date and time should I remind you, ${sir}? Nothing has been saved yet.`
+        : `What date and time is that, ${sir}? Nothing has gone in the diary.`,
     );
   }
   const due = match.start.date();
   if (due.getTime() <= now.getTime()) {
-    throw new Error('That time has already passed, sir. Please give me a future date and time.');
+    throw new Error(`That time has already passed, ${sir}. Please give me a future date and time.`);
   }
   return due;
 }
@@ -143,36 +147,37 @@ function clockOf(date: Date): string {
  */
 export function runAction(action: CavenAction, prev: CavenData, now = new Date()): ActionResult {
   const verb = text(action?.do).toLowerCase().replace(/[\s_:/]+/g, '.');
+  const sir = addressOf(prev);
   const id = crypto.randomUUID();
   const day = now.toLocaleDateString('en-AU');
   const idle = (message = ''): ActionResult => ({ data: prev, message, changed: false });
 
   switch (verb) {
     case 'task.add': {
-      const title = required(action.title, 'What should the task be, sir? Nothing has been added.');
+      const title = required(action.title, `What should the task be, ${sir}? Nothing has been added.`);
       const task: Task = { id, title, done: false };
       const tag = text(action.tag);
       if (tag) task.tag = tag;
       const time = text(action.time);
       if (time) task.time = time;
-      return { data: { ...prev, tasks: [task, ...prev.tasks] }, message: 'On the list, sir.', changed: true };
+      return { data: { ...prev, tasks: [task, ...prev.tasks] }, message: `On the list, ${sir}.`, changed: true };
     }
 
     case 'task.done':
     case 'task.undone': {
       const wanted = verb === 'task.done';
-      const title = required(action.title, 'Which task did you mean, sir? Nothing has changed.');
-      const target = findOne(prev.tasks, (t) => t.title, title, 'task');
+      const title = required(action.title, `Which task did you mean, ${sir}? Nothing has changed.`);
+      const target = findOne(prev.tasks, (t) => t.title, title, 'task', sir);
       if (target.done === wanted) {
-        return idle(wanted ? `${target.title} was already crossed off, sir.` : `${target.title} is still open, sir.`);
+        return idle(wanted ? `${target.title} was already crossed off, ${sir}.` : `${target.title} is still open, ${sir}.`);
       }
       const tasks = prev.tasks.map((t) => (t.id === target.id ? { ...t, done: wanted } : t));
       return { data: { ...prev, tasks }, message: wanted ? 'Crossed off.' : 'Back on the list.', changed: true };
     }
 
     case 'task.delete': {
-      const title = required(action.title, 'Which task should go, sir? Nothing has changed.');
-      const target = findOne(prev.tasks, (t) => t.title, title, 'task');
+      const title = required(action.title, `Which task should go, ${sir}? Nothing has changed.`);
+      const target = findOne(prev.tasks, (t) => t.title, title, 'task', sir);
       return {
         data: { ...prev, tasks: prev.tasks.filter((t) => t.id !== target.id) },
         message: `${target.title} is off the list.`,
@@ -181,9 +186,9 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     }
 
     case 'reminder.add': {
-      const title = required(action.title, 'What should I remind you about, sir? Nothing has been saved.');
-      const when = required(action.when, 'What date and time should I remind you, sir? Nothing has been saved yet.');
-      const due = whenDate(when, now, 'reminder');
+      const title = required(action.title, `What should I remind you about, ${sir}? Nothing has been saved.`);
+      const when = required(action.when, `What date and time should I remind you, ${sir}? Nothing has been saved yet.`);
+      const due = whenDate(when, now, 'reminder', sir);
       const reminder = {
         id,
         title,
@@ -200,8 +205,8 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     }
 
     case 'reminder.delete': {
-      const title = required(action.title, 'Which reminder should go, sir? Nothing has changed.');
-      const target = findOne(prev.reminders, (r) => r.title, title, 'reminder');
+      const title = required(action.title, `Which reminder should go, ${sir}? Nothing has changed.`);
+      const target = findOne(prev.reminders, (r) => r.title, title, 'reminder', sir);
       return {
         data: { ...prev, reminders: prev.reminders.filter((r) => r.id !== target.id) },
         message: `${target.title} is off the board.`,
@@ -210,9 +215,9 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     }
 
     case 'event.add': {
-      const title = required(action.title, 'What shall I call it, sir? Nothing has gone in the diary.');
-      const when = required(action.when, 'What date and time is that, sir? Nothing has gone in the diary.');
-      const at = whenDate(when, now, 'event');
+      const title = required(action.title, `What shall I call it, ${sir}? Nothing has gone in the diary.`);
+      const when = required(action.when, `What date and time is that, ${sir}? Nothing has gone in the diary.`);
+      const at = whenDate(when, now, 'event', sir);
       const asked = text(action.kind).toLowerCase();
       const kind: CalendarEvent['kind'] = asked === 'routine' || asked === 'reminder' ? asked : 'event';
       const event: CalendarEvent = { id, title, time: clockOf(at), kind };
@@ -224,8 +229,8 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     }
 
     case 'event.delete': {
-      const title = required(action.title, 'Which entry should go, sir? Nothing has changed.');
-      const target = findOne(prev.calendar, (e) => e.title, title, 'diary entry');
+      const title = required(action.title, `Which entry should go, ${sir}? Nothing has changed.`);
+      const target = findOne(prev.calendar, (e) => e.title, title, 'diary entry', sir);
       return {
         data: { ...prev, calendar: prev.calendar.filter((e) => e.id !== target.id) },
         message: `${target.title} is out of the diary.`,
@@ -234,8 +239,8 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     }
 
     case 'habit.add': {
-      const name = required(action.name, 'Which habit should I track, sir? Nothing has been added.');
-      if (prev.habits.some((h) => sameText(h.name, name))) return idle(`I'm tracking ${name} already, sir.`);
+      const name = required(action.name, `Which habit should I track, ${sir}? Nothing has been added.`);
+      if (prev.habits.some((h) => sameText(h.name, name))) return idle(`I'm tracking ${name} already, ${sir}.`);
       const goal = amountOf(action.goal);
       const habit: Habit = {
         id,
@@ -253,17 +258,17 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     }
 
     case 'habit.done': {
-      const name = required(action.name, 'Which habit, sir? Nothing has changed.');
-      const target = findOne(prev.habits, (h) => h.name, name, 'habit');
-      if (target.done) return idle(`${target.name} is already ticked today, sir.`);
+      const name = required(action.name, `Which habit, ${sir}? Nothing has changed.`);
+      const target = findOne(prev.habits, (h) => h.name, name, 'habit', sir);
+      if (target.done) return idle(`${target.name} is already ticked today, ${sir}.`);
       const streak = target.streak + 1;
       const habits = prev.habits.map((h) => (h.id === target.id ? { ...h, done: true, streak } : h));
       return { data: { ...prev, habits }, message: `${target.name} ticked. That's ${streak} in a row.`, changed: true };
     }
 
     case 'habit.delete': {
-      const name = required(action.name, 'Which habit should go, sir? Nothing has changed.');
-      const target = findOne(prev.habits, (h) => h.name, name, 'habit');
+      const name = required(action.name, `Which habit should go, ${sir}? Nothing has changed.`);
+      const target = findOne(prev.habits, (h) => h.name, name, 'habit', sir);
       return {
         data: { ...prev, habits: prev.habits.filter((h) => h.id !== target.id) },
         message: `I'll stop tracking ${target.name}.`,
@@ -272,7 +277,7 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     }
 
     case 'journal.add': {
-      const body = required(action.body, 'What should I write, sir? Nothing has gone in the journal.');
+      const body = required(action.body, `What should I write, ${sir}? Nothing has gone in the journal.`);
       const entry = { id, date: day, mood: text(action.mood), title: text(action.title) || 'Journal entry', body };
       return {
         data: { ...prev, journal: [entry, ...prev.journal] },
@@ -282,7 +287,7 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     }
 
     case 'note.add': {
-      const body = required(action.text, 'What should the note say, sir? Nothing has been kept.');
+      const body = required(action.text, `What should the note say, ${sir}? Nothing has been kept.`);
       return {
         data: { ...prev, voiceNotes: [{ id, text: body, when: day }, ...prev.voiceNotes] },
         message: 'I have that down.',
@@ -291,8 +296,8 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     }
 
     case 'note.delete': {
-      const body = required(action.text, 'Which note should go, sir? Nothing has changed.');
-      const target = findOne(prev.voiceNotes, (n) => n.text, body, 'note');
+      const body = required(action.text, `Which note should go, ${sir}? Nothing has changed.`);
+      const target = findOne(prev.voiceNotes, (n) => n.text, body, 'note', sir);
       return {
         data: { ...prev, voiceNotes: prev.voiceNotes.filter((n) => n.id !== target.id) },
         message: 'That note is gone.',
@@ -301,9 +306,9 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     }
 
     case 'spend.add': {
-      const label = required(action.label, 'What was it for, sir? Nothing has been logged.');
+      const label = required(action.label, `What was it for, ${sir}? Nothing has been logged.`);
       const raw = amountOf(action.amount);
-      if (raw === null || raw === 0) throw new Error('How much was it, sir? Nothing has been logged.');
+      if (raw === null || raw === 0) throw new Error(`How much was it, ${sir}? Nothing has been logged.`);
       // Money out is stored negative; the finance page sums transactions for the balance.
       const spent = Math.abs(raw);
       const category = text(action.category) || 'General';
@@ -323,12 +328,12 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     }
 
     case 'budget.set': {
-      const category = required(action.category, 'Which budget, sir? Nothing has changed.');
+      const category = required(action.category, `Which budget, ${sir}? Nothing has changed.`);
       const limit = amountOf(action.limit);
-      if (limit === null || limit <= 0) throw new Error('What should the limit be, sir? Nothing has changed.');
+      if (limit === null || limit <= 0) throw new Error(`What should the limit be, ${sir}? Nothing has changed.`);
       const existing = prev.budgets.find((b) => sameText(b.category, category));
       if (existing) {
-        if (existing.limit === limit) return idle(`${existing.category} is already set at ${money(limit)}, sir.`);
+        if (existing.limit === limit) return idle(`${existing.category} is already set at ${money(limit)}, ${sir}.`);
         const budgets = prev.budgets.map((b) => (b.id === existing.id ? { ...b, limit } : b));
         return {
           data: { ...prev, budgets },
@@ -345,15 +350,25 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     }
 
     case 'brain.note': {
-      const note = required(action.text, 'What should I remember, sir? Nothing has been filed.');
-      if (prev.brainNotes.some((n) => sameText(n, note))) return idle('I have that one already, sir.');
+      const note = required(action.text, `What should I remember, ${sir}? Nothing has been filed.`);
+      if (prev.brainNotes.some((n) => sameText(n, note))) return idle(`I have that one already, ${sir}.`);
       return { data: { ...prev, brainNotes: [note, ...prev.brainNotes] }, message: 'Filed away.', changed: true };
     }
 
     case 'interest.add': {
-      const name = required(action.name, 'Which interest, sir? Nothing has changed.');
-      if (prev.interests.some((i) => sameText(i, name))) return idle(`${name} is already down as an interest, sir.`);
+      const name = required(action.name, `Which interest, ${sir}? Nothing has changed.`);
+      if (prev.interests.some((i) => sameText(i, name))) return idle(`${name} is already down as an interest, ${sir}.`);
       return { data: { ...prev, interests: [name, ...prev.interests] }, message: `${name}, noted.`, changed: true };
+    }
+
+    case 'address.set': {
+      // Shape, length and decency all live in checkAddress, so the Settings
+      // field and this verb can never disagree about what is acceptable.
+      const verdict = checkAddress(action.term, sir);
+      if (!verdict.ok) throw new Error(verdict.reason);
+      if (verdict.term === sir) return idle(`I call you ${sir} already.`);
+      // The new term does the confirming, so he hears at once what he will be called.
+      return { data: { ...prev, address: verdict.term }, message: `Very good, ${verdict.term}. I shall address you so from now on.`, changed: true };
     }
 
     // A verb we do not serve. Say nothing and change nothing rather than invent a result.

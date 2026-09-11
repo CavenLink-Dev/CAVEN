@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ACTION_VERBS, applyCommand, parseActions, runAction, type CavenAction } from '../shared/actions.ts';
+import {
+  ACTION_VERBS,
+  DEFAULT_ADDRESS,
+  addressOf,
+  applyCommand,
+  parseActions,
+  runAction,
+  type CavenAction,
+} from '../shared/actions.ts';
 import type { CavenData } from '../src/lib/store';
 
 const empty = (): CavenData => ({
@@ -15,6 +23,7 @@ const empty = (): CavenData => ({
   brainMetrics: [],
   interests: [],
   brainNotes: [],
+  address: 'sir',
 });
 
 test('reminder save does not promise a nudge', () => {
@@ -254,4 +263,116 @@ test('a parsed action runs end to end', () => {
   assert.equal(spoken, 'Consider it done.');
   const result = runAction(actions[0] as CavenAction, frozen(), NOW);
   assert.equal(result.data.tasks[0]?.title, 'Ring the vet');
+});
+
+/** Read the message off a thrown error, whatever was thrown. */
+const spoken = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+
+test('an unset address falls back to sir, and a chosen one is taken verbatim', () => {
+  assert.equal(addressOf({}), DEFAULT_ADDRESS);
+  assert.equal(addressOf({ address: '   ' }), 'sir');
+  assert.equal(addressOf({ address: 42 }), 'sir');
+  assert.equal(addressOf({ address: '  Master  ' }), 'Master');
+});
+
+test('by default he is still sir, in confirmation and in refusal alike', () => {
+  const added = runAction({ do: 'task.add', title: 'Post the parcel' }, frozen(), NOW);
+  assert.match(added.message, /\bsir\b/);
+  assert.throws(() => runAction({ do: 'task.add' }, frozen(), NOW), /\bsir\b/);
+});
+
+test('a chosen address is spoken in a confirmation and in a thrown refusal', () => {
+  const prev = frozen({ address: 'Master', tasks: [{ id: 'a', title: 'Call mum', done: false }] });
+  const added = runAction({ do: 'task.add', title: 'Post the parcel' }, prev, NOW);
+  assert.equal(added.changed, true);
+  assert.match(added.message, /Master/);
+  assert.doesNotMatch(added.message, /\bsir\b/i);
+  assert.throws(
+    () => runAction({ do: 'task.delete', title: 'wash the car' }, prev, NOW),
+    (error: unknown) => {
+      assert.match(spoken(error), /Master/);
+      assert.doesNotMatch(spoken(error), /\bsir\b/i);
+      return true;
+    },
+  );
+  // Ambiguity, a missing field and a bad time all carry the term too.
+  assert.throws(() => runAction({ do: 'task.done', title: 'Call' }, frozen({ address: 'Master', tasks: [
+    { id: 'a', title: 'Call mum', done: false },
+    { id: 'b', title: 'Call the bank', done: false },
+  ] }), NOW), /Master/);
+  assert.throws(() => runAction({ do: 'habit.done' }, prev, NOW), /Master/);
+  assert.throws(() => runAction({ do: 'reminder.add', title: 'x', when: 'sometime' }, prev, NOW), /Master/);
+});
+
+test('the regex fast path speaks the chosen address as well', () => {
+  const prev = frozen({ address: 'Master' });
+  assert.throws(() => applyCommand('reminder', 'remind me to ring the bank', prev, NOW), /Master/);
+  assert.throws(() => applyCommand('calendar', 'book a table for two', prev, NOW), /Master/);
+  assert.throws(
+    () => applyCommand('reminder', 'remind me to ring the bank at 9am yesterday', prev, NOW),
+    /Master/,
+  );
+});
+
+test('the term is used exactly as chosen, capitals and all', () => {
+  const prev = frozen({ address: 'Your Lordship' });
+  const added = runAction({ do: 'task.add', title: 'Post the parcel' }, prev, NOW);
+  assert.match(added.message, /Your Lordship/);
+  assert.doesNotMatch(added.message, /your lordship/);
+});
+
+test('address.set records the term and confirms in it, leaving the old board alone', () => {
+  const prev = frozen({ address: 'sir' });
+  const result = runAction({ do: 'address.set', term: '  Master  ' }, prev, NOW);
+  assert.equal(result.changed, true);
+  assert.equal(result.data.address, 'Master');
+  assert.equal(prev.address, 'sir');
+  assert.match(result.message, /Master/);
+  assert.doesNotMatch(result.message, /\bsir\b/i);
+  assert.doesNotMatch(result.message, /[*#`•]|!|\p{Extended_Pictographic}/u);
+  // And it sticks: the next confirmation is addressed the new way.
+  const next = runAction({ do: 'task.add', title: 'Post the parcel' }, result.data, NOW);
+  assert.match(next.message, /Master/);
+});
+
+test('address.set accepts twenty-four characters and refuses twenty-five', () => {
+  const prev = frozen({ address: 'sir' });
+  assert.equal(runAction({ do: 'address.set', term: 'M'.repeat(24) }, prev, NOW).changed, true);
+  assert.throws(() => runAction({ do: 'address.set', term: 'M'.repeat(25) }, prev, NOW), /twenty-four/i);
+});
+
+test('address.set refuses what it cannot speak, and changes nothing', () => {
+  const prev = frozen({ address: 'sir' });
+  const bad: Record<string, unknown>[] = [
+    {},
+    { term: '   ' },
+    { term: 'the most exalted lord of the whole manor' },
+    { term: 'Master\nof the house' },
+    { term: 'Master\r\nsir' },
+    { term: '<b>Master</b>' },
+    { term: '**Master**' },
+    { term: '# Master' },
+    { term: 'Master `sir`' },
+  ];
+  for (const extra of bad) {
+    assert.throws(
+      () => runAction({ do: 'address.set', ...extra }, prev, NOW),
+      (error: unknown) => {
+        const said = spoken(error);
+        assert.match(said, /nothing has changed/i, said);
+        assert.doesNotMatch(said, /[*#`•]|!|\p{Extended_Pictographic}/u, said);
+        return true;
+      },
+      JSON.stringify(extra),
+    );
+    assert.equal(prev.address, 'sir');
+  }
+});
+
+test('setting the address he already has writes nothing and claims nothing', () => {
+  const prev = frozen({ address: 'Master' });
+  const result = runAction({ do: 'address.set', term: 'Master' }, prev, NOW);
+  assert.equal(result.changed, false);
+  assert.equal(result.data, prev);
+  assert.match(result.message, /Master/);
 });

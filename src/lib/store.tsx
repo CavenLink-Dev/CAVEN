@@ -1,9 +1,11 @@
 import {createContext,useCallback,useContext,useEffect,useRef,useState,type ReactNode} from 'react';
 import {apiFetch} from './backend';
+import {DEFAULT_ADDRESS} from '../../shared/address';
+export {addressOf, checkAddress, ADDRESS_LIMIT, DEFAULT_ADDRESS} from '../../shared/address';
 import {applyCommand,runAction,type ActionKind,type CavenAction} from '../../shared/actions';
 import type {Task,Habit,Reminder,CalendarEvent,VoiceNote,Transaction,Budget,JournalEntry,BrainMetric} from './mockData';
-export type CavenData={tasks:Task[];habits:Habit[];reminders:Reminder[];calendar:CalendarEvent[];voiceNotes:VoiceNote[];transactions:Transaction[];budgets:Budget[];journal:JournalEntry[];brainMetrics:BrainMetric[];interests:string[];brainNotes:string[]};
-export const seedData=():CavenData=>({tasks:[],habits:[],reminders:[],calendar:[],voiceNotes:[],transactions:[],budgets:[],journal:[],brainMetrics:[],interests:[],brainNotes:[]});
+export type CavenData={tasks:Task[];habits:Habit[];reminders:Reminder[];calendar:CalendarEvent[];voiceNotes:VoiceNote[];transactions:Transaction[];budgets:Budget[];journal:JournalEntry[];brainMetrics:BrainMetric[];interests:string[];brainNotes:string[];address:string};
+export const seedData=():CavenData=>({tasks:[],habits:[],reminders:[],calendar:[],voiceNotes:[],transactions:[],budgets:[],journal:[],brainMetrics:[],interests:[],brainNotes:[],address:DEFAULT_ADDRESS});
 type Patch=Partial<CavenData>|((prev:CavenData)=>CavenData);
 type Store={data:CavenData;ready:boolean;status:string;reload:()=>Promise<void>;update:(patch:Patch)=>Promise<void>;capture:(kind:ActionKind,text:string)=>Promise<{message:string;changed:boolean}>;perform:(actions:CavenAction[])=>Promise<{message:string;changed:boolean}>};
 const Context=createContext<Store|null>(null);
