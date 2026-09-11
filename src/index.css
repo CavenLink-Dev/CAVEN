@@ -582,7 +582,7 @@ button { font: inherit; }
 .auth-input:focus { border-color: var(--caven-cyan); box-shadow: 0 0 0 3px rgba(63,208,255,.12); }
 .auth-password-wrap { position: relative; }
 .auth-password-wrap .auth-input { padding-right: 3.2rem; }
-.auth-eye { position: absolute; right: .8rem; top: 50%; display: grid; place-items: center; border: 0; color: var(--caven-steel); background: transparent; transform: translateY(-50%); cursor: pointer; }
+  .auth-eye { position: absolute; right: .4rem; top: 50%; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border: 0; border-radius: 8px; color: var(--caven-steel); background: transparent; transform: translateY(-50%); cursor: pointer; }
 .auth-eye:hover { color: var(--caven-cyan-bright); }
 .auth-submit { display: grid; place-items: center; width: 100%; min-height: 3.15rem; margin-top: 1.25rem; border: 1px solid #0377fd; border-radius: 12px; color: #ffffff; background: #0377fd; font: 700 .95rem 'Rajdhani', sans-serif; letter-spacing: .01em; cursor: pointer; box-shadow: 0 0 24px rgba(3,119,253,.35); transition: transform .2s, box-shadow .2s; }
 .auth-submit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 0 32px rgba(3,119,253,.55); }
