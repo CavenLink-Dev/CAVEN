@@ -5,10 +5,21 @@ import path from 'node:path'
 
 import siteConfiguration from './.figma/make/site.json'
 
+/** v0 / Figma Make cloud sandboxes have no local `vercel dev` — proxy /api to production. */
+function defaultApiOrigin(): string {
+  if (process.env.CAVEN_API_ORIGIN) return process.env.CAVEN_API_ORIGIN
+  const inV0Sandbox =
+    process.cwd().includes('/vercel/share/v0-project') ||
+    process.env.V0 === '1' ||
+    process.env.VERCEL_V0 === '1'
+  return inV0Sandbox ? 'https://caven-green.vercel.app' : 'http://127.0.0.1:3000'
+}
+
 // Vite config — https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // .figma/make/deploy-preview passes `--mode development` for cached-preview builds.
   const emitSourcemaps = mode === 'development'
+  const apiOrigin = defaultApiOrigin()
 
   return {
     base: process.env.FIGMA_PUBLIC_URL ? `${process.env.FIGMA_PUBLIC_URL}/` : '/',
@@ -34,10 +45,10 @@ export default defineConfig(({ mode }) => {
       port: parseInt(process.env.PORT || '8443'),
       strictPort: true,
       proxy: {
-        // Same handlers as production (`api/*.ts`). Run `pnpm dev:api` so
-        // Vercel serves /api on 3000 while Vite stays on 8443.
+        // Same handlers as production (`api/*.ts`). Locally run `pnpm dev:api`
+        // so Vercel serves /api on 3000; v0 sandboxes default to production.
         '/api': {
-          target: process.env.CAVEN_API_ORIGIN || 'http://127.0.0.1:3000',
+          target: apiOrigin,
           changeOrigin: true,
         },
       },

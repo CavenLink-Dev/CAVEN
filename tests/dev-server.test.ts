@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createServer } from 'node:net';
+import { createServer as createHttpServer } from 'node:http';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import test from 'node:test';
@@ -9,8 +9,11 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const script = path.join(root, 'scripts', 'dev.mjs');
 
-function listen(port: number) {
-  const server = createServer((socket) => socket.end());
+function listenFakeVite(port: number) {
+  const server = createHttpServer((_req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end('<html><body><div id="root"></div><script type="module" src="/@vite/client"></script></body></html>');
+  });
   return new Promise<typeof server>((resolve, reject) => {
     server.listen(port, '127.0.0.1', () => resolve(server));
     server.once('error', reject);
@@ -18,7 +21,7 @@ function listen(port: number) {
 }
 
 test('second pnpm run dev reuses a busy PORT instead of exiting 1', async () => {
-  const dummy = await listen(0);
+  const dummy = await listenFakeVite(0);
   const address = dummy.address();
   assert.ok(address && typeof address === 'object');
   const port = address.port;
@@ -38,15 +41,10 @@ test('second pnpm run dev reuses a busy PORT instead of exiting 1', async () => 
   });
 
   try {
-    const started = Date.now();
-    while (!out.includes('already in use') && Date.now() - started < 3000) {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    }
-    assert.equal(child.exitCode, null, `script exited early: ${out}`);
-    assert.match(out, /already in use/);
+    await once(child, 'exit');
+    assert.equal(child.exitCode, 0, out);
+    assert.match(out, /already running|reusing it/);
   } finally {
-    child.kill('SIGTERM');
-    await Promise.race([once(child, 'exit'), new Promise((resolve) => setTimeout(resolve, 1000))]);
     dummy.close();
   }
 });

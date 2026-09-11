@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 /**
- * Figma Make writes `.env.development.local` after the first `pnpm run dev`,
+ * Figma Make / v0 writes `.env.development.local` after the first `pnpm run dev`,
  * then starts Vite a second time. The first process still owns $PORT (8443),
  * so a strict second bind exits 1 and the preview dies.
  *
- * If something is already serving that port, stay attached to it instead of
- * launching another Vite.
+ * If something healthy is already serving that port, exit 0 and let the first
+ * Vite keep running — v0 treats a second hung `dev.mjs` as a failed start.
  */
 import { createConnection } from 'node:net'
+import http from 'node:http'
 import { spawn } from 'node:child_process'
 import path from 'node:path'
 
@@ -32,12 +33,46 @@ function isListening(port) {
   })
 }
 
-if (await isListening(port)) {
-  console.log(`Port ${port} already in use — keeping the existing Vite server.`)
-  // A pending Promise does not keep the event loop alive; a timer does.
-  await new Promise(() => {
-    setInterval(() => {}, 60_000)
+/** True when the process on $PORT is serving a Vite dev page, not some other listener. */
+function probeVite(port) {
+  return new Promise((resolve) => {
+    const req = http.get(
+      { hostname: '127.0.0.1', port, path: '/', timeout: 2000 },
+      (res) => {
+        let body = ''
+        res.setEncoding('utf8')
+        res.on('data', (chunk) => {
+          body += chunk
+          if (body.length > 16_384) req.destroy()
+        })
+        res.on('end', () => {
+          resolve(
+            res.statusCode !== undefined &&
+              res.statusCode < 500 &&
+              (body.includes('@vite/client') ||
+                body.includes('/@react-refresh') ||
+                (body.includes('id="root"') && body.includes('<script'))),
+          )
+        })
+      },
+    )
+    req.on('timeout', () => {
+      req.destroy()
+      resolve(false)
+    })
+    req.on('error', () => resolve(false))
   })
+}
+
+if (await isListening(port)) {
+  if (await probeVite(port)) {
+    console.log(`Dev server already running at http://127.0.0.1:${port} — reusing it.`)
+    process.exit(0)
+  }
+  console.error(
+    `Port ${port} is in use but does not look like Vite. Stop the other process or set PORT to a free port.`,
+  )
+  process.exit(1)
 }
 
 const viteJs = path.resolve(process.cwd(), 'node_modules/vite/bin/vite.js')

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseActions, runAction, ACTION_VERBS } from '../shared/actions.ts';
+import { CAVEN_SYSTEM } from '../shared/cavenSystem.ts';
 const seedData = (): any => ({tasks:[],habits:[],reminders:[],calendar:[],voiceNotes:[],transactions:[],budgets:[],journal:[],brainMetrics:[],interests:[],brainNotes:[]});
 
 test('every advertised verb actually performs', () => {
@@ -71,4 +72,10 @@ test('parseActions strips the block and survives rubbish', () => {
   assert.equal(b.actions.length, 0, 'malformed JSON must be discarded');
   assert.ok(!b.spoken.includes('ACT'), 'malformed block must still be stripped from speech');
   assert.equal(parseActions('Just talking.').actions.length, 0);
+});
+
+test('the system prompt teaches every verb runAction understands', () => {
+  for (const verb of ACTION_VERBS) {
+    assert.ok(CAVEN_SYSTEM.includes(verb), `CAVEN_SYSTEM never mentions ${verb}`);
+  }
 });
