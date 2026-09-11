@@ -57,7 +57,7 @@ export function AccountGate({ children }: { children: ReactNode }) {
 
   return (
     <main className="auth-shell">
-      <div className="auth-orbit auth-orbit-one" /><div className="auth-orbit auth-orbit-two" />
+      <div className="auth-stars auth-stars-one" /><div className="auth-stars auth-stars-two" />
       <section className="auth-panel" aria-labelledby="auth-title">
         <div className="auth-header">
           <img className="auth-icon" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-Ihy4CDV5qSbccIzEPhuVPOH6kdjCxy.png" alt="" />

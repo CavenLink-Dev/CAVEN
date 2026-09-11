@@ -574,8 +574,8 @@ button { font: inherit; }
 }
 .anim-overlay-fade { animation: overlay-fade 0.3s ease both; }
 
-.auth-shell { position: relative; min-height: 100dvh; display: grid; place-items: center; overflow: hidden; padding: 2rem 1.25rem; background: radial-gradient(circle at 50% 0%, rgba(63,208,255,.13), transparent 36%), linear-gradient(145deg, #070b13, #03050a 70%); }
-.auth-shell::before { content: ''; position: absolute; inset: 0; opacity: .32; background-image: linear-gradient(rgba(138,149,165,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(138,149,165,.05) 1px, transparent 1px); background-size: 42px 42px; mask-image: radial-gradient(circle at center, black, transparent 78%); }
+.auth-shell { position: relative; min-height: 100dvh; display: grid; place-items: center; overflow: hidden; padding: 2rem 1.25rem; background: #000000; }
+.auth-shell::before { content: ''; position: absolute; inset: 0; opacity: .18; background-image: linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px); background-size: 42px 42px; mask-image: radial-gradient(circle at center, black, transparent 78%); }
 .auth-panel { position: relative; z-index: 1; width: min(100%, 400px); padding: clamp(2rem, 6vw, 2.75rem); border: 1px solid rgba(138,149,165,.2); border-radius: 24px; background: linear-gradient(145deg, rgba(23,31,43,.88), rgba(7,11,18,.96)); box-shadow: 0 25px 100px rgba(0,0,0,.48), inset 0 1px rgba(169,237,255,.1), 0 0 50px rgba(63,208,255,.06); backdrop-filter: blur(20px); }
 
 .auth-header { display: flex; flex-direction: column; align-items: center; gap: 1rem; margin-bottom: 2rem; }
@@ -603,9 +603,37 @@ button { font: inherit; }
 
 .auth-loading { display: flex; min-height: 100dvh; align-items: center; justify-content: center; gap: .8rem; color: var(--caven-steel); font: 500 1rem 'Rajdhani', sans-serif; }
 .auth-mark { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--caven-cyan); border-radius: 8px; color: var(--caven-cyan-bright); font-family: 'Orbitron', sans-serif; animation: breathe 1.8s ease-in-out infinite; }
-.auth-orbit { position: absolute; border: 1px solid rgba(63,208,255,.1); border-radius: 50%; pointer-events: none; }
-.auth-orbit-one { width: 42rem; height: 42rem; }
-.auth-orbit-two { width: 62rem; height: 62rem; border-color: rgba(63,208,255,.05); }
+
+/* Monochrome starry-night backdrop for the auth screen */
+.auth-stars { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.auth-stars-one {
+  background-image:
+    radial-gradient(1.4px 1.4px at 8% 12%, #ffffff, transparent),
+    radial-gradient(1px 1px at 22% 68%, rgba(255,255,255,.85), transparent),
+    radial-gradient(1.6px 1.6px at 37% 24%, #ffffff, transparent),
+    radial-gradient(1px 1px at 51% 82%, rgba(255,255,255,.7), transparent),
+    radial-gradient(1.2px 1.2px at 64% 14%, rgba(255,255,255,.9), transparent),
+    radial-gradient(1px 1px at 78% 58%, rgba(255,255,255,.65), transparent),
+    radial-gradient(1.5px 1.5px at 91% 30%, #ffffff, transparent),
+    radial-gradient(1px 1px at 15% 90%, rgba(255,255,255,.6), transparent),
+    radial-gradient(1.3px 1.3px at 46% 46%, rgba(255,255,255,.8), transparent),
+    radial-gradient(1px 1px at 85% 85%, rgba(255,255,255,.55), transparent);
+  background-size: 100% 100%;
+  animation: starTwinkle 6s ease-in-out infinite;
+}
+.auth-stars-two {
+  background-image:
+    radial-gradient(1px 1px at 5% 55%, rgba(255,255,255,.5), transparent),
+    radial-gradient(1px 1px at 28% 8%, rgba(255,255,255,.45), transparent),
+    radial-gradient(1.1px 1.1px at 43% 92%, rgba(255,255,255,.55), transparent),
+    radial-gradient(1px 1px at 58% 38%, rgba(255,255,255,.4), transparent),
+    radial-gradient(1.2px 1.2px at 72% 72%, rgba(255,255,255,.5), transparent),
+    radial-gradient(1px 1px at 88% 18%, rgba(255,255,255,.4), transparent),
+    radial-gradient(1.1px 1.1px at 96% 62%, rgba(255,255,255,.45), transparent),
+    radial-gradient(1px 1px at 12% 30%, rgba(255,255,255,.35), transparent);
+  background-size: 100% 100%;
+  animation: starTwinkle 9s ease-in-out infinite reverse;
+}
 
 /* NOTE: the legacy @keyframes breathe and @keyframes ripple were dropped here
    because the upgraded stylesheet defines both names (see the keyframes block
