@@ -56,7 +56,10 @@ export function GlassPanel({
         </div>
         <div className="flex items-center gap-1.5 mt-2">
           <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_#0377FD] animate-pulse" />
-          <span className="h-1 w-3 rounded-full" style={{ backgroundColor: '#0377FD' }} />
+          <span
+            className="h-1 w-3 rounded-full"
+            style={{ backgroundColor: "#0377FD" }}
+          />
         </div>
       </div>
 
