@@ -221,8 +221,16 @@ button { font: inherit; }
 .sat-sm { opacity:.5; }
 .glint { fill:#d3feff; opacity:0; transform-origin:center; animation:glint var(--gs,16s) ease-in-out var(--gdl,0s) infinite; }
 .core-halo { fill:#30cbd7; opacity:.08; filter:blur(9px); animation:breathe 4s ease-in-out infinite; }
-.core-orb { transform-origin:center; animation:breathe 4s ease-in-out infinite; }
-.core-center { fill:#e5ffff; filter:drop-shadow(0 0 9px #96faff); }
+.core-orb { transform-origin:center; animation:breathe 4s ease-in-out infinite, orbGlow 4s ease-in-out infinite; }
+.core-center { fill:#e5ffff; filter:drop-shadow(0 0 9px #96faff); transform-origin:center; animation:coreBlink 6.5s ease-in-out infinite; }
+@keyframes orbGlow { 0%,100% { filter:brightness(1); } 50% { filter:brightness(1.16); } }
+/* A slow, deliberate blink — mostly steady, with one gentle dim-and-relight
+   sweep per cycle so the core reads as alive rather than mechanically pulsing. */
+@keyframes coreBlink {
+  0%, 84%, 100% { opacity:1; transform:scaleY(1); filter:drop-shadow(0 0 9px #96faff) brightness(1); }
+  90% { opacity:.45; transform:scaleY(.86); filter:drop-shadow(0 0 4px #96faff) brightness(.72); }
+  96% { opacity:1; transform:scaleY(1); filter:drop-shadow(0 0 11px #96faff) brightness(1.08); }
+}
 .core-state-label { position:absolute; top:58%; left:0; right:0; color:rgba(209,249,251,.58); font-family:var(--font-mono); font-size:9px; letter-spacing:.15em; text-transform:uppercase; }
 .core-hint { position:absolute; bottom:7%; margin:0; color:rgba(204,239,241,.33); font-family:var(--font-mono); font-size:9px; letter-spacing:.06em; }
 .ripple { fill:none; stroke:#75edf2; stroke-width:1.5; opacity:0; transform-origin:center; animation:ripple .85s ease-out; }
@@ -247,8 +255,12 @@ button { font: inherit; }
 /* ── CAVEN Core V6 — three-color power model (green on / red off / blue locked) ── */
 /* OFF: no color, mechanism at rest */
 .core-off .core-svg { filter:grayscale(1) brightness(.34) contrast(.9); transition:filter .6s ease; }
-.core-off .reactor-ring,.core-off .orbit,.core-off .sweep,.core-off .microtick,.core-off .glint,.core-off .core-orb,.core-off .core-halo,.core-off .sat-1,.core-off .sat-2,.core-off .sat-3 { animation-play-state:paused; }
-.core-off .core-center { fill:#3a4247; filter:none; }
+.core-off .reactor-ring,.core-off .orbit,.core-off .sweep,.core-off .microtick,.core-off .glint,.core-off .sat-1,.core-off .sat-2,.core-off .sat-3 { animation-play-state:paused; }
+.core-off .core-center { fill:#3a4247; filter:none; animation:none; }
+/* Standing-by "alive" breath — the rig is dormant but never looks dead: a slow,
+   smooth dim-and-lift on the orb/halo, like a resting pulse. */
+.core-off .core-orb,.core-off .core-halo { animation:aliveBreath 6.4s ease-in-out infinite; }
+@keyframes aliveBreath { 0%,100% { transform:scale(.98); filter:brightness(.85); opacity:.82; } 50% { transform:scale(1.015); filter:brightness(1.15); opacity:1; } }
 
 /* ON: true color is light blue; green only flashes via the turn-on pulse */
 .core-on .core-svg { filter:saturate(1.2) brightness(1.08); transition:filter .5s ease; }
@@ -283,7 +295,8 @@ button { font: inherit; }
 .reactor-led { filter:drop-shadow(0 0 5px var(--led)); animation:ledBlink 2.4s ease-in-out var(--ldl,0s) infinite; }
 @keyframes ledBlink { 0%,100%{opacity:.35} 50%{opacity:1} }
 .core-off .reactor-vio-ring,.core-off .reactor-hex,.core-off .reactor-hex-inner { animation-play-state:paused; }
-.core-off .reactor-led { animation:none; opacity:.2; }
+.core-off .reactor-led { animation:ledBlinkIdle 5.4s ease-in-out var(--ldl,0s) infinite; }
+@keyframes ledBlinkIdle { 0%,100%{opacity:.14} 50%{opacity:.4} }
 
 /* Floating 3D hexagonal crystal — gentle vertical drift + slow gem rotation */
 .hex-crystal { transform-origin:200px 200px; animation:hexFloat 6s ease-in-out infinite; }
@@ -293,8 +306,10 @@ button { font: inherit; }
 @keyframes hexSpin { to { transform:rotateZ(360deg); } }
 @keyframes hexGlint { 0%,100%{opacity:.4} 50%{opacity:1} }
 .core-locked .hex-crystal-spin { animation-duration:7s; filter:saturate(1.4) drop-shadow(0 0 6px #ffd53d); }
-.core-off .hex-crystal,.core-off .hex-crystal-spin,.core-off .hex-crystal-glint { animation-play-state:paused; }
+.core-off .hex-crystal,.core-off .hex-crystal-spin { animation-play-state:paused; }
 .core-off .hex-crystal { opacity:.28; }
+.core-off .hex-crystal-glint { animation:hexGlintIdle 6.4s ease-in-out infinite; }
+@keyframes hexGlintIdle { 0%,100%{opacity:.15} 50%{opacity:.55} }
 
 /* Speaking → the whole core (and its light) jiggles; stops when talking stops */
 .core-speaking .core-svg { transform-origin:center; animation:coreJiggle .16s ease-in-out infinite; }
@@ -754,7 +769,7 @@ button { font: inherit; }
   .reactor-ring,.reactor-vio-ring,.reactor-hex,.reactor-hex-inner,.reactor-led,
   .chain-ring,.rivet-ring,
   .hex-crystal,.hex-crystal-spin,.hex-crystal-glint,
-  .core-halo,.core-orb,.core-svg,
+  .core-halo,.core-orb,.core-center,.core-svg,
   .core-listening .core-orb,.core-speaking .core-orb,.core-thinking .core-orb,
   .core-speaking .core-svg,
   .lock-beam rect { animation:none!important; }
