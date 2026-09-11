@@ -355,8 +355,12 @@ button { font: inherit; }
   pointer-events: none;
 }
 
-.font-display {
-  font-family: var(--font-display);
+/* Font family only, and inside a layer: an unlayered letter-spacing here
+   beats every tracking-* utility (production shipped 0.16em on all of them). */
+@layer components {
+  .font-display {
+    font-family: var(--font-display);
+  }
 }
 
 /* Metallic bezel surface */
