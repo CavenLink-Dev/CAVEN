@@ -45,25 +45,37 @@ export function AccountGate({ children }: { children: ReactNode }) {
     } finally { setBusy(false); }
   };
 
-  if (loading) return <div className="auth-loading"><span className="auth-mark">C</span><span>Preparing your private board</span></div>;
+  if (loading) return <div className="auth-loading"><span className="auth-mark">C</span><span>Loading</span></div>;
   if (session) return <div key={session.user.id} className="size-full">{children}</div>;
+
+  const switchMode = (nextSignup: boolean) => {
+    if (nextSignup === signup) return;
+    setSignup(nextSignup);
+    setMessage('');
+    setShowPassword(false);
+  };
 
   return (
     <main className="auth-shell">
       <div className="auth-orbit auth-orbit-one" /><div className="auth-orbit auth-orbit-two" />
       <section className="auth-panel" aria-labelledby="auth-title">
-        <div className="auth-brand"><img className="auth-wordmark" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-lfCMMGnKCnOIDetSbTUMiC2ZSafAi1.png" alt="CAVEN" /></div>
-        <div className="auth-intro"><p className="auth-kicker">PRIVATE INTELLIGENCE SYSTEM</p><h1 id="auth-title">{signup ? 'Create your account' : 'Welcome back'}</h1><p>{signup ? 'A calmer, sharper place to keep your life in order.' : 'Your private board is ready when you are.'}</p></div>
-        <form className="auth-form" onSubmit={submit}>
+        <div className="auth-header">
+          <img className="auth-icon" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-Ihy4CDV5qSbccIzEPhuVPOH6kdjCxy.png" alt="" />
+          <img className="auth-wordmark" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-lfCMMGnKCnOIDetSbTUMiC2ZSafAi1.png" alt="CAVEN" />
+        </div>
+        <div className="auth-tabs" role="tablist" aria-label="Authentication mode">
+          <button type="button" role="tab" aria-selected={!signup} className={`auth-tab${signup ? '' : ' is-active'}`} onClick={() => switchMode(false)}>Sign in</button>
+          <button type="button" role="tab" aria-selected={signup} className={`auth-tab${signup ? ' is-active' : ''}`} onClick={() => switchMode(true)}>Create account</button>
+        </div>
+        <form className="auth-form" onSubmit={submit} aria-labelledby="auth-title">
+          <h1 id="auth-title" className="sr-only">{signup ? 'Create account' : 'Sign in'}</h1>
           <label className="auth-label" htmlFor="auth-email">Email address</label>
           <input id="auth-email" required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="auth-input" placeholder="you@example.com" />
-          <div className="auth-password-heading"><label className="auth-label" htmlFor="auth-password">Password</label>{signup && <span className="auth-hint">8 characters minimum</span>}</div>
+          <label className="auth-label" htmlFor="auth-password">Password</label>
           <div className="auth-password-wrap"><input id="auth-password" required minLength={8} type={showPassword ? 'text' : 'password'} autoComplete={signup ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} className="auth-input" placeholder="••••••••" /><button type="button" className="auth-eye" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'}><EyeIcon visible={showPassword} /></button></div>
           {message && <p className="auth-message" role="status">{message}</p>}
-          <button disabled={busy} className="auth-submit" type="submit">{busy ? 'Working…' : signup ? 'Create private account' : 'Sign in'}<span aria-hidden="true">→</span></button>
+          <button disabled={busy} className="auth-submit" type="submit">{busy ? 'Working…' : signup ? 'Create account' : 'Sign in'}</button>
         </form>
-        <div className="auth-switch">{signup ? 'Already have an account?' : 'New to CAVEN?'} <button type="button" onClick={() => { setSignup((value) => !value); setMessage(''); setShowPassword(false); }}>{signup ? 'Sign in' : 'Create an account'}</button></div>
-        <p className="auth-privacy"><span aria-hidden="true">◈</span> Your board is private by design. We never share your personal data.</p>
       </section>
     </main>
   );
