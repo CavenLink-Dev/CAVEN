@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react"
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react"
 
 type WindowState = "normal" | "collapsed" | "expanded" | "closed"
 
@@ -41,18 +48,26 @@ export function GlassPanel({
   offsetRef.current = offset
   const drag = useRef({ sx: 0, sy: 0, bx: 0, by: 0, moving: false, hold: 0 })
 
-  const stopListening = useCallback((onMove: (e: PointerEvent) => void, onUp: () => void) => {
-    window.removeEventListener("pointermove", onMove)
-    window.removeEventListener("pointerup", onUp)
-    window.clearTimeout(drag.current.hold)
-  }, [])
+  const stopListening = useCallback(
+    (onMove: (e: PointerEvent) => void, onUp: () => void) => {
+      window.removeEventListener("pointermove", onMove)
+      window.removeEventListener("pointerup", onUp)
+      window.clearTimeout(drag.current.hold)
+    },
+    [],
+  )
 
   const canDrag = win === "normal" || win === "collapsed"
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (!canDrag || e.button !== 0) return
     // Never hijack a real control — task ticks, the traffic lights, inputs.
-    if ((e.target as HTMLElement).closest('button, a, input, textarea, select, [role="button"]')) return
+    if (
+      (e.target as HTMLElement).closest(
+        'button, a, input, textarea, select, [role="button"]',
+      )
+    )
+      return
 
     const d = drag.current
     d.sx = e.clientX
@@ -94,8 +109,10 @@ export function GlassPanel({
     setDragging(false)
     setWin("closed")
   }
-  const toggleCollapse = () => setWin(prev => (prev === "collapsed" ? "normal" : "collapsed"))
-  const toggleExpand = () => setWin(prev => (prev === "expanded" ? "normal" : "expanded"))
+  const toggleCollapse = () =>
+    setWin((prev) => (prev === "collapsed" ? "normal" : "collapsed"))
+  const toggleExpand = () =>
+    setWin((prev) => (prev === "expanded" ? "normal" : "expanded"))
   const reopen = () => {
     setOffset({ x: 0, y: 0 })
     setWin("normal")
@@ -111,20 +128,25 @@ export function GlassPanel({
     )
   }
 
-  const transform = win === "expanded" ? undefined : `translate(${offset.x}px, ${offset.y}px)`
+  const transform =
+    win === "expanded" ? undefined : `translate(${offset.x}px, ${offset.y}px)`
 
   return (
     <>
       {win === "expanded" && (
-        <div className="panel-backdrop" onClick={toggleExpand} aria-hidden="true" />
+        <div
+          className="panel-backdrop"
+          onClick={toggleExpand}
+          aria-hidden="true"
+        />
       )}
       <section
         aria-labelledby={headingId}
         onPointerDown={onPointerDown}
         style={transform ? { transform } : undefined}
-        className={`glass-panel holo-board ${isVisible ? "holo-in" : "holo-out"}${
-          canDrag ? " is-draggable" : ""
-        }${dragging ? " is-dragging" : ""}${
+        className={`glass-panel holo-board ${
+          isVisible ? "holo-in" : "holo-out"
+        }${canDrag ? " is-draggable" : ""}${dragging ? " is-dragging" : ""}${
           win === "collapsed" ? " glass-panel--collapsed" : ""
         }${win === "expanded" ? " glass-panel--expanded" : ""} ${className}`}
       >
@@ -145,13 +167,17 @@ export function GlassPanel({
             <div className="flex items-center gap-2">
               <h2
                 id={headingId}
-                className={`hud-label${largeLabel ? " hud-label--large" : ""} text-cyan-300/80`}
+                className={`hud-label${
+                  largeLabel ? " hud-label--large" : ""
+                } text-cyan-300/80`}
               >
                 {label}
               </h2>
             </div>
             {showTitle && (
-              <p className="mt-1 t-h2 text-white/95 flex items-center gap-2">{title}</p>
+              <p className="mt-1 t-h2 text-white/95 flex items-center gap-2">
+                {title}
+              </p>
             )}
           </div>
 
@@ -163,7 +189,13 @@ export function GlassPanel({
               onClick={closePanel}
               aria-label="Close panel"
             >
-              <svg viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
+              <svg
+                viewBox="0 0 8 8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+              >
                 <path d="M1.5 1.5l5 5M6.5 1.5l-5 5" />
               </svg>
             </button>
@@ -171,9 +203,17 @@ export function GlassPanel({
               type="button"
               className="win-light win-light--min"
               onClick={toggleCollapse}
-              aria-label={win === "collapsed" ? "Expand panel body" : "Shrink panel"}
+              aria-label={
+                win === "collapsed" ? "Expand panel body" : "Shrink panel"
+              }
             >
-              <svg viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
+              <svg
+                viewBox="0 0 8 8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+              >
                 <path d="M1.5 4h5" />
               </svg>
             </button>
@@ -181,9 +221,17 @@ export function GlassPanel({
               type="button"
               className="win-light win-light--max"
               onClick={toggleExpand}
-              aria-label={win === "expanded" ? "Restore panel size" : "Expand panel"}
+              aria-label={
+                win === "expanded" ? "Restore panel size" : "Expand panel"
+              }
             >
-              <svg viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
+              <svg
+                viewBox="0 0 8 8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+              >
                 {win === "expanded" ? (
                   <path d="M1.5 4h5M4 1.5v5" transform="rotate(45 4 4)" />
                 ) : (

@@ -1,5 +1,5 @@
-import { useRef } from 'react'
-import { useCore } from '../../lib/coreState'
+import { useRef } from "react"
+import { useCore } from "../../lib/coreState"
 
 // Polar helper for arc-reactor geometry (no gear teeth — smooth alien nano-tech arcs)
 function polar(cx: number, cy: number, r: number, deg: number) {
@@ -8,7 +8,13 @@ function polar(cx: number, cy: number, r: number, deg: number) {
 }
 
 // SVG arc segment path from startDeg → endDeg on a circle
-function arcSeg(cx: number, cy: number, r: number, startDeg: number, endDeg: number) {
+function arcSeg(
+  cx: number,
+  cy: number,
+  r: number,
+  startDeg: number,
+  endDeg: number,
+) {
   const s = polar(cx, cy, r, endDeg)
   const e = polar(cx, cy, r, startDeg)
   const large = endDeg - startDeg <= 180 ? 0 : 1
@@ -40,24 +46,40 @@ const CRYSTAL = (() => {
     return { x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a) }
   })
   // Alternate facet shading around the gem for a machined, luminous look.
-  const fills = ['url(#gemLight)', 'url(#gemMid)', 'url(#gemDark)', 'url(#gemMid)', 'url(#gemLight)', 'url(#gemMid)']
+  const fills = [
+    "url(#gemLight)",
+    "url(#gemMid)",
+    "url(#gemDark)",
+    "url(#gemMid)",
+    "url(#gemLight)",
+    "url(#gemMid)",
+  ]
   const upper = eq.map((p, i) => {
     const n = eq[(i + 1) % 6]
     return { pts: `${cx},${topY} ${p.x},${p.y} ${n.x},${n.y}`, fill: fills[i] }
   })
   const lower = eq.map((p, i) => {
     const n = eq[(i + 1) % 6]
-    return { pts: `${cx},${botY} ${p.x},${p.y} ${n.x},${n.y}`, fill: fills[(i + 3) % 6] }
+    return {
+      pts: `${cx},${botY} ${p.x},${p.y} ${n.x},${n.y}`,
+      fill: fills[(i + 3) % 6],
+    }
   })
-  const equatorPts = eq.map(p => `${p.x},${p.y}`).join(' ')
-  return { upper, lower, equatorPts, top: { x: cx, y: topY }, bot: { x: cx, y: botY } }
+  const equatorPts = eq.map((p) => `${p.x},${p.y}`).join(" ")
+  return {
+    upper,
+    lower,
+    equatorPts,
+    top: { x: cx, y: topY },
+    bot: { x: cx, y: botY },
+  }
 })()
 
 const POWER_LABEL: Record<string, string> = {
-  off: 'offline',
-  on: 'online',
-  'powering-off': 'powering down',
-  locked: 'locked',
+  off: "offline",
+  on: "online",
+  "powering-off": "powering down",
+  locked: "locked",
 }
 
 export function CavenCore() {
@@ -94,10 +116,10 @@ export function CavenCore() {
   }
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
+    if (e.key === "Enter" || e.key === " ") {
       e.preventDefault()
       if (e.shiftKey) lock()
-      else if (power === 'off') powerOn()
+      else if (power === "off") powerOn()
       else powerOff()
     }
   }
@@ -108,7 +130,12 @@ export function CavenCore() {
   const innerSegments = ringSegments(78, 7, 0.58)
 
   // Status indicator color: off/powering-off = red, on = green, locked = yellow
-  const dotColor = power === 'on' ? 'rgb(35, 157, 14)' : power === 'locked' ? '#ffd53d' : '#ff5a4b'
+  const dotColor =
+    power === "on"
+      ? "rgb(35, 157, 14)"
+      : power === "locked"
+        ? "#ffd53d"
+        : "#ff5a4b"
 
   return (
     <div className={`core-zone core-${power} core-${state}`}>
@@ -200,14 +227,30 @@ export function CavenCore() {
             {/* Node caps at each arc terminus */}
             {Array.from({ length: 5 }, (_, i) => {
               const p = polar(200, 200, 150, i * 72)
-              return <circle key={`onode-${i}`} cx={p.x} cy={p.y} r="3.2" fill="#d8fdff" filter="url(#glow)" />
+              return (
+                <circle
+                  key={`onode-${i}`}
+                  cx={p.x}
+                  cy={p.y}
+                  r="3.2"
+                  fill="#d8fdff"
+                  filter="url(#glow)"
+                />
+              )
             })}
           </g>
 
           <circle className="orbit orbit-dash" cx="200" cy="200" r="146" />
 
           {/* Radar Sweep & Mechanical Micro Ticks */}
-          <line className="sweep" x1="200" y1="200" x2="200" y2="27" filter="url(#glow)" />
+          <line
+            className="sweep"
+            x1="200"
+            y1="200"
+            x2="200"
+            y2="27"
+            filter="url(#glow)"
+          />
           {Array.from({ length: 24 }, (_, i) => (
             <line
               className="tick"
@@ -215,7 +258,7 @@ export function CavenCore() {
               x1="200"
               y1="34"
               x2="200"
-              y2={i % 3 === 0 ? '46' : '41'}
+              y2={i % 3 === 0 ? "46" : "41"}
               transform={`rotate(${i * 15} 200 200)`}
             />
           ))}
@@ -234,7 +277,14 @@ export function CavenCore() {
           {/* Fine Nano-Tick Ring — dense counter-rotating micro-segments */}
           <g className="reactor-ring reactor-ring-mid">
             {midSegments.map((d, i) => (
-              <path key={`mid-${i}`} d={d} fill="none" stroke="#7fe6ef" strokeWidth="2" opacity="0.7" />
+              <path
+                key={`mid-${i}`}
+                d={d}
+                fill="none"
+                stroke="#7fe6ef"
+                strokeWidth="2"
+                opacity="0.7"
+              />
             ))}
           </g>
 
@@ -270,8 +320,23 @@ export function CavenCore() {
           <g className="core-spokes">
             {Array.from({ length: 6 }, (_, i) => (
               <g key={`spoke-${i}`} transform={`rotate(${i * 60} 200 200)`}>
-                <line x1="200" y1="135" x2="200" y2="82" stroke="#52c8d2" strokeWidth="1.2" opacity="0.65" />
-                <rect x="198" y="110" width="4" height="8" fill="#71e8f0" opacity="0.8" />
+                <line
+                  x1="200"
+                  y1="135"
+                  x2="200"
+                  y2="82"
+                  stroke="#52c8d2"
+                  strokeWidth="1.2"
+                  opacity="0.65"
+                />
+                <rect
+                  x="198"
+                  y="110"
+                  width="4"
+                  height="8"
+                  fill="#71e8f0"
+                  opacity="0.8"
+                />
                 <circle cx="200" cy="82" r="2" fill="#d8fdff" />
               </g>
             ))}
@@ -285,7 +350,14 @@ export function CavenCore() {
               const cy = 200 + Math.sin(rad) * 128
               return (
                 <g key={`rivet-${i}`}>
-                  <circle cx={cx} cy={cy} r="3.4" fill="#0e2027" stroke="#6fd6e0" strokeWidth="0.7" />
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r="3.4"
+                    fill="#0e2027"
+                    stroke="#6fd6e0"
+                    strokeWidth="0.7"
+                  />
                   <circle className="metal-rivet" cx={cx} cy={cy} r="1.4" />
                   <line
                     x1={cx - 2.2}
@@ -303,7 +375,7 @@ export function CavenCore() {
 
           {/* Precision Clamp Brackets — machined mounts at the cardinal points */}
           <g className="core-clamps">
-            {[0, 90, 180, 270].map(a => (
+            {[0, 90, 180, 270].map((a) => (
               <g key={`clamp-${a}`} transform={`rotate(${a} 200 200)`}>
                 <path
                   d="M186 62 L214 62 L214 68 L208 68 L208 74 L192 74 L192 68 L186 68 Z"
@@ -326,10 +398,10 @@ export function CavenCore() {
               cy="200"
               r="1.4"
               style={{
-                ['--ga' as string]: `${i * 51}deg`,
-                ['--gd' as string]: `${96 + (i % 4) * 26}px`,
-                ['--gs' as string]: `${14 + (i % 5) * 5}s`,
-                ['--gdl' as string]: `${i * -2.1}s`,
+                ["--ga" as string]: `${i * 51}deg`,
+                ["--gd" as string]: `${96 + (i % 4) * 26}px`,
+                ["--gs" as string]: `${14 + (i % 5) * 5}s`,
+                ["--gdl" as string]: `${i * -2.1}s`,
               }}
             />
           ))}
@@ -344,7 +416,7 @@ export function CavenCore() {
                   x="199"
                   y="150"
                   width="2"
-                  height={i % 2 === 0 ? '9' : '5'}
+                  height={i % 2 === 0 ? "9" : "5"}
                   rx="1"
                   fill="url(#violetGrad)"
                   transform={`rotate(${i * 20} 200 200)`}
@@ -372,10 +444,10 @@ export function CavenCore() {
 
             {/* Diagnostic LED cluster — four distinct status colors */}
             {[
-              { a: 30, c: '#63f0a0' },
-              { a: 120, c: '#f5b642' },
-              { a: 210, c: '#7fdcff' },
-              { a: 300, c: '#e07bff' },
+              { a: 30, c: "#63f0a0" },
+              { a: 120, c: "#f5b642" },
+              { a: 210, c: "#7fdcff" },
+              { a: 300, c: "#e07bff" },
             ].map(({ a, c }, i) => {
               const rad = (a * Math.PI) / 180
               const lx = 200 + Math.cos(rad) * 50
@@ -388,7 +460,10 @@ export function CavenCore() {
                   cy={ly}
                   r="2"
                   fill={c}
-                  style={{ ['--led' as string]: c, ['--ldl' as string]: `${i * 0.4}s` }}
+                  style={{
+                    ["--led" as string]: c,
+                    ["--ldl" as string]: `${i * 0.4}s`,
+                  }}
                 />
               )
             })}
@@ -396,30 +471,83 @@ export function CavenCore() {
 
           {/* Luminous Central Reactor Core */}
           <circle className="core-halo" cx="200" cy="200" r="82" />
-          <circle className="core-orb" cx="200" cy="200" r="63" fill="url(#orb)" filter="url(#heavy-glow)" />
+          <circle
+            className="core-orb"
+            cx="200"
+            cy="200"
+            r="63"
+            fill="url(#orb)"
+            filter="url(#heavy-glow)"
+          />
 
           {/* Floating 3D Hexagonal Crystal — the intelligence at the heart of the core */}
           <g className="hex-crystal" filter="url(#glow)">
             <g className="hex-crystal-spin">
               {CRYSTAL.lower.map((f, i) => (
-                <polygon key={`cl-${i}`} points={f.pts} fill={f.fill} stroke="#bff4ff" strokeWidth="0.4" strokeOpacity="0.4" />
+                <polygon
+                  key={`cl-${i}`}
+                  points={f.pts}
+                  fill={f.fill}
+                  stroke="#bff4ff"
+                  strokeWidth="0.4"
+                  strokeOpacity="0.4"
+                />
               ))}
               {CRYSTAL.upper.map((f, i) => (
-                <polygon key={`cu-${i}`} points={f.pts} fill={f.fill} stroke="#dffbff" strokeWidth="0.5" strokeOpacity="0.6" />
+                <polygon
+                  key={`cu-${i}`}
+                  points={f.pts}
+                  fill={f.fill}
+                  stroke="#dffbff"
+                  strokeWidth="0.5"
+                  strokeOpacity="0.6"
+                />
               ))}
               {/* Bright equator edge + apex ridge lines for crisp faceting */}
-              <polygon points={CRYSTAL.equatorPts} fill="none" stroke="#ffffff" strokeWidth="0.7" strokeOpacity="0.7" />
-              <line x1={CRYSTAL.top.x} y1={CRYSTAL.top.y} x2={CRYSTAL.bot.x} y2={CRYSTAL.bot.y} stroke="#eafcff" strokeWidth="0.5" strokeOpacity="0.35" />
+              <polygon
+                points={CRYSTAL.equatorPts}
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth="0.7"
+                strokeOpacity="0.7"
+              />
+              <line
+                x1={CRYSTAL.top.x}
+                y1={CRYSTAL.top.y}
+                x2={CRYSTAL.bot.x}
+                y2={CRYSTAL.bot.y}
+                stroke="#eafcff"
+                strokeWidth="0.5"
+                strokeOpacity="0.35"
+              />
               {/* Specular apex glints */}
-              <circle className="hex-crystal-glint" cx={CRYSTAL.top.x} cy={CRYSTAL.top.y} r="2" fill="#ffffff" />
-              <circle className="hex-crystal-glint" cx={CRYSTAL.bot.x} cy={CRYSTAL.bot.y} r="1.6" fill="#cbf6ff" />
+              <circle
+                className="hex-crystal-glint"
+                cx={CRYSTAL.top.x}
+                cy={CRYSTAL.top.y}
+                r="2"
+                fill="#ffffff"
+              />
+              <circle
+                className="hex-crystal-glint"
+                cx={CRYSTAL.bot.x}
+                cy={CRYSTAL.bot.y}
+                r="1.6"
+                fill="#cbf6ff"
+              />
             </g>
           </g>
 
           <circle className="core-center" cx="200" cy="200" r="12" />
 
           {/* Interactive Pulse — colored per action (green on / red off / blue lock) */}
-          <circle key={pulse.id} className={`ripple pulse-${pulse.type}`} cx="200" cy="200" r="70" />
+          <circle
+            key={pulse.id}
+            className={`ripple pulse-${pulse.type}`}
+            cx="200"
+            cy="200"
+            r="70"
+          />
           {Array.from({ length: 12 }, (_, i) => (
             <circle
               key={`${pulse.id}-${i}`}
@@ -428,14 +556,14 @@ export function CavenCore() {
               cy="200"
               r="2.2"
               style={{
-                ['--a' as string]: `${i * 30}deg`,
-                ['--d' as string]: `${80 + (i % 4) * 20}px`,
+                ["--a" as string]: `${i * 30}deg`,
+                ["--d" as string]: `${80 + (i % 4) * 20}px`,
               }}
             />
           ))}
 
           {/* Double-tap lock beam — vertical light-blue surge */}
-          {pulse.type === 'blue' && (
+          {pulse.type === "blue" && (
             <g key={`beam-${pulse.id}`} className="lock-beam">
               <rect x="196" y="-40" width="8" height="480" rx="4" />
               <rect x="-40" y="196" width="480" height="8" rx="4" />
@@ -445,13 +573,21 @@ export function CavenCore() {
       </button>
 
       {/* Hologram Board Controls & HUD Status Bar */}
-      <div className="holo-hud-controls mt-3 flex flex-col items-center gap-2" style={{ paddingBottom: '127px' }}>
+      <div
+        className="holo-hud-controls mt-3 flex flex-col items-center gap-2"
+        style={{ paddingBottom: "127px" }}
+      >
         <div className="text-[14px] font-mono tracking-widest text-white uppercase flex items-center gap-2">
           <span
             className="w-[13px] h-[13px] rounded-full animate-pulse text-[22px]"
-            style={{ backgroundColor: dotColor, boxShadow: `0 0 10px ${dotColor}` }}
+            style={{
+              backgroundColor: dotColor,
+              boxShadow: `0 0 10px ${dotColor}`,
+            }}
           />
-          <span className="text-white" style={{ fontSize: '22px' }}>{lastAction || 'JARVIS HUD PROJECTION MATRIX ONLINE'}</span>
+          <span className="text-white" style={{ fontSize: "22px" }}>
+            {lastAction || "JARVIS HUD PROJECTION MATRIX ONLINE"}
+          </span>
         </div>
       </div>
     </div>

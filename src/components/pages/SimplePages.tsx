@@ -1,19 +1,30 @@
-import { useCavenStore } from '../../lib/store';
-import { Bar, Panel, Ring, Row } from '../widgets';
+import { useCavenStore } from "../../lib/store"
+import { Bar, Panel, Ring, Row } from "../widgets"
 
 function money(n: number) {
-  return `${n < 0 ? '-' : '+'}$${Math.abs(n).toFixed(2)}`;
+  return `${n < 0 ? "-" : "+"}$${Math.abs(n).toFixed(2)}`
 }
 
 export function FinancePage() {
-  const { data } = useCavenStore();
-  const { budgets, transactions } = data;
-  const balance = transactions.reduce((s, t) => s + t.amount, 0);
+  const { data } = useCavenStore()
+  const { budgets, transactions } = data
+  const balance = transactions.reduce((s, t) => s + t.amount, 0)
   return (
     <div className="w-full max-w-md space-y-3">
       <Panel>
-        <div className="t-micro tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>BALANCE THIS MONTH</div>
-        <div className="font-display text-4xl" style={{ color: 'var(--caven-cyan-bright)', textShadow: '0 0 18px var(--caven-glow)' }}>
+        <div
+          className="t-micro tracking-[0.28em]"
+          style={{ color: "var(--caven-steel)" }}
+        >
+          BALANCE THIS MONTH
+        </div>
+        <div
+          className="font-display text-4xl"
+          style={{
+            color: "var(--caven-cyan-bright)",
+            textShadow: "0 0 18px var(--caven-glow)",
+          }}
+        >
           ${balance.toFixed(2)}
         </div>
       </Panel>
@@ -23,7 +34,9 @@ export function FinancePage() {
             <div key={b.id}>
               <div className="mb-1 flex justify-between text-sm">
                 <span>{b.category}</span>
-                <span className="opacity-70">${b.spent} / ${b.limit}</span>
+                <span className="opacity-70">
+                  ${b.spent} / ${b.limit}
+                </span>
               </div>
               <Bar value={(b.spent / b.limit) * 100} />
             </div>
@@ -35,47 +48,74 @@ export function FinancePage() {
           <Row key={x.id}>
             <span className="flex-1">{x.label}</span>
             <span className="text-xs opacity-60">{x.when}</span>
-            <span className="font-display text-sm" style={{ color: x.amount > 0 ? 'var(--caven-cyan-bright)' : 'var(--caven-steel-light)' }}>
+            <span
+              className="font-display text-sm"
+              style={{
+                color:
+                  x.amount > 0
+                    ? "var(--caven-cyan-bright)"
+                    : "var(--caven-steel-light)",
+              }}
+            >
               {money(x.amount)}
             </span>
           </Row>
         ))}
       </Panel>
     </div>
-  );
+  )
 }
 
 export function JournalPage() {
-  const { data } = useCavenStore();
-  const { journal } = data;
+  const { data } = useCavenStore()
+  const { journal } = data
   return (
     <div className="w-full max-w-md space-y-3">
       <Panel>
-        <div className="t-micro tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>JOURNAL</div>
-        <div className="mt-1 text-sm opacity-80">Say “journal” and tell me how today felt — I'll write it here.</div>
+        <div
+          className="t-micro tracking-[0.28em]"
+          style={{ color: "var(--caven-steel)" }}
+        >
+          JOURNAL
+        </div>
+        <div className="mt-1 text-sm opacity-80">
+          Say “journal” and tell me how today felt — I'll write it here.
+        </div>
       </Panel>
       {journal.map((j) => (
         <Panel key={j.id}>
           <div className="flex items-center gap-2">
             <span className="text-lg">{j.mood}</span>
             <span className="font-medium">{j.title}</span>
-            <span className="ml-auto t-micro tracking-widest" style={{ color: 'var(--caven-steel)' }}>{j.date}</span>
+            <span
+              className="ml-auto t-micro tracking-widest"
+              style={{ color: "var(--caven-steel)" }}
+            >
+              {j.date}
+            </span>
           </div>
           <div className="mt-1.5 text-sm opacity-80">{j.body}</div>
         </Panel>
       ))}
     </div>
-  );
+  )
 }
 
 export function BrainPage() {
-  const { data } = useCavenStore();
-  const { brainMetrics, brainNotes, interests } = data;
+  const { data } = useCavenStore()
+  const { brainMetrics, brainNotes, interests } = data
   return (
     <div className="w-full max-w-md space-y-3">
       <Panel>
-        <div className="t-micro tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>CAVEN BRAIN</div>
-        <div className="mt-1 text-sm opacity-80">What I've learned about you to answer better and support your goals.</div>
+        <div
+          className="t-micro tracking-[0.28em]"
+          style={{ color: "var(--caven-steel)" }}
+        >
+          CAVEN BRAIN
+        </div>
+        <div className="mt-1 text-sm opacity-80">
+          What I've learned about you to answer better and support your goals.
+        </div>
       </Panel>
       <Panel title="Wellbeing">
         <div className="grid grid-cols-2 gap-3">
@@ -93,7 +133,14 @@ export function BrainPage() {
       <Panel title="Interests & hobbies">
         <div className="flex flex-wrap gap-1.5">
           {interests.map((i) => (
-            <span key={i} className="rounded-full px-2.5 py-1 text-xs" style={{ background: 'rgba(63,208,255,0.1)', border: '1px solid rgba(63,208,255,0.2)' }}>
+            <span
+              key={i}
+              className="rounded-full px-2.5 py-1 text-xs"
+              style={{
+                background: "rgba(63,208,255,0.1)",
+                border: "1px solid rgba(63,208,255,0.2)",
+              }}
+            >
               {i}
             </span>
           ))}
@@ -103,12 +150,12 @@ export function BrainPage() {
         <ul className="space-y-2 text-sm opacity-85">
           {brainNotes.map((n) => (
             <li key={n} className="flex gap-2">
-              <span style={{ color: 'var(--caven-cyan)' }}>▸</span>
+              <span style={{ color: "var(--caven-cyan)" }}>▸</span>
               {n}
             </li>
           ))}
         </ul>
       </Panel>
     </div>
-  );
+  )
 }
