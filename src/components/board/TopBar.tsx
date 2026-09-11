@@ -102,18 +102,16 @@ export function TopBar({ page, onPageChange, actions }: { page: Page; onPageChan
         })}
       </nav>
       <div className="flex items-center gap-4" style={{ alignItems: 'center' }}>
-        <time className="hud-label" style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'rgba(255, 255, 255, 0.9)', padding: '0px', transform: 'translateX(-10px)' }}>
+        <span
+          className="rounded-full border border-cyan-200/15 bg-cyan-100/5 font-bold text-cyan-100"
+          style={{ height: '47px', width: '47px', paddingTop: '0px', paddingRight: '16px', paddingBottom: '0px', paddingLeft: '16px', fontSize: '25px', fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
+        >
+          {initial}
+        </span>
+        <time className="hud-label" style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'rgba(255, 255, 255, 0.9)', padding: '0px' }}>
           {clock}
         </time>
-        <div className="flex flex-col items-center gap-1.5">
-          <span
-            className="rounded-full border border-cyan-200/15 bg-cyan-100/5 font-bold text-cyan-100"
-            style={{ height: '47px', width: '47px', paddingTop: '0px', paddingRight: '16px', paddingBottom: '0px', paddingLeft: '16px', fontSize: '25px', fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
-          >
-            {initial}
-          </span>
-          {actions}
-        </div>
+        {actions}
       </div>
     </header>
   )
