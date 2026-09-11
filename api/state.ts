@@ -1,36 +1,21 @@
-import { STATE_KEY, json, supabaseAdmin } from "./_caven";
+import { json, kvEndpoint, loadCavenState, restHeaders, STATE_KEY, supabaseAdmin } from "./_caven";
 
 export const config = { runtime: "edge" };
-
-function restHeaders(key: string) {
-  return {
-    apikey: key,
-    authorization: `Bearer ${key}`,
-    "content-type": "application/json",
-    prefer: "return=minimal",
-  };
-}
 
 export default async function handler(req: Request) {
   if (req.method === "OPTIONS") return new Response(null, { status: 204 });
 
   try {
-    const { url, key } = supabaseAdmin();
-    const endpoint = `${url}/rest/v1/kv_store_3159d1b2`;
-
     if (req.method === "GET") {
-      const res = await fetch(`${endpoint}?key=eq.${encodeURIComponent(STATE_KEY)}&select=value`, {
-        headers: restHeaders(key),
-      });
-      if (!res.ok) throw new Error(`supabase get ${res.status} ${await res.text()}`);
-      const rows = await res.json();
-      return json({ state: rows?.[0]?.value ?? null });
+      const state = await loadCavenState();
+      return json({ state });
     }
 
     if (req.method === "POST") {
+      const { url, key } = supabaseAdmin();
       const body = await req.json();
       const state = body?.state ?? body;
-      const res = await fetch(endpoint, {
+      const res = await fetch(kvEndpoint(url), {
         method: "POST",
         headers: { ...restHeaders(key), prefer: "resolution=merge-duplicates,return=minimal" },
         body: JSON.stringify({ key: STATE_KEY, value: state }),

@@ -16,3 +16,28 @@ export function supabaseAdmin() {
   if (!key) throw new Error("SUPABASE_SECRET_KEY missing");
   return { url, key };
 }
+
+const KV_TABLE = "kv_store_3159d1b2";
+
+export function restHeaders(key: string) {
+  return {
+    apikey: key,
+    authorization: `Bearer ${key}`,
+    "content-type": "application/json",
+    prefer: "return=minimal",
+  };
+}
+
+export function kvEndpoint(url: string) {
+  return `${url}/rest/v1/${KV_TABLE}`;
+}
+
+export async function loadCavenState(): Promise<unknown | null> {
+  const { url, key } = supabaseAdmin();
+  const res = await fetch(`${kvEndpoint(url)}?key=eq.${encodeURIComponent(STATE_KEY)}&select=value`, {
+    headers: restHeaders(key),
+  });
+  if (!res.ok) throw new Error(`supabase get ${res.status} ${await res.text()}`);
+  const rows = await res.json();
+  return rows?.[0]?.value ?? null;
+}

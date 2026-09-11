@@ -1,4 +1,5 @@
-import { CAVEN_SYSTEM, json } from "./_caven";
+import { boardBrief } from "../shared/boardBrief";
+import { CAVEN_SYSTEM, json, loadCavenState } from "./_caven";
 
 export const config = { runtime: "edge" };
 
@@ -151,8 +152,9 @@ function cleanHistory(history: unknown): Turn[] {
     .map((t: any) => ({ role: t.role, content: String(t.content) }));
 }
 
-async function callOnce(p: Provider, model: string, message: string, history: Turn[]) {
+async function callOnce(p: Provider, model: string, message: string, history: Turn[], board: string) {
   const isAnthropic = p.kind === "anthropic";
+  const system = board ? `${CAVEN_SYSTEM}\n\n${board}` : CAVEN_SYSTEM;
 
   const res = await fetch(p.url, {
     method: "POST",
@@ -164,7 +166,7 @@ async function callOnce(p: Provider, model: string, message: string, history: Tu
         ? {
             model,
             max_tokens: MAX_TOKENS,
-            system: CAVEN_SYSTEM,
+            system,
             messages: [...history, { role: "user", content: message }],
           }
         : {
@@ -175,6 +177,7 @@ async function callOnce(p: Provider, model: string, message: string, history: Tu
             temperature: 0.9,
             messages: [
               { role: "system", content: CAVEN_SYSTEM },
+              ...(board ? [{ role: "system" as const, content: board }] : []),
               ...history,
               { role: "user", content: message },
             ],
@@ -201,9 +204,9 @@ async function callOnce(p: Provider, model: string, message: string, history: Tu
     : { ok: false as const, status: 502, detail: `${p.name} returned no text`, raw: "" };
 }
 
-async function callProvider(p: Provider, message: string, history: Turn[]) {
+async function callProvider(p: Provider, message: string, history: Turn[], board: string) {
   const model = resolved.get(p.name) ?? p.model;
-  const first = await callOnce(p, model, message, history);
+  const first = await callOnce(p, model, message, history, board);
   if (first.ok) return first;
 
   // Only a missing model is worth re-trying; auth and rate-limit errors aren't.
@@ -220,9 +223,20 @@ async function callProvider(p: Provider, message: string, history: Turn[]) {
   }
 
   console.log(`CAVEN chat: ${p.name} model "${model}" is gone, falling back to "${next}"`);
-  const second = await callOnce(p, next, message, history);
+  const second = await callOnce(p, next, message, history, board);
   if (second.ok) resolved.set(p.name, next);
   return second;
+}
+
+async function loadBoard(): Promise<{ present: boolean; brief: string }> {
+  try {
+    const state = await loadCavenState();
+    const brief = boardBrief(state);
+    return { present: state != null, brief };
+  } catch (err) {
+    console.error("CAVEN chat: board load failed:", err);
+    return { present: false, brief: "" };
+  }
 }
 
 export default async function handler(req: Request) {
