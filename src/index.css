@@ -1,0 +1,367 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+@import 'tailwindcss';
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+:root {
+  /* Neon cyan accent (reference-accurate, only hue) */
+  --caven-cyan: #3fd0ff;
+  --caven-cyan-bright: #a9edff;
+  --caven-cyan-deep: #1a86b8;
+  --caven-glow: rgba(63, 208, 255, 0.55);
+
+  /* Metallic structure */
+  --caven-bg: #05070d;
+  --caven-bg-2: #0a0f18;
+  --caven-steel: #8a95a5;
+  --caven-steel-light: #b8c2ce;
+  --caven-graphite: #2a3038;
+  --caven-graphite-2: #171c24;
+
+  --caven-glass: rgba(18, 26, 38, 0.55);
+  --caven-glass-border: rgba(138, 149, 165, 0.22);
+}
+
+body {
+  margin: 0;
+  background: var(--caven-bg);
+  color: var(--caven-steel-light);
+  font-family: 'Rajdhani', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Deep-space HUD backdrop: grid + vignette */
+.caven-backdrop {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 35%, rgba(63, 208, 255, 0.08), transparent 60%),
+    radial-gradient(140% 120% at 50% 120%, rgba(63, 208, 255, 0.05), transparent 55%),
+    linear-gradient(180deg, #060a12 0%, #05070d 55%, #03040a 100%);
+}
+.caven-backdrop::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(138, 149, 165, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(138, 149, 165, 0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(90% 80% at 50% 45%, #000 30%, transparent 85%);
+}
+.caven-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 220px 60px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+}
+
+.font-display {
+  font-family: 'Orbitron', sans-serif;
+}
+
+/* Metallic bezel surface */
+.metal-surface {
+  background:
+    linear-gradient(145deg, rgba(184, 194, 206, 0.14), rgba(23, 28, 36, 0.7) 42%),
+    var(--caven-glass);
+  border: 1px solid var(--caven-glass-border);
+  backdrop-filter: blur(14px);
+}
+
+.text-glow {
+  text-shadow: 0 0 12px var(--caven-glow);
+}
+
+/* Holographic luminescent widget */
+.holo-panel {
+  position: relative;
+  border-radius: 1rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(63, 208, 255, 0.45);
+  /* Solid translucent fill instead of backdrop-blur — far cheaper to composite */
+  background: linear-gradient(160deg, rgba(30, 90, 120, 0.35), rgba(8, 14, 22, 0.82) 75%);
+  box-shadow: 0 0 22px rgba(63, 208, 255, 0.22), inset 0 0 22px rgba(63, 208, 255, 0.08);
+  overflow: hidden;
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+  cursor: pointer;
+  will-change: transform;
+}
+.holo-panel::before {
+  /* scanline sheen */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(63, 208, 255, 0.06) 0px,
+    rgba(63, 208, 255, 0) 2px,
+    rgba(63, 208, 255, 0) 4px
+  );
+  pointer-events: none;
+  opacity: 0.7;
+}
+.holo-panel:hover {
+  border-color: rgba(169, 237, 255, 0.85);
+  box-shadow: 0 0 44px rgba(63, 208, 255, 0.4), inset 0 0 30px rgba(63, 208, 255, 0.12);
+  transform: scale(1.06);
+  animation: wobble 0.6s ease;
+  z-index: 5;
+}
+/* Softer hover/press — ~50% of the standard reaction */
+.holo-soft:hover {
+  transform: scale(1.03);
+  animation: wobble-soft 0.6s ease;
+  box-shadow: 0 0 30px rgba(63, 208, 255, 0.3), inset 0 0 24px rgba(63, 208, 255, 0.1);
+}
+.holo-soft:active {
+  transform: scale(0.99);
+}
+@keyframes wobble-soft {
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.035) rotate(0.6deg); }
+  100% { transform: scale(1.03) rotate(0deg); }
+}
+.holo-panel.holo-hero {
+  border-color: rgba(169, 237, 255, 0.7);
+  box-shadow: 0 0 48px rgba(63, 208, 255, 0.38), inset 0 0 34px rgba(63, 208, 255, 0.14);
+}
+
+@keyframes wobble {
+  0% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.05) rotate(-1.4deg); }
+  50% { transform: scale(1.07) rotate(1.2deg); }
+  75% { transform: scale(1.06) rotate(-0.7deg); }
+  100% { transform: scale(1.06) rotate(0deg); }
+}
+
+/* Pressed widget: sucked from small to big, centered by its grid parent */
+@keyframes pop-in {
+  0% { transform: scale(0.12); opacity: 0; }
+  60% { opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.anim-pop-in { animation: pop-in 0.42s cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* Futuristic plasma orb at the heart of the globe — white-hot core, swirling
+   body, and flickering electric zaps. Kept to 3 layers for performance. */
+.plasma-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 200px;
+  height: 200px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 38% 40%, rgba(210, 248, 255, 0.55) 0%, transparent 30%),
+    radial-gradient(circle at 64% 62%, rgba(120, 220, 255, 0.4) 0%, transparent 34%),
+    radial-gradient(circle at 50% 46%, #ffffff 0%, rgba(169, 237, 255, 0.95) 12%, rgba(63, 208, 255, 0.55) 32%, rgba(26, 134, 184, 0.2) 56%, transparent 72%);
+  box-shadow: 0 0 70px 14px rgba(63, 208, 255, 0.4), 0 0 26px 4px rgba(169, 237, 255, 0.35);
+  animation: plasma-breathe 5s ease-in-out infinite, plasma-flicker 3.7s steps(1) infinite, plasma-churn 6.5s ease-in-out infinite;
+}
+/* Swirling inner filaments */
+.plasma-core::before {
+  content: '';
+  position: absolute;
+  inset: -12%;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    transparent 0%, rgba(63, 208, 255, 0.4) 8%, transparent 18%,
+    rgba(169, 237, 255, 0.5) 30%, transparent 42%,
+    rgba(63, 208, 255, 0.35) 60%, transparent 72%,
+    rgba(169, 237, 255, 0.45) 88%, transparent 100%);
+  filter: blur(7px);
+  animation: spin-slow 8s linear infinite;
+}
+/* Sharp electric zaps flicking around the orb */
+.plasma-core::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  border-radius: 50%;
+  background: conic-gradient(from 90deg,
+    transparent 0deg, rgba(210, 245, 255, 0.9) 2deg, transparent 5deg,
+    transparent 120deg, rgba(210, 245, 255, 0.8) 122deg, transparent 126deg,
+    transparent 210deg, rgba(210, 245, 255, 0.85) 212deg, transparent 216deg,
+    transparent 300deg, rgba(210, 245, 255, 0.7) 302deg, transparent 305deg);
+  filter: blur(1.2px) drop-shadow(0 0 6px var(--caven-cyan-bright));
+  mix-blend-mode: screen;
+  animation: spin-rev 6s linear infinite, zap-flicker 0.9s steps(1) infinite;
+}
+@keyframes plasma-breathe {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.85; }
+  50% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+}
+@keyframes plasma-churn {
+  0%, 100% { background-position: 0% 0%, 0% 0%, 0% 0%; }
+  33% { background-position: 8% -6%, -7% 5%, 0% 0%; }
+  66% { background-position: -6% 7%, 6% -5%, 0% 0%; }
+}
+@keyframes plasma-flicker {
+  0%, 100% { filter: brightness(1); }
+  48% { filter: brightness(1); }
+  50% { filter: brightness(1.35); }
+  52% { filter: brightness(1); }
+  78% { filter: brightness(1.18); }
+  80% { filter: brightness(1); }
+}
+@keyframes zap-flicker {
+  0%, 100% { opacity: 0.25; }
+  10% { opacity: 0.9; }
+  14% { opacity: 0.3; }
+  46% { opacity: 0.85; }
+  50% { opacity: 0.2; }
+  72% { opacity: 1; }
+  76% { opacity: 0.35; }
+}
+
+/* Little equalizer bars on the music button while a track plays. */
+.eq-bar {
+  width: 2px;
+  height: 100%;
+  border-radius: 1px;
+  background: var(--caven-cyan-bright);
+  transform-origin: bottom;
+  animation: eq-bounce 0.9s ease-in-out infinite;
+}
+@keyframes eq-bounce {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+/* Plasma bolt — a bright electric line leaping from the core out to a tile.
+   Anchored at the core (stage origin) and rotated toward the target. */
+.plasma-bolt {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 2px;
+  transform-origin: 0 50%;
+  pointer-events: none;
+  border-radius: 2px;
+  background: linear-gradient(90deg,
+    rgba(210, 245, 255, 0.95) 0%,
+    rgba(63, 208, 255, 0.85) 40%,
+    rgba(169, 237, 255, 0.9) 70%,
+    rgba(210, 245, 255, 0.95) 100%);
+  filter: drop-shadow(0 0 6px var(--caven-cyan-bright)) drop-shadow(0 0 14px rgba(63, 208, 255, 0.7));
+  mix-blend-mode: screen;
+  animation: bolt-strike 0.26s steps(3) both;
+}
+@keyframes bolt-strike {
+  0% { opacity: 0; transform-origin: 0 50%; clip-path: inset(0 100% 0 0); }
+  20% { opacity: 1; clip-path: inset(0 0 0 0); }
+  60% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+/* The tile a bolt lands on flares white-hot for the length of the strike. */
+.plasma-struck {
+  animation: card-zap 0.26s ease-out both;
+}
+@keyframes card-zap {
+  0% { box-shadow: 0 0 0 rgba(210, 245, 255, 0); }
+  25% {
+    box-shadow: 0 0 26px 6px rgba(210, 245, 255, 0.9), 0 0 46px 12px rgba(63, 208, 255, 0.5);
+    border-color: rgba(210, 245, 255, 0.95);
+    filter: brightness(1.5);
+  }
+  100% { box-shadow: 0 0 0 rgba(210, 245, 255, 0); }
+}
+
+/* Containing frame so the world feels bounded */
+.world-frame {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 120px 30px rgba(3, 5, 10, 0.9);
+}
+.world-frame::before {
+  content: '';
+  position: absolute;
+  inset: 14px;
+  border-radius: 28px;
+  border: 1px solid rgba(63, 208, 255, 0.18);
+  box-shadow: inset 0 0 40px rgba(63, 208, 255, 0.06);
+}
+
+@keyframes overlay-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.anim-overlay-fade { animation: overlay-fade 0.3s ease both; }
+
+/* ---------- CORE state keyframes ---------- */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.92; }
+  50% { transform: scale(1.045); opacity: 1; }
+}
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 40px 6px var(--caven-glow), inset 0 0 40px rgba(63,208,255,0.25); }
+  50% { box-shadow: 0 0 80px 18px var(--caven-glow), inset 0 0 60px rgba(63,208,255,0.4); }
+}
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+@keyframes spin-rev { to { transform: rotate(-360deg); } }
+@keyframes spin-fast {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes flash {
+  0% { box-shadow: 0 0 40px 6px var(--caven-glow); filter: brightness(1); }
+  30% { box-shadow: 0 0 140px 50px var(--caven-cyan-bright); filter: brightness(2.2); }
+  100% { box-shadow: 0 0 40px 6px var(--caven-glow); filter: brightness(1); }
+}
+@keyframes ripple {
+  0% { transform: scale(0.9); opacity: 0.9; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+/* Transient click-feedback halo on the core */
+.core-pulse { pointer-events: none; }
+@keyframes pulse-on {
+  0% { box-shadow: 0 0 0 0 rgba(40, 220, 120, 0); opacity: 0; }
+  25% { box-shadow: 0 0 46px 10px rgba(40, 220, 120, 0.7); opacity: 1; }
+  100% { box-shadow: 0 0 60px 6px rgba(63, 208, 255, 0.5); opacity: 0; }
+}
+@keyframes pulse-off {
+  0% { box-shadow: 0 0 0 0 rgba(255, 80, 80, 0); opacity: 0; }
+  30% { box-shadow: 0 0 40px 8px rgba(255, 80, 80, 0.6); opacity: 1; }
+  100% { box-shadow: 0 0 10px 2px rgba(255, 80, 80, 0); opacity: 0; }
+}
+@keyframes pulse-lock {
+  0% { box-shadow: 0 0 0 0 rgba(63, 208, 255, 0); opacity: 0; }
+  30% { box-shadow: 0 0 52px 12px rgba(63, 208, 255, 0.85); opacity: 1; }
+  100% { box-shadow: 0 0 20px 4px rgba(63, 208, 255, 0.2); opacity: 0; }
+}
+.core-pulse-on { animation: pulse-on 0.85s cubic-bezier(0.22, 1, 0.36, 1); }
+.core-pulse-off { animation: pulse-off 0.85s cubic-bezier(0.22, 1, 0.36, 1); }
+.core-pulse-lock { animation: pulse-lock 0.85s cubic-bezier(0.22, 1, 0.36, 1); }
+
+.anim-breathe { animation: breathe 5.5s ease-in-out infinite; }
+.anim-glow { animation: glow-pulse 5.5s ease-in-out infinite; }
+.anim-spin-slow { animation: spin-slow 22s linear infinite; }
+.anim-spin-rev { animation: spin-rev 16s linear infinite; }
+.anim-spin-fast { animation: spin-fast 3.2s linear infinite; }
+.anim-flash { animation: flash 0.8s ease-out; }
+
+/* Card entrance: from the back to center */
+@keyframes card-in {
+  0% { transform: perspective(1400px) translateZ(-360px) translateY(30px) scale(0.7); opacity: 0; filter: blur(6px); }
+  100% { transform: perspective(1400px) translateZ(0) translateY(0) scale(1); opacity: 1; filter: blur(0); }
+}
+.anim-card-in { animation: card-in 0.55s cubic-bezier(0.22, 1, 0.36, 1); }
+
+@keyframes fade-up {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.anim-fade-up { animation: fade-up 0.4s ease-out both; }
+
+::-webkit-scrollbar { width: 0; height: 0; }
