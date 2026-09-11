@@ -97,6 +97,15 @@ body::before {
 
 button { font: inherit; }
 
+/* Screen-reader-only helper: visually hidden, still in the accessibility tree. */
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+/* Keyboard focus indicators — visible ring on every interactive board control. */
+.voice-bar:focus-visible,
+.task-item:focus-visible,
+.topbar-nav-item:focus-visible,
+.caven-text-input:focus-visible { outline:2px solid var(--ring); outline-offset:2px; }
+
 /* ═══════════════════════════════════════════════════════════════════════
    UPGRADED BOARD — shell, top bar, grid, glass panels
    ═══════════════════════════════════════════════════════════════════════ */
