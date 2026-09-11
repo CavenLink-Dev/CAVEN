@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { useCavenStore } from '../../lib/store'
 import { GlassPanel, PanelNote } from './GlassPanel'
 
-export function RemindersCard({ isVisible = true }: { isVisible?: boolean }) {
+function RemindersCardBase({ isVisible = true }: { isVisible?: boolean }) {
   const { data, ready, status } = useCavenStore()
 
   // Soonest first where a due time was captured; anything undated keeps its place at the back.
@@ -50,3 +50,7 @@ export function RemindersCard({ isVisible = true }: { isVisible?: boolean }) {
     </GlassPanel>
   )
 }
+
+// Memoised: useCaven() streams amplitude from App, and without this every
+// frame of CAVEN speaking re-rendered this component for no reason.
+export const RemindersCard = memo(RemindersCardBase)

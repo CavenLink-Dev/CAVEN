@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import logoImg from '../../imports/image-6.png'
 import wordmarkImg from '../../imports/image-5.png'
@@ -61,7 +61,7 @@ function useAccountInitial(): string {
   return initial
 }
 
-export function TopBar({ page, onPageChange, actions }: { page: Page; onPageChange: (p: Page) => void; actions?: ReactNode }) {
+function TopBarBase({ page, onPageChange, actions }: { page: Page; onPageChange: (p: Page) => void; actions?: ReactNode }) {
   const clock = useClock()
   const initial = useAccountInitial()
 
@@ -116,3 +116,7 @@ export function TopBar({ page, onPageChange, actions }: { page: Page; onPageChan
     </header>
   )
 }
+
+// Memoised: useCaven() streams amplitude from App, and without this every
+// frame of CAVEN speaking re-rendered this component for no reason.
+export const TopBar = memo(TopBarBase)

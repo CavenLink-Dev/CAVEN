@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import type { Task } from '../../lib/mockData'
 import { useCavenStore } from '../../lib/store'
 import { GlassPanel, PanelNote } from './GlassPanel'
 
 const detailOf = (task: Task) => [task.time, task.tag].filter(Boolean).join(' · ')
 
-export function TasksCard({ isVisible = true }: { isVisible?: boolean }) {
+function TasksCardBase({ isVisible = true }: { isVisible?: boolean }) {
   const { data, ready, status, update } = useCavenStore()
   // Optimistic overlay: the tick flips at once, then clears when the save settles.
   // A failed save simply leaves the stored value showing, so nothing is ever faked.
@@ -71,3 +71,7 @@ export function TasksCard({ isVisible = true }: { isVisible?: boolean }) {
     </GlassPanel>
   )
 }
+
+// Memoised: useCaven() streams amplitude from App, and without this every
+// frame of CAVEN speaking re-rendered this component for no reason.
+export const TasksCard = memo(TasksCardBase)

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { playSfx } from '../lib/sfx';
 
 // Background music the user can pick from the top-right. Files live in imports/.
@@ -15,7 +15,7 @@ const TRACKS = [
   { name: 'Stillwood', url: new URL('../imports/Stillwood.mp3', import.meta.url).href },
 ] as const;
 
-export function MusicMenu() {
+function MusicMenuBase() {
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -160,3 +160,7 @@ export function MusicMenu() {
     </div>
   );
 }
+
+// Memoised: useCaven() streams amplitude from App, and without this every
+// frame of CAVEN speaking re-rendered this component for no reason.
+export const MusicMenu = memo(MusicMenuBase)

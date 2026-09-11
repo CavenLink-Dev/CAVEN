@@ -93,6 +93,25 @@ export function useCaven() {
   // Bumped whenever a turn is interrupted, so a stale async turn can't resume.
   const genRef = useRef(0);
 
+  // speak() streams amplitude every animation frame. Pushing all ~60 of those
+  // into state per second re-rendered the whole board (TopBar, MusicMenu, every
+  // glass panel) and made the UI crawl. Coalesce to ~15fps and ignore changes
+  // too small for the eye to catch; resetAmp still lands immediately.
+  const ampAt = useRef(0);
+  const ampLast = useRef(0);
+  const pushAmp = useCallback((a: number) => {
+    const now = performance.now();
+    if (now - ampAt.current < 66 && Math.abs(a - ampLast.current) < 0.06) return;
+    ampAt.current = now;
+    ampLast.current = a;
+    setAmplitude(a);
+  }, []);
+  const resetAmp = useCallback(() => {
+    ampAt.current = 0;
+    ampLast.current = 0;
+    setAmplitude(0);
+  }, []);
+
   const set = (s: CavenState) => {
     stateRef.current = s;
     setState(s);
@@ -120,7 +139,7 @@ export function useCaven() {
     startListening(
       (partial, amp) => {
         setTranscript(partial);
-        setAmplitude(amp);
+        pushAmp(amp);
       },
       (final) => processRef.current(final),
       (fatal) => {
@@ -131,12 +150,12 @@ export function useCaven() {
         lockedRef.current = false;
         setConversing(false);
         setLocked(false);
-        setAmplitude(0);
+        resetAmp();
         setReply("I can't get at your microphone, sir. Grant me access, or simply type it.");
         set('idle');
       },
     );
-  }, []);
+  }, [pushAmp, resetAmp]);
   startMicRef.current = startMic;
 
   // Re-open the mic after CAVEN finishes speaking, so it is a conversation.
@@ -158,7 +177,7 @@ export function useCaven() {
       if (!said) {
         // Heard nothing at all. Don't nag — just open the ear again.
         set('idle');
-        setAmplitude(0);
+        resetAmp();
         rearm();
         return;
       }
@@ -192,7 +211,7 @@ export function useCaven() {
       historyRef.current = [...historyRef.current, ...turns].slice(-8);
 
       set('speaking');
-      await speak(line, setAmplitude);
+      await speak(line, pushAmp);
       if (!alive()) return;
 
       if (changed) {
@@ -203,10 +222,10 @@ export function useCaven() {
       }
 
       set('idle');
-      setAmplitude(0);
+      resetAmp();
       rearm();
     },
-    [capture, rearm],
+    [capture, rearm, resetAmp],
   );
   processRef.current = process;
 
@@ -217,7 +236,7 @@ export function useCaven() {
     genRef.current++;
     abortListening();
     stopSpeaking();
-    setAmplitude(0);
+    resetAmp();
     processRef.current(said);
   }, []);
 
@@ -229,7 +248,7 @@ export function useCaven() {
     abortListening();
     stopSpeaking();
     set('idle');
-    setAmplitude(0);
+    resetAmp();
     setTranscript('');
   }, []);
 

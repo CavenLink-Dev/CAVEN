@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { CavenState } from '../../lib/cavenState';
@@ -208,7 +209,10 @@ export function CavenCore({ state, amplitude, locked, conversing, onToggle, onLo
   const dotColor = power === 'on' ? 'rgb(35, 157, 14)' : power === 'locked' ? '#ffd53d' : '#ff5a4b';
 
   return (
-    <div className={`core-zone core-${power} core-${visual}`}>
+    <div
+      className={`core-zone core-${power} core-${visual}`}
+      style={{ '--core-amp': coreScale } as CSSProperties}
+    >
       {/* Holographic Projection Core Button */}
       <button
         className="core-button"
@@ -493,8 +497,9 @@ export function CavenCore({ state, amplitude, locked, conversing, onToggle, onLo
           <g
             style={{
               transformOrigin: '200px 200px',
-              transform: `scale(${coreScale})`,
+              transform: 'scale(var(--core-amp, 1))',
               transition: 'transform 90ms linear',
+              willChange: 'transform',
             }}
           >
             <circle className="core-halo" cx="200" cy="200" r="82" />

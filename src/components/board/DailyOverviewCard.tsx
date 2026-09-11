@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { useCavenStore } from '../../lib/store'
 import { GlassPanel, PanelNote } from './GlassPanel'
 
@@ -13,7 +13,7 @@ function reminderOrder(dueAt: string | undefined, index: number): [number, numbe
   return [Number.isNaN(ms) ? Number.MAX_SAFE_INTEGER : ms, index]
 }
 
-export function DailyOverviewCard({ isVisible = true }: { isVisible?: boolean }) {
+function DailyOverviewCardBase({ isVisible = true }: { isVisible?: boolean }) {
   const { data, ready, status } = useCavenStore()
   const { tasks, calendar, reminders } = data
 
@@ -90,3 +90,7 @@ export function DailyOverviewCard({ isVisible = true }: { isVisible?: boolean })
     </GlassPanel>
   )
 }
+
+// Memoised: useCaven() streams amplitude from App, and without this every
+// frame of CAVEN speaking re-rendered this component for no reason.
+export const DailyOverviewCard = memo(DailyOverviewCardBase)

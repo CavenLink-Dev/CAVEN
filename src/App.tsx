@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { CavenCore } from './components/CavenCore/CavenCore';
 import { MusicMenu } from './components/MusicMenu';
 import { CalendarCard } from './components/board/CalendarCard';
@@ -15,6 +15,8 @@ export default function App() {
   const [page, setPage] = useState<Page>('main');
   const [muted, setMutedState] = useState(isMuted());
   const [typed, setTyped] = useState('');
+  // Stable element: a fresh <MusicMenu /> each render would defeat memo(TopBar).
+  const musicMenu = useMemo(() => <MusicMenu />, []);
   const { state, amplitude, transcript, reply, locked, conversing, toggle, toggleLock, cancel, runCommand } =
     useCaven();
 
@@ -29,7 +31,7 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <TopBar page={page} onPageChange={setPage} actions={<MusicMenu />} />
+      <TopBar page={page} onPageChange={setPage} actions={musicMenu} />
 
       {/* Announce speech capture and CAVEN's replies to assistive tech. */}
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
