@@ -4,7 +4,7 @@ export function Panel({ title, children, className = '' }: { title?: string; chi
   return (
     <div className={`metal-surface rounded-2xl p-3.5 ${className}`}>
       {title && (
-        <div className="mb-2.5 font-display text-[10px] tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>
+        <div className="mb-2.5 font-display t-micro tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>
           {title.toUpperCase()}
         </div>
       )}
@@ -71,7 +71,7 @@ export function Row({ children }: { children: ReactNode }) {
 export function Dot({ done }: { done: boolean }) {
   return (
     <span
-      className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px]"
+      className="grid h-5 w-5 shrink-0 place-items-center rounded-full t-micro"
       style={{
         border: `1.5px solid ${done ? 'var(--caven-cyan)' : 'rgba(138,149,165,0.4)'}`,
         color: 'var(--caven-cyan-bright)',

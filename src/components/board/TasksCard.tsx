@@ -55,12 +55,12 @@ function TasksCardBase({ isVisible = true }: { isVisible?: boolean }) {
                 <span className={`task-check ${complete ? 'is-done' : ''}`}>{complete && '✓'}</span>
                 <span className="min-w-0 text-left">
                   <span
-                    className={`block text-[13px] ${complete ? 'text-white/35 line-through' : 'text-white/85'}`}
+                    className={`block t-title ${complete ? 'text-white/35 line-through' : 'text-white/85'}`}
                   >
                     {task.title}
                   </span>
                   {detail && (
-                    <span className="block truncate text-[11px] text-white/40 mt-0.5">{detail}</span>
+                    <span className="block truncate t-caption text-white/45 mt-0.5">{detail}</span>
                   )}
                 </span>
               </button>

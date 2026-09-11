@@ -70,7 +70,7 @@ function DailyOverviewCardBase({ isVisible = true }: { isVisible?: boolean }) {
       showTitle={false}
       headerRelative
     >
-      <div className="space-y-4 text-[13px]">
+      <div className="space-y-3 t-body">
         {!ready ? (
           <PanelNote>{status}</PanelNote>
         ) : rows.length === 0 ? (

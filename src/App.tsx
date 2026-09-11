@@ -64,7 +64,7 @@ export default function App() {
                 style={{ color: 'var(--caven-cyan-bright)', boxShadow: '0 0 22px rgba(63,208,255,0.22)' }}
               >
                 <span
-                  className="font-display mr-1 text-[9px] tracking-[0.25em]"
+                  className="font-display mr-1 t-micro tracking-[0.25em]"
                   style={{ color: 'var(--caven-steel)' }}
                 >
                   CAVEN
@@ -154,7 +154,7 @@ export default function App() {
         {(locked || conversing) && (
           <button
             onClick={cancel}
-            className="metal-surface font-display shrink-0 rounded-full px-3 py-1.5 text-[10px] tracking-[0.2em]"
+            className="metal-surface font-display shrink-0 rounded-full px-3 py-1.5 t-micro tracking-[0.2em]"
             style={{ color: 'var(--caven-steel)' }}
             type="button"
           >

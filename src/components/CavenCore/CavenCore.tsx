@@ -558,19 +558,19 @@ export function CavenCore({ state, amplitude, locked, conversing, onToggle, onLo
 
       {/* Hologram Board Controls & HUD Status Bar */}
       <div className="holo-hud-controls mt-3 flex flex-col items-center gap-2" style={{ paddingBottom: '127px' }}>
-        <div className="text-[14px] font-mono tracking-widest text-white uppercase flex items-center gap-2">
+        <div className="t-body font-mono tracking-widest text-white uppercase flex items-center gap-2">
           <span
-            className="w-[13px] h-[13px] rounded-full animate-pulse text-[22px]"
+            className="w-[13px] h-[13px] rounded-full animate-pulse t-h2"
             style={{ backgroundColor: dotColor, boxShadow: `0 0 10px ${dotColor}` }}
           />
-          <span className="text-white" style={{ fontSize: '22px' }}>{STATE_LABEL[state]}</span>
+          <span className="t-h2 text-white">{STATE_LABEL[state]}</span>
         </div>
-        <div className="text-[10px] font-mono tracking-[0.25em] uppercase" style={{ color: 'rgba(204,239,241,0.45)' }}>
+        <div className="t-micro font-mono tracking-[0.25em] uppercase" style={{ color: 'rgba(204,239,241,0.45)' }}>
           {subLabel(state, locked, conversing)}
         </div>
         {locked && (
           <div
-            className="rounded-full px-2.5 py-0.5 font-mono text-[10px] tracking-[0.28em] uppercase"
+            className="rounded-full px-2.5 py-0.5 font-mono t-micro tracking-[0.28em] uppercase"
             style={{ color: '#ffd53d', border: '1px solid rgba(255,213,61,0.45)', boxShadow: '0 0 12px rgba(255,213,61,0.25)' }}
           >
             ● LISTENING IN BACKGROUND

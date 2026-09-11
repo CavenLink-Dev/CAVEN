@@ -12,7 +12,7 @@ export function FinancePage() {
   return (
     <div className="w-full max-w-md space-y-3">
       <Panel>
-        <div className="text-[10px] tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>BALANCE THIS MONTH</div>
+        <div className="t-micro tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>BALANCE THIS MONTH</div>
         <div className="font-display text-4xl" style={{ color: 'var(--caven-cyan-bright)', textShadow: '0 0 18px var(--caven-glow)' }}>
           ${balance.toFixed(2)}
         </div>
@@ -51,7 +51,7 @@ export function JournalPage() {
   return (
     <div className="w-full max-w-md space-y-3">
       <Panel>
-        <div className="text-[10px] tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>JOURNAL</div>
+        <div className="t-micro tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>JOURNAL</div>
         <div className="mt-1 text-sm opacity-80">Say “journal” and tell me how today felt — I'll write it here.</div>
       </Panel>
       {journal.map((j) => (
@@ -59,7 +59,7 @@ export function JournalPage() {
           <div className="flex items-center gap-2">
             <span className="text-lg">{j.mood}</span>
             <span className="font-medium">{j.title}</span>
-            <span className="ml-auto text-[10px] tracking-widest" style={{ color: 'var(--caven-steel)' }}>{j.date}</span>
+            <span className="ml-auto t-micro tracking-widest" style={{ color: 'var(--caven-steel)' }}>{j.date}</span>
           </div>
           <div className="mt-1.5 text-sm opacity-80">{j.body}</div>
         </Panel>
@@ -74,7 +74,7 @@ export function BrainPage() {
   return (
     <div className="w-full max-w-md space-y-3">
       <Panel>
-        <div className="text-[10px] tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>CAVEN BRAIN</div>
+        <div className="t-micro tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>CAVEN BRAIN</div>
         <div className="mt-1 text-sm opacity-80">What I've learned about you to answer better and support your goals.</div>
       </Panel>
       <Panel title="Wellbeing">
@@ -84,7 +84,7 @@ export function BrainPage() {
               <Ring value={m.value} label={`${m.value}`} />
               <div>
                 <div className="text-sm">{m.label}</div>
-                <div className="text-[10px] opacity-60">{m.hint}</div>
+                <div className="t-micro opacity-60">{m.hint}</div>
               </div>
             </div>
           ))}
