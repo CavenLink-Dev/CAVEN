@@ -775,8 +775,6 @@ button { font: inherit; }
    so the sign-in screen and the board cannot drift apart again.
    ═══════════════════════════════════════════════════════════════════════ */
 
-.font-display { font-family: var(--font-display); letter-spacing: var(--track-label); }
-
 /* The sign-in card is the same object as a board panel, just larger. */
 .auth-panel {
   width: min(100%, 440px);
