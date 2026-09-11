@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { parseActions } from '../../shared/actions';
 import { playSfx } from './sfx';
 import { useCavenStore } from './store';
 import {
@@ -78,7 +79,7 @@ export function route(text: string): Route | null {
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function useCaven() {
-  const { capture } = useCavenStore();
+  const { capture, perform } = useCavenStore();
   const [state, setState] = useState<CavenState>('idle');
   const [amplitude, setAmplitude] = useState(0);
   const [transcript, setTranscript] = useState('');
@@ -187,19 +188,53 @@ export function useCaven() {
       set('thinking');
 
       const r = route(said);
-      let line: string;
+      let line = '';
       let changed = false;
+
+      // Ask Claude, then honour whatever it proposed. parseActions runs on every
+      // reply without exception, so a stray ACT block can never be read aloud.
+      const converse = async () => {
+        const raw = await askCaven(said, historyRef.current);
+        if (!alive()) return;
+        // Provider unreachable. Say so; never attempt actions on a turn we never had.
+        if (raw === null) {
+          line = OFFLINE_LINE;
+          return;
+        }
+        const { spoken, actions } = parseActions(raw);
+        line = spoken;
+        if (!actions.length) {
+          if (!line) line = OFFLINE_LINE;
+          return;
+        }
+        try {
+          const result = await perform(actions);
+          if (!alive()) return;
+          changed = result.changed;
+          // Claude's own line is already in character, so speak it when the work
+          // actually landed; fall back to the action's own words if it said nothing.
+          if (!line) line = result.message;
+        } catch (error) {
+          // Nothing was saved. Whatever cheerful thing Claude wrote is now a lie,
+          // so it is discarded and the user hears exactly what went wrong instead.
+          changed = false;
+          line = error instanceof Error ? error.message : 'That did not save, sir. Please retry.';
+        }
+      };
+
       if (r) {
+        // Regex fast path: a plain "remind me…" costs no tokens and still works.
         try {
           const result = await capture(r.kind, said);
           if (!alive()) return;
           changed = result.changed;
-          line = changed ? result.message : (await askCaven(said, historyRef.current) ?? OFFLINE_LINE);
+          if (changed) line = result.message;
+          else await converse();
         } catch (error) {
           line = error instanceof Error ? error.message : 'That did not save, sir. Please retry.';
         }
       } else {
-        line = await askCaven(said, historyRef.current) ?? OFFLINE_LINE;
+        await converse();
       }
       if (!alive()) return;
 
@@ -225,7 +260,7 @@ export function useCaven() {
       resetAmp();
       rearm();
     },
-    [capture, rearm, resetAmp],
+    [capture, perform, rearm, resetAmp],
   );
   processRef.current = process;
 
