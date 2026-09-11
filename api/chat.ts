@@ -255,14 +255,14 @@ async function callOnce(p: Provider, model: string, message: string, history: Tu
     : { ok: false as const, status: 502, detail: `${p.name} returned no text`, raw: "" };
 }
 
-async function callProvider(p: Provider, message: string, history: Turn[]) {
+async function callProvider(p: Provider, message: string, history: Turn[], board: string) {
   const queue: string[] = [resolved.get(p.name) ?? p.model];
   let discovered = false;
   let last: any = null;
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS && queue.length; attempt++) {
     const model = queue.shift() as string;
-    last = await callOnce(p, model, message, history);
+    last = await callOnce(p, model, message, history, board);
 
     if (last.ok) {
       if (model !== p.model) resolved.set(p.name, model);
@@ -273,7 +273,7 @@ async function callProvider(p: Provider, message: string, history: Turn[]) {
     // minute and the provider tells us how long.
     if (last.status === 429 && last.waitMs && attempt < MAX_ATTEMPTS - 1) {
       await sleep(last.waitMs);
-      last = await callOnce(p, model, message, history);
+      last = await callOnce(p, model, message, history, board);
       if (last.ok) {
         if (model !== p.model) resolved.set(p.name, model);
         return last;
