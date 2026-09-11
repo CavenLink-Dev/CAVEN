@@ -10,7 +10,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const script = path.join(root, 'scripts', 'dev.mjs');
 
 function listen(port: number) {
-  const server = createServer();
+  const server = createServer((socket) => socket.end());
   return new Promise<typeof server>((resolve, reject) => {
     server.listen(port, '127.0.0.1', () => resolve(server));
     server.once('error', reject);
@@ -37,12 +37,16 @@ test('second pnpm run dev reuses a busy PORT instead of exiting 1', async () => 
     out += String(chunk);
   });
 
-  await new Promise((resolve) => setTimeout(resolve, 1200));
-
-  assert.equal(child.exitCode, null, `script exited early: ${out}`);
-  assert.match(out, /already in use/);
-
-  child.kill('SIGTERM');
-  await Promise.race([once(child, 'exit'), new Promise((resolve) => setTimeout(resolve, 1000))]);
-  dummy.close();
+  try {
+    const started = Date.now();
+    while (!out.includes('already in use') && Date.now() - started < 3000) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    assert.equal(child.exitCode, null, `script exited early: ${out}`);
+    assert.match(out, /already in use/);
+  } finally {
+    child.kill('SIGTERM');
+    await Promise.race([once(child, 'exit'), new Promise((resolve) => setTimeout(resolve, 1000))]);
+    dummy.close();
+  }
 });

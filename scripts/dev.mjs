@@ -9,6 +9,7 @@
  */
 import { createConnection } from 'node:net'
 import { spawn } from 'node:child_process'
+import path from 'node:path'
 
 const port = Number(process.env.PORT || 8443)
 
@@ -33,10 +34,14 @@ function isListening(port) {
 
 if (await isListening(port)) {
   console.log(`Port ${port} already in use — keeping the existing Vite server.`)
-  await new Promise(() => {})
+  // A pending Promise does not keep the event loop alive; a timer does.
+  await new Promise(() => {
+    setInterval(() => {}, 60_000)
+  })
 }
 
-const child = spawn('vite', { stdio: 'inherit', shell: true })
+const viteJs = path.resolve(process.cwd(), 'node_modules/vite/bin/vite.js')
+const child = spawn(process.execPath, [viteJs], { stdio: 'inherit' })
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
     if (!child.killed) child.kill(signal)
