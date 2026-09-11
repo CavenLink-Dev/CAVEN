@@ -36,8 +36,8 @@ type Route = { kind: CardKind; title: string };
 
 // Spoken only when Claude is unreachable. It must never claim to have done
 // something — that was the old "added that to your tasks" bug.
-const OFFLINE_LINE = "I'm afraid I can't reach my thoughts just now. Do try me again in a moment.";
-const NO_SPEECH_LINE = 'Speech recognition is not available in this browser — type to me instead.';
+const OFFLINE_LINE = "Ah — I've lost the thread of you there. Give me a second and try again.";
+const NO_SPEECH_LINE = "This browser won't let me listen, I'm afraid. Type to me instead.";
 
 // Plain conversation. If it looks like this, CAVEN just talks; no card, no capture.
 const CHITCHAT =
@@ -161,7 +161,7 @@ export function useCaven() {
         setConversing(false);
         setLocked(false);
         setAmplitude(0);
-        setReply('I cannot reach your microphone. Do grant access, or type to me instead.');
+        setReply("Can't get at your microphone, Keanu. Let me in, or just type it.");
         set('idle');
       },
     );

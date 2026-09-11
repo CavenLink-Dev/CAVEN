@@ -23,11 +23,15 @@ export default async function handler(req: Request) {
       },
       body: JSON.stringify({
         text,
-        model_id: "eleven_multilingual_v2",
+        // Override with ELEVENLABS_MODEL_ID (e.g. eleven_turbo_v2_5) if you
+        // want lower latency; the default keeps Edward's full character.
+        model_id: process.env.ELEVENLABS_MODEL_ID || "eleven_multilingual_v2",
         voice_settings: {
-          stability: 0.42,
-          similarity_boost: 0.78,
-          style: 0.15,
+          // Lower stability = more emotional range, which is what makes the
+          // fillers and trailing-off read as human rather than recited.
+          stability: 0.3,
+          similarity_boost: 0.75,
+          style: 0.45,
           use_speaker_boost: true,
         },
       }),
