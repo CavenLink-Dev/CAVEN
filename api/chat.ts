@@ -1,5 +1,5 @@
 import { boardBrief } from "../shared/boardBrief";
-import { CAVEN_SYSTEM, json, loadCavenState } from "./_caven";
+import { CAVEN_SYSTEM, json, loadCavenState, apiError } from "./_caven";
 
 export const config = { runtime: "edge" };
 
@@ -199,6 +199,7 @@ async function callOnce(p: Provider, model: string, message: string, history: Tu
   const system = board ? `${CAVEN_SYSTEM}\n\n${board}` : CAVEN_SYSTEM;
 
   const res = await fetch(p.url, {
+    signal: AbortSignal.timeout(12000),
     method: "POST",
     headers: isAnthropic
       ? { "x-api-key": p.key, "anthropic-version": "2023-06-01", "content-type": "application/json" }
@@ -306,6 +307,21 @@ async function callProvider(p: Provider, message: string, history: Turn[], board
   return last;
 }
 
+async function loadBoard(req: Request): Promise<{ present: boolean; brief: string }> {
+  try {
+    const { state } = await loadCavenState(req);
+    const brief = boardBrief(state);
+    return { present: state != null, brief };
+  } catch (err) {
+    // Auth failures stay 401. Supabase being unreachable shouldn't take chat
+    // down with it — CAVEN proceeds without board context, same as if nothing
+    // were stored.
+    if (err instanceof Response) throw err;
+    console.warn("CAVEN chat: board load failed, proceeding without it:", err);
+    return { present: false, brief: "" };
+  }
+}
+
 export default async function handler(req: Request) {
   if (req.method === "OPTIONS") return new Response(null, { status: 204 });
 
@@ -325,11 +341,17 @@ export default async function handler(req: Request) {
       return json({ ok: true, listed });
     }
 
-    const { present: board } = await loadBoard();
+    let boardPresent = false;
+    try {
+      boardPresent = (await loadBoard(req)).present;
+    } catch {
+      // Health probe stays public; missing or invalid auth just means no board.
+    }
+
     return json({
       ok: configured.length > 0,
       configured: configured.map((p) => ({ provider: p.name, model: p.model })),
-      board,
+      board: boardPresent,
       hint: configured.length
         ? undefined
         : "Set one of GROQ_API_KEY, GEMINI_API_KEY, CEREBRAS_API_KEY, OPENROUTER_API_KEY, ANTHROPIC_API_KEY or AI_GATEWAY_API_KEY.",
@@ -339,11 +361,13 @@ export default async function handler(req: Request) {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   try {
-    const body = await req.json();
+    const raw = await req.text();
+    if (raw.length > 24000) return json({error:"Message too long"},413);
+    const body = JSON.parse(raw);
     const message = typeof body?.message === "string" ? body.message.trim() : "";
     if (!message) return json({ error: "message required" }, 400);
     const history = cleanHistory(body?.history);
-    const { brief: board } = await loadBoard();
+    const { brief: board } = await loadBoard(req);
 
     const configured = providers();
     if (!configured.length) {
@@ -372,7 +396,6 @@ export default async function handler(req: Request) {
 
     return json({ error: "chat_unavailable", detail: failures.join(" | ").slice(0, 600) }, 502);
   } catch (err) {
-    console.error("CAVEN chat failed:", err);
-    return json({ error: "chat_unavailable", detail: String(err).slice(0, 300) }, 502);
+    return apiError(err);
   }
 }

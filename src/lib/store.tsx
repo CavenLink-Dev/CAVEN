@@ -1,160 +1,21 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { apiFetch } from './backend';
-import type { CardKind } from './cavenState';
-import {
-  brainMetrics,
-  brainNotes,
-  budgets,
-  calendar,
-  habits,
-  interests,
-  journal,
-  reminders,
-  tasks,
-  transactions,
-  voiceNotes,
-  type BrainMetric,
-  type Budget,
-  type CalendarEvent,
-  type Habit,
-  type JournalEntry,
-  type Reminder,
-  type Task,
-  type Transaction,
-  type VoiceNote,
-} from './mockData';
-
-export type CavenData = {
-  tasks: Task[];
-  habits: Habit[];
-  reminders: Reminder[];
-  calendar: CalendarEvent[];
-  voiceNotes: VoiceNote[];
-  transactions: Transaction[];
-  budgets: Budget[];
-  journal: JournalEntry[];
-  brainMetrics: BrainMetric[];
-  interests: string[];
-  brainNotes: string[];
-};
-
-export const seedData = (): CavenData => ({
-  tasks,
-  habits,
-  reminders,
-  calendar,
-  voiceNotes,
-  transactions,
-  budgets,
-  journal,
-  brainMetrics,
-  interests,
-  brainNotes,
-});
-
-type Store = {
-  data: CavenData;
-  ready: boolean;
-  update: (patch: Partial<CavenData> | ((prev: CavenData) => CavenData)) => void;
-  capture: (kind: CardKind, text: string) => void;
-};
-
-const StoreContext = createContext<Store | null>(null);
-
-function nextId(prefix: string) {
-  return `${prefix}-${Date.now().toString(36)}`;
+import {createContext,useCallback,useContext,useEffect,useRef,useState,type ReactNode} from 'react';
+import {apiFetch} from './backend';
+import {applyCommand,type ActionKind} from '../../shared/actions';
+import type {Task,Habit,Reminder,CalendarEvent,VoiceNote,Transaction,Budget,JournalEntry,BrainMetric} from './mockData';
+export type CavenData={tasks:Task[];habits:Habit[];reminders:Reminder[];calendar:CalendarEvent[];voiceNotes:VoiceNote[];transactions:Transaction[];budgets:Budget[];journal:JournalEntry[];brainMetrics:BrainMetric[];interests:string[];brainNotes:string[]};
+export const seedData=():CavenData=>({tasks:[],habits:[],reminders:[],calendar:[],voiceNotes:[],transactions:[],budgets:[],journal:[],brainMetrics:[],interests:[],brainNotes:[]});
+type Patch=Partial<CavenData>|((prev:CavenData)=>CavenData);
+type Store={data:CavenData;ready:boolean;status:string;reload:()=>Promise<void>;update:(patch:Patch)=>Promise<void>;capture:(kind:ActionKind,text:string)=>Promise<{message:string;changed:boolean}>};
+const Context=createContext<Store|null>(null);
+export function CavenStoreProvider({children}:{children:ReactNode}) {
+ const [data,setData]=useState(seedData),[ready,setReady]=useState(false),[status,setStatus]=useState('Loading your board…');
+ const current=useRef(data),version=useRef(0),queue=useRef<Promise<unknown>>(Promise.resolve()),loaded=useRef(false),mounted=useRef(true);
+ const reload=useCallback(async()=>{try{const res=await apiFetch('state');if(!res.ok)throw new Error('Could not load your board. Retry before editing.');const body=await res.json();if(!mounted.current)return;current.current={...seedData(),...body.state};version.current=body.version;setData(current.current);loaded.current=true;setReady(true);setStatus('Saved to your private account');}catch(e){setStatus(e instanceof Error?e.message:'Load failed');}},[]);
+ useEffect(()=>{mounted.current=true;void reload();return()=>{mounted.current=false}},[reload]);
+ const enqueue=useCallback(<T,>(work:()=>Promise<T>):Promise<T>=>{const next=queue.current.then(work);queue.current=next.catch(()=>{});return next},[]);
+ const save=useCallback(async(next:CavenData)=>{if(!loaded.current)throw new Error('Load your board before editing.');setStatus('Saving…');const res=await apiFetch('state',{method:'POST',body:JSON.stringify({state:next,version:version.current})});const body=await res.json();if(!res.ok){if(res.status===409)loaded.current=false;throw new Error(body.error||'Save failed. Please retry.');}version.current=body.version;current.current=next;if(mounted.current){setData(next);setStatus('Saved to your private account');}},[]);
+ const update=useCallback((patch:Patch)=>enqueue(async()=>{try{await save(typeof patch==='function'?patch(current.current):{...current.current,...patch});}catch(e){setStatus(e instanceof Error?e.message:'Save failed. Please retry.');}}),[enqueue,save]);
+ const capture=useCallback((kind:ActionKind,text:string)=>enqueue(async()=>{try{const result=applyCommand(kind,text,current.current);if(result.changed)await save(result.data);return{message:result.message,changed:result.changed};}catch(e){setStatus(e instanceof Error?e.message:'Save failed');throw e;}}),[enqueue,save]);
+ return <Context.Provider value={{data,ready,status,reload,update,capture}}>{children}</Context.Provider>
 }
-
-function todayLabel() {
-  return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-export function CavenStoreProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<CavenData>(seedData);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await apiFetch('state');
-        if (!res.ok) throw new Error(`state ${res.status}`);
-        const body = await res.json();
-        if (!cancelled && body?.state && typeof body.state === 'object') {
-          setData({ ...seedData(), ...body.state });
-        } else if (!cancelled) {
-          const seed = seedData();
-          setData(seed);
-          await apiFetch('state', { method: 'POST', body: JSON.stringify({ state: seed }) });
-        }
-      } catch (err) {
-        console.warn('CAVEN state load failed, using local seed:', err);
-      } finally {
-        if (!cancelled) setReady(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const persist = useCallback((next: CavenData) => {
-    apiFetch('state', { method: 'POST', body: JSON.stringify({ state: next }) }).catch((err) => {
-      console.warn('CAVEN state save failed:', err);
-    });
-  }, []);
-
-  const update = useCallback(
-    (patch: Partial<CavenData> | ((prev: CavenData) => CavenData)) => {
-      setData((prev) => {
-        const next = typeof patch === 'function' ? patch(prev) : { ...prev, ...patch };
-        persist(next);
-        return next;
-      });
-    },
-    [persist],
-  );
-
-  const capture = useCallback(
-    (kind: CardKind, text: string) => {
-      const said = text.trim();
-      if (!said) return;
-      update((prev) => {
-        if (kind === 'reminder') {
-          const item: Reminder = { id: nextId('r'), title: said.replace(/^remind me( to)?\s*/i, ''), date: todayLabel(), time: 'Soon' };
-          return { ...prev, reminders: [item, ...prev.reminders] };
-        }
-        if (kind === 'tasks') {
-          const item: Task = { id: nextId('t'), title: said, done: false };
-          return { ...prev, tasks: [item, ...prev.tasks] };
-        }
-        if (kind === 'journal') {
-          const item: JournalEntry = { id: nextId('j'), date: todayLabel(), mood: '🙂', title: 'Voice entry', body: said };
-          return { ...prev, journal: [item, ...prev.journal] };
-        }
-        if (kind === 'voicenote') {
-          const item: VoiceNote = { id: nextId('v'), text: said, when: 'Just now' };
-          return { ...prev, voiceNotes: [item, ...prev.voiceNotes] };
-        }
-        if (kind === 'calendar') {
-          const item: CalendarEvent = { id: nextId('c'), title: said, time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), kind: 'event' };
-          return { ...prev, calendar: [item, ...prev.calendar] };
-        }
-        if (kind === 'brain') {
-          return { ...prev, brainNotes: [said, ...prev.brainNotes].slice(0, 12) };
-        }
-        return prev;
-      });
-    },
-    [update],
-  );
-
-  const value = useMemo(() => ({ data, ready, update, capture }), [data, ready, update, capture]);
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
-}
-
-export function useCavenStore() {
-  const ctx = useContext(StoreContext);
-  if (!ctx) throw new Error('useCavenStore must be used within CavenStoreProvider');
-  return ctx;
-}
+export function useCavenStore(){const s=useContext(Context);if(!s)throw new Error('Missing CAVEN store');return s}

@@ -1,4 +1,4 @@
-// Sound effects + subtle ambient bed. All kept very quiet by default.
+// Sound effects. All kept very quiet by default.
 
 const URLS = {
   select: new URL('../imports/select_sound.mp3', import.meta.url).href,
@@ -24,7 +24,6 @@ const VOL: Record<SfxName, number> = {
 let muted = false;
 export function setMuted(v: boolean) {
   muted = v;
-  if (ambient) ambient.muted = v;
 }
 export function isMuted() {
   return muted;
@@ -44,25 +43,5 @@ export function playSfx(name: SfxName, throttleMs = 0) {
     a.play().catch(() => {});
   } catch {
     /* ignore */
-  }
-}
-
-// Super-subtle looping ambient bed. Must start from a user gesture.
-const AMBIENT_URL = new URL('../imports/background_noise_reduce_by__80_volume.mp3', import.meta.url).href;
-let ambient: HTMLAudioElement | null = null;
-
-export function startAmbient() {
-  if (ambient) return;
-  try {
-    ambient = new Audio(AMBIENT_URL);
-    ambient.loop = true;
-    ambient.volume = 0.054; // barely there (another 20% lower)
-    ambient.muted = muted;
-    ambient.play().catch(() => {
-      // Autoplay blocked; will retry on next gesture.
-      ambient = null;
-    });
-  } catch {
-    ambient = null;
   }
 }

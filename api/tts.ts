@@ -1,4 +1,4 @@
-import { EDWARD_VOICE, json } from "./_caven";
+import { EDWARD_VOICE, json, authenticate, apiError } from "./_caven";
 
 export const config = { runtime: "edge" };
 
@@ -7,11 +7,13 @@ export default async function handler(req: Request) {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   try {
+    await authenticate(req);
     const apiKey = process.env.ELEVENLABS_API_KEY;
     if (!apiKey) return json({ error: "tts_unavailable" }, 502);
 
     const body = await req.json();
     const text = typeof body?.text === "string" ? body.text.trim() : "";
+    if(text.length>4000) return json({error:"Text too long"},413);
     if (!text) return json({ error: "text required" }, 400);
 
     const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${EDWARD_VOICE}`, {
@@ -51,6 +53,6 @@ export default async function handler(req: Request) {
     });
   } catch (err) {
     console.error("CAVEN tts failed:", err);
-    return json({ error: "tts_unavailable" }, 502);
+    return apiError(err);
   }
 }

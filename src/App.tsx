@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { CardLayer } from './components/CardLayer';
 import { CavenCore } from './components/CavenCore';
 import { FlatBoard } from './components/FlatBoard';
@@ -6,20 +6,13 @@ import { MusicMenu } from './components/MusicMenu';
 import { PageNav, type Page } from './components/PageNav';
 import { BrainPage, FinancePage, JournalPage } from './components/pages/SimplePages';
 import { useCaven } from './lib/cavenState';
-import { isMuted, setMuted, startAmbient } from './lib/sfx';
+import { isMuted, setMuted } from './lib/sfx';
 
 export default function App() {
   const [page, setPage] = useState<Page>('main');
   const [muted, setMutedState] = useState(isMuted());
   const [typed, setTyped] = useState('');
   const { state, amplitude, transcript, reply, locked, conversing, cards, toggle, toggleLock, cancel, updateCard, closeCard, runCommand } = useCaven();
-
-  // Autoplay is gated behind a user gesture — start the ambient bed on first interaction.
-  useEffect(() => {
-    const kick = () => startAmbient();
-    window.addEventListener('pointerdown', kick, { once: true });
-    return () => window.removeEventListener('pointerdown', kick);
-  }, []);
 
   // Enter sends immediately and gets the same Claude reply as speaking does.
   // It works mid-turn too, interrupting CAVEN rather than being ignored.

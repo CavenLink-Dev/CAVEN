@@ -196,23 +196,23 @@ export function useCaven() {
       setReply('');
       set('thinking');
 
-      // The spoken line always comes from Claude. Keyword routing only decides
-      // whether a card is worth surfacing alongside it.
-      const [live] = await Promise.all([askCaven(said, historyRef.current), wait(320)]);
-      if (!alive()) return;
-      const line = live ?? OFFLINE_LINE;
-
-      // Only surface/capture when the user clearly asked for it, and never on
-      // a failed turn — a card would imply CAVEN understood when it didn't.
-      const r = live ? route(said) : null;
+      const r = route(said);
+      let line: string;
+      let changed = false;
       if (r) {
-        set('acting');
-        await wait(600);
-        if (!alive()) return;
-        surface(r, said);
-        capture(r.kind, said);
-        playSfx('notification');
+        try {
+          const result = await capture(r.kind, said);
+          if (!alive()) return;
+          changed = result.changed;
+          surface(r, said);
+          line = changed ? result.message : (await askCaven(said, historyRef.current) ?? OFFLINE_LINE);
+        } catch (error) {
+          line = error instanceof Error ? error.message : 'That did not save, sir. Please retry.';
+        }
+      } else {
+        line = await askCaven(said, historyRef.current) ?? OFFLINE_LINE;
       }
+      if (!alive()) return;
 
       setReply(line);
       const turns: ChatTurn[] = [
@@ -225,7 +225,7 @@ export function useCaven() {
       await speak(line, setAmplitude);
       if (!alive()) return;
 
-      if (r) {
+      if (changed) {
         set('complete');
         playSfx('success');
         await wait(500);
