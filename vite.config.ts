@@ -44,7 +44,11 @@ export default defineConfig(({ mode }) => {
       watch: {
         ignored: [
           '**/.figma/**',
-],
+          // Figma Make injects this after boot; watching it restarts Vite
+          // while the environment also starts a second `pnpm run dev`.
+          '**/.env',
+          '**/.env.*',
+        ],
       },
     },
     preview: {
