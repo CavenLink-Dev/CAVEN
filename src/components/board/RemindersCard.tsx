@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { useCavenStore } from '../../lib/store'
 import { GlassPanel, PanelNote } from './GlassPanel'
 
-export function RemindersCard({ isVisible = true }: { isVisible?: boolean }) {
+function RemindersCardBase({ isVisible = true }: { isVisible?: boolean }) {
   const { data, ready, status } = useCavenStore()
 
   // Soonest first where a due time was captured; anything undated keeps its place at the back.
@@ -35,12 +35,12 @@ export function RemindersCard({ isVisible = true }: { isVisible?: boolean }) {
             const note = [reminder.date, reminder.note].filter(Boolean).join(' · ')
             return (
               <div className="flex gap-3" key={reminder.id}>
-                <span className="w-[58px] shrink-0 font-mono text-[10px] leading-5 text-cyan-100/65">
+                <span className="w-[52px] shrink-0 t-meta text-cyan-100/60">
                   {reminder.time}
                 </span>
                 <span>
-                  <b className="block text-[13px] font-medium text-white/82">{reminder.title}</b>
-                  {note && <small className="text-[11px] text-white/40">{note}</small>}
+                  <b className="block t-title text-white/90">{reminder.title}</b>
+                  {note && <small className="t-caption text-white/45">{note}</small>}
                 </span>
               </div>
             )
@@ -50,3 +50,7 @@ export function RemindersCard({ isVisible = true }: { isVisible?: boolean }) {
     </GlassPanel>
   )
 }
+
+// Memoised: useCaven() streams amplitude from App, and without this every
+// frame of CAVEN speaking re-rendered this component for no reason.
+export const RemindersCard = memo(RemindersCardBase)

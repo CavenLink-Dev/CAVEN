@@ -36,7 +36,7 @@ export function GlassPanel({
 
       {/* Card Header */}
       <div
-        className={`flex items-start justify-between gap-4 mb-5 z-10${
+        className={`flex items-start justify-between gap-4 mb-4 z-10${
           headerRelative ? " relative" : ""
         }`}
       >
@@ -52,7 +52,7 @@ export function GlassPanel({
             </h2>
           </div>
           {showTitle && (
-            <p className="mt-1 text-[48px] font-semibold tracking-[-0.02em] text-white/95 flex items-center gap-2">
+            <p className="mt-1 t-h2 text-white/95 flex items-center gap-2">
               {title}
             </p>
           )}
@@ -74,5 +74,5 @@ export function GlassPanel({
  * Plain utility classes only, so it never competes with the panel design.
  */
 export function PanelNote({ children }: { children: ReactNode }) {
-  return <p className="text-[12px] leading-[1.6] text-white/45">{children}</p>
+  return <p className="t-caption text-white/45">{children}</p>
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { playSfx } from '../lib/sfx';
 
 // Background music the user can pick from the top-right. Files live in imports/.
@@ -15,7 +15,7 @@ const TRACKS = [
   { name: 'Stillwood', url: new URL('../imports/Stillwood.mp3', import.meta.url).href },
 ] as const;
 
-export function MusicMenu() {
+function MusicMenuBase() {
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -95,7 +95,7 @@ export function MusicMenu() {
           <circle cx="6" cy="18" r="3" fill={playing ? 'currentColor' : 'none'} />
           <circle cx="18" cy="16" r="3" fill={playing ? 'currentColor' : 'none'} />
         </svg>
-        <span className="font-display text-[10px] tracking-[0.2em] max-w-[90px] truncate">{label.toUpperCase()}</span>
+        <span className="font-display t-micro tracking-[0.2em] max-w-[90px] truncate">{label.toUpperCase()}</span>
         {playing && (
           <span className="flex items-end gap-[2px] h-3" aria-hidden>
             <i className="eq-bar" style={{ animationDelay: '0ms' }} />
@@ -111,9 +111,9 @@ export function MusicMenu() {
           style={{ boxShadow: '0 12px 40px rgba(3,5,10,0.6), 0 0 22px rgba(63,208,255,0.15)' }}
         >
           <div className="mb-1 flex items-center justify-between px-2 pt-1">
-            <span className="font-display text-[9px] tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>AMBIENT MUSIC</span>
+            <span className="font-display t-micro tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>AMBIENT MUSIC</span>
             {playing && (
-              <button onClick={stop} className="text-[9px] tracking-[0.2em]" style={{ color: 'var(--caven-steel)' }}>
+              <button onClick={stop} className="t-micro tracking-[0.2em]" style={{ color: 'var(--caven-steel)' }}>
                 STOP
               </button>
             )}
@@ -131,7 +131,7 @@ export function MusicMenu() {
                   onMouseEnter={() => playSfx('select', 320)}
                 >
                   <span className="truncate">{t.name}</span>
-                  <span className="ml-2 text-[10px]" style={{ color: 'var(--caven-steel)' }}>
+                  <span className="ml-2 t-micro" style={{ color: 'var(--caven-steel)' }}>
                     {active && playing ? '❚❚' : '▶'}
                   </span>
                 </button>
@@ -160,3 +160,7 @@ export function MusicMenu() {
     </div>
   );
 }
+
+// Memoised: useCaven() streams amplitude from App, and without this every
+// frame of CAVEN speaking re-rendered this component for no reason.
+export const MusicMenu = memo(MusicMenuBase)

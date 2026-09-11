@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import logoImg from '../../imports/image-6.png'
 import wordmarkImg from '../../imports/image-5.png'
@@ -61,7 +61,7 @@ function useAccountInitial(): string {
   return initial
 }
 
-export function TopBar({ page, onPageChange, actions }: { page: Page; onPageChange: (p: Page) => void; actions?: ReactNode }) {
+function TopBarBase({ page, onPageChange, actions }: { page: Page; onPageChange: (p: Page) => void; actions?: ReactNode }) {
   const clock = useClock()
   const initial = useAccountInitial()
 
@@ -104,11 +104,11 @@ export function TopBar({ page, onPageChange, actions }: { page: Page; onPageChan
       <div className="flex items-center gap-4" style={{ alignItems: 'center' }}>
         <span
           className="rounded-full border border-cyan-200/15 bg-cyan-100/5 font-bold text-cyan-100"
-          style={{ height: '47px', width: '47px', paddingTop: '0px', paddingRight: '16px', paddingBottom: '0px', paddingLeft: '16px', fontSize: '25px', fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
+          style={{ height: '47px', width: '47px', paddingTop: '0px', paddingRight: '16px', paddingBottom: '0px', paddingLeft: '16px', fontSize: 'var(--fs-h2)', fontFamily: 'var(--font-body)', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
         >
           {initial}
         </span>
-        <time className="hud-label" style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'rgba(255, 255, 255, 0.9)', padding: '0px' }}>
+        <time className="hud-label" style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-meta)', color: 'rgba(255, 255, 255, 0.9)', padding: '0px' }}>
           {clock}
         </time>
         {actions}
@@ -116,3 +116,7 @@ export function TopBar({ page, onPageChange, actions }: { page: Page; onPageChan
     </header>
   )
 }
+
+// Memoised: useCaven() streams amplitude from App, and without this every
+// frame of CAVEN speaking re-rendered this component for no reason.
+export const TopBar = memo(TopBarBase)

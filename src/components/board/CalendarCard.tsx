@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import type { CalendarEvent } from '../../lib/mockData'
 import { useCavenStore } from '../../lib/store'
 import { GlassPanel, PanelNote } from './GlassPanel'
@@ -22,7 +22,7 @@ function minutesOf(time: string): number | null {
   return hour * 60 + minute
 }
 
-export function CalendarCard({ isVisible = true }: { isVisible?: boolean }) {
+function CalendarCardBase({ isVisible = true }: { isVisible?: boolean }) {
   const { data, ready, status } = useCavenStore()
   const events = data.calendar
 
@@ -68,3 +68,7 @@ export function CalendarCard({ isVisible = true }: { isVisible?: boolean }) {
     </GlassPanel>
   )
 }
+
+// Memoised: useCaven() streams amplitude from App, and without this every
+// frame of CAVEN speaking re-rendered this component for no reason.
+export const CalendarCard = memo(CalendarCardBase)
