@@ -104,6 +104,42 @@ function providers(): Provider[] {
   return list;
 }
 
+// Providers retire model ids without warning (Groq especially), which used to
+// mean a hard 404 and a dead assistant. So: on model_not_found we ask the
+// provider what it actually serves and retry once with the best match.
+const resolved = new Map<string, string>();
+
+async function listModels(p: Provider): Promise<string[]> {
+  const base = p.url.replace(/\/chat\/completions$/, "");
+  const res = await fetch(`${base}/models`, {
+    headers: { authorization: `Bearer ${p.key}`, ...(p.headers ?? {}) },
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (Array.isArray(data?.data) ? data.data : []).map((m: any) => String(m?.id ?? "")).filter(Boolean);
+}
+
+// Skip anything that isn't a general chat model, then prefer the bigger,
+// better-instruction-following ones — persona work needs the headroom.
+const NOT_CHAT = /whisper|tts|embed|guard|moderation|rerank|ocr|image|vision|diarization|safety|prompt-?guard/i;
+const PREFERENCES = [
+  /llama-4.*(maverick|scout)/i,
+  /llama-3\.3-70b/i,
+  /70b/i,
+  /gpt-oss-120b/i,
+  /gpt-oss-20b/i,
+  /instant/i,
+];
+
+export function pickModel(ids: string[]): string | null {
+  const chat = ids.filter((id) => !NOT_CHAT.test(id));
+  for (const re of PREFERENCES) {
+    const hit = chat.find((id) => re.test(id));
+    if (hit) return hit;
+  }
+  return chat[0] ?? null;
+}
+
 function cleanHistory(history: unknown): Turn[] {
   if (!Array.isArray(history)) return [];
   return history
@@ -115,7 +151,7 @@ function cleanHistory(history: unknown): Turn[] {
     .map((t: any) => ({ role: t.role, content: String(t.content) }));
 }
 
-async function callProvider(p: Provider, message: string, history: Turn[]) {
+async function callOnce(p: Provider, model: string, message: string, history: Turn[]) {
   const isAnthropic = p.kind === "anthropic";
 
   const res = await fetch(p.url, {
@@ -126,13 +162,13 @@ async function callProvider(p: Provider, message: string, history: Turn[]) {
     body: JSON.stringify(
       isAnthropic
         ? {
-            model: p.model,
+            model,
             max_tokens: MAX_TOKENS,
             system: CAVEN_SYSTEM,
             messages: [...history, { role: "user", content: message }],
           }
         : {
-            model: p.model,
+            model,
             max_tokens: MAX_TOKENS,
             // A touch of heat, or the fillers and varied sentence lengths get
             // ironed flat and CAVEN starts sounding like a form letter again.
@@ -148,7 +184,7 @@ async function callProvider(p: Provider, message: string, history: Turn[]) {
 
   if (!res.ok) {
     const detail = await res.text();
-    return { ok: false as const, status: res.status, detail: `${p.name} ${res.status}: ${detail.slice(0, 300)}` };
+    return { ok: false as const, status: res.status, detail: `${p.name} ${res.status}: ${detail.slice(0, 300)}`, raw: detail };
   }
 
   const data = await res.json();
@@ -161,16 +197,53 @@ async function callProvider(p: Provider, message: string, history: Turn[]) {
     : String(data?.choices?.[0]?.message?.content ?? "").trim();
 
   return reply
-    ? { ok: true as const, reply, via: p.name }
-    : { ok: false as const, status: 502, detail: `${p.name} returned no text` };
+    ? { ok: true as const, reply, via: p.name, model }
+    : { ok: false as const, status: 502, detail: `${p.name} returned no text`, raw: "" };
+}
+
+async function callProvider(p: Provider, message: string, history: Turn[]) {
+  const model = resolved.get(p.name) ?? p.model;
+  const first = await callOnce(p, model, message, history);
+  if (first.ok) return first;
+
+  // Only a missing model is worth re-trying; auth and rate-limit errors aren't.
+  const missing = first.status === 404 || /model_not_found|does not exist|unknown model/i.test(first.raw ?? "");
+  if (!missing || p.kind === "anthropic") return first;
+
+  const available = await listModels(p);
+  const next = pickModel(available);
+  if (!next || next === model) {
+    return {
+      ...first,
+      detail: `${first.detail} | available on ${p.name}: ${available.slice(0, 12).join(", ") || "none"}`,
+    };
+  }
+
+  console.log(`CAVEN chat: ${p.name} model "${model}" is gone, falling back to "${next}"`);
+  const second = await callOnce(p, next, message, history);
+  if (second.ok) resolved.set(p.name, next);
+  return second;
 }
 
 export default async function handler(req: Request) {
   if (req.method === "OPTIONS") return new Response(null, { status: 204 });
 
   // Non-secret health probe: says which providers are wired up, never a key.
+  // ?models=1 also asks each one what it currently serves.
   if (req.method === "GET") {
     const configured = providers();
+
+    if (new URL(req.url).searchParams.has("models")) {
+      const listed = await Promise.all(
+        configured.map(async (p) => {
+          if (p.kind === "anthropic") return { provider: p.name, configured: p.model };
+          const ids = await listModels(p);
+          return { provider: p.name, configured: p.model, picked: pickModel(ids), available: ids };
+        }),
+      );
+      return json({ ok: true, listed });
+    }
+
     return json({
       ok: configured.length > 0,
       configured: configured.map((p) => ({ provider: p.name, model: p.model })),
