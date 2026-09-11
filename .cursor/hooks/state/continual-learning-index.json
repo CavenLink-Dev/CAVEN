@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-11T08:02:19Z",
+  "transcripts": {
+    "319235c9-79ad-4fb6-80eb-557364f6fa56/319235c9-79ad-4fb6-80eb-557364f6fa56.jsonl": {
+      "mtimeMs": 1789108080273
+    },
+    "444fa633-4637-4bfc-8a34-c69806649979/444fa633-4637-4bfc-8a34-c69806649979.jsonl": {
+      "mtimeMs": 1789109352758
+    },
+    "94b85753-4eed-406a-b838-e11f9db45dc5/94b85753-4eed-406a-b838-e11f9db45dc5.jsonl": {
+      "mtimeMs": 1789108254467
+    },
+    "94b85753-4eed-406a-b838-e11f9db45dc5/subagents/4fa5e004-286e-49f3-999c-a60477beeb96.jsonl": {
+      "mtimeMs": 1789104019712
+    },
+    "94b85753-4eed-406a-b838-e11f9db45dc5/subagents/d5085ce3-8b56-4ca6-af45-f17f1b7593d6.jsonl": {
+      "mtimeMs": 1789107691441
+    },
+    "bd4e0688-3598-4c50-a66d-cd326ea1e4fb/bd4e0688-3598-4c50-a66d-cd326ea1e4fb.jsonl": {
+      "mtimeMs": 1789113538322
+    },
+    "bd4e0688-3598-4c50-a66d-cd326ea1e4fb/subagents/84a845e3-4aa7-4356-92bf-d87c81b8dba7.jsonl": {
+      "mtimeMs": 1789113594222
+    },
+    "d2ff5797-fde2-49c0-a37d-5296d4f15efd/d2ff5797-fde2-49c0-a37d-5296d4f15efd.jsonl": {
+      "mtimeMs": 1789109181606
+    },
+    "e938d5c1-73c9-4c4f-8b6a-11fa24450b19/e938d5c1-73c9-4c4f-8b6a-11fa24450b19.jsonl": {
+      "mtimeMs": 1789102442737
+    }
+  }
+}

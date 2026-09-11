@@ -6,7 +6,7 @@ import * as kv from "./kv_store.tsx";
 const app = new Hono();
 const PREFIXES = ["", "/make-server-3159d1b2"];
 const STATE_KEY = "caven:state";
-const EDWARD_VOICE = Deno.env.get("ELEVENLABS_VOICE_ID") ?? "goT3UYdM9bhm0n2lmKQx";
+const EDWARD_VOICE = Deno.env.get("ELEVENLABS_VOICE_ID") ?? "xru6qZB94sJdkyqP12qN";
 
 import { CAVEN_SYSTEM } from "./caven_system.ts";
 

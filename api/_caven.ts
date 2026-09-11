@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 export { CAVEN_SYSTEM } from '../shared/cavenSystem';
-export const EDWARD_VOICE = process.env.ELEVENLABS_VOICE_ID ?? 'goT3UYdM9bhm0n2lmKQx';
+export const EDWARD_VOICE = process.env.ELEVENLABS_VOICE_ID ?? 'xru6qZB94sJdkyqP12qN';
 export const SUPABASE_URL = 'https://egtzpvitcgquzppvlcrj.supabase.co';
 const PUBLIC_KEY = 'sb_publishable_jSmTpEKgEQEDZm4DW8Mnkg_fnL9_Tle';
 export function json(data: unknown, status=200) { return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json','cache-control':'no-store'}}); }

@@ -84,3 +84,17 @@ This is the canonical project structure. Start with task-relevant files below. O
 This project uses **Tailwind CSS v4** through the `@tailwindcss/vite` plugin configured in `vite.config.ts`. `src/index.css` imports Tailwind with `@import 'tailwindcss';`. Use Tailwind utility classes directly in JSX and put global CSS or Tailwind v4 theme customization in `src/index.css`. This scaffold does not need a Tailwind config file or PostCSS config.
 
 `src/main.tsx` imports `src/index.css`, so global font wiring belongs in `src/index.css`. Keep CSS `@import` statements first, then add any `@font-face` rules and font-family defaults there.
+
+## Learned User Preferences
+
+- Do not restore autoplay ambient or looping background audio; that bed was removed on purpose. Optional MusicMenu tracks are fine unless asked otherwise.
+- Spoken replies should sound human (contractions, occasional fillers). Do not revive the old "no filler, complete sentences only" valet prompt.
+- When checking the live app, use https://caven-green.vercel.app — preview and Dependabot deployments lack production keys and will fail or sound wrong.
+- Do not tell the user a feature is live (push reminders, bookings, saves) in confirmation copy unless the code actually does it.
+
+## Learned Workspace Facts
+
+- Chat injects a limited BOARD briefing from `shared/boardBrief.ts` so CAVEN can talk about saved tasks without guessing; missing fields stay unknown.
+- `tsconfig.json` includes `api/` and `shared/` so `pnpm build` type-checks the backend, not only `src/`.
+- Boards are scoped to the signed-in account (`AccountGate`); the old shared KV store is not auto-assigned on signup.
+- Design source is the Figma Make file https://www.figma.com/make/UVgV67Uj9R8sfRvLge4GRe/CAVEN-Personal-Assistant-Webapp
