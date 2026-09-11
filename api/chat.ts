@@ -5,7 +5,11 @@ export const config = { runtime: "edge" };
 
 type Turn = { role: "user" | "assistant"; content: string };
 
-const MAX_TOKENS = 300;
+const MAX_TOKENS = 200;
+// Free tiers meter tokens per minute, so a rate-limited turn is normal, not
+// exceptional. Retry briefly, then step down to a cheaper model.
+const MAX_ATTEMPTS = 3;
+const MAX_BACKOFF_MS = 2500;
 
 // Every provider below except Anthropic speaks the OpenAI chat/completions
 // shape, so one code path covers all of them. They are ordered fastest first:
@@ -127,18 +131,37 @@ const PREFERENCES = [
   /llama-4.*(maverick|scout)/i,
   /llama-3\.3-70b/i,
   /70b/i,
-  /gpt-oss-120b/i,
+  /qwen3\.8/i,
+  /qwen3\.6/i,
+  /qwen/i,
+  /compound$/i,
   /gpt-oss-20b/i,
   /instant/i,
 ];
 
-export function pickModel(ids: string[]): string | null {
+// Ordered best-first, so a rate-limited or missing model can step down the list.
+export function rankModels(ids: string[]): string[] {
   const chat = ids.filter((id) => !NOT_CHAT.test(id));
+  const ranked: string[] = [];
   for (const re of PREFERENCES) {
-    const hit = chat.find((id) => re.test(id));
-    if (hit) return hit;
+    for (const id of chat) if (re.test(id) && !ranked.includes(id)) ranked.push(id);
   }
-  return chat[0] ?? null;
+  for (const id of chat) if (!ranked.includes(id)) ranked.push(id);
+  return ranked;
+}
+
+export function pickModel(ids: string[]): string | null {
+  return rankModels(ids)[0] ?? null;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Groq reports "Please try again in 1.5s" in the error body.
+function retryAfterMs(res: Response, body: string): number {
+  const header = Number(res.headers.get("retry-after"));
+  if (Number.isFinite(header) && header > 0) return Math.min(header * 1000, MAX_BACKOFF_MS);
+  const m = body.match(/try again in ([\d.]+)\s*s/i);
+  return m ? Math.min(Math.ceil(parseFloat(m[1]) * 1000) + 150, MAX_BACKOFF_MS) : 0;
 }
 
 function cleanHistory(history: unknown): Turn[] {
@@ -150,6 +173,25 @@ function cleanHistory(history: unknown): Turn[] {
     )
     .slice(-8)
     .map((t: any) => ({ role: t.role, content: String(t.content) }));
+}
+
+function openaiReply(data: unknown): string {
+  const msg = (data as { choices?: { message?: { content?: unknown } }[] })?.choices?.[0]?.message;
+  const content = msg?.content;
+  if (typeof content === "string") return content.trim();
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => (typeof part === "string" ? part : textPart(part)))
+      .join(" ")
+      .trim();
+  }
+  return "";
+}
+
+function textPart(part: unknown): string {
+  if (!part || typeof part !== "object") return "";
+  const p = part as { text?: unknown; content?: unknown };
+  return typeof p.text === "string" ? p.text : typeof p.content === "string" ? p.content : "";
 }
 
 async function callOnce(p: Provider, model: string, message: string, history: Turn[], board: string) {
@@ -175,6 +217,9 @@ async function callOnce(p: Provider, model: string, message: string, history: Tu
             // A touch of heat, or the fillers and varied sentence lengths get
             // ironed flat and CAVEN starts sounding like a form letter again.
             temperature: 0.9,
+            // gpt-oss reasons before answering; at default effort it spends the
+            // whole budget thinking and returns empty content.
+            ...(/gpt-oss/i.test(model) ? { reasoning_effort: "low" } : {}),
             messages: [
               { role: "system", content: CAVEN_SYSTEM },
               ...(board ? [{ role: "system" as const, content: board }] : []),
@@ -187,7 +232,13 @@ async function callOnce(p: Provider, model: string, message: string, history: Tu
 
   if (!res.ok) {
     const detail = await res.text();
-    return { ok: false as const, status: res.status, detail: `${p.name} ${res.status}: ${detail.slice(0, 300)}`, raw: detail };
+    return {
+      ok: false as const,
+      status: res.status,
+      detail: `${p.name} ${res.status}: ${detail.slice(0, 300)}`,
+      raw: detail,
+      waitMs: res.status === 429 ? retryAfterMs(res, detail) : 0,
+    };
   }
 
   const data = await res.json();
@@ -197,46 +248,62 @@ async function callOnce(p: Provider, model: string, message: string, history: Tu
         .map((b: any) => b.text)
         .join(" ")
         .trim()
-    : String(data?.choices?.[0]?.message?.content ?? "").trim();
+    : openaiReply(data);
 
   return reply
     ? { ok: true as const, reply, via: p.name, model }
     : { ok: false as const, status: 502, detail: `${p.name} returned no text`, raw: "" };
 }
 
-async function callProvider(p: Provider, message: string, history: Turn[], board: string) {
-  const model = resolved.get(p.name) ?? p.model;
-  const first = await callOnce(p, model, message, history, board);
-  if (first.ok) return first;
+async function callProvider(p: Provider, message: string, history: Turn[]) {
+  const queue: string[] = [resolved.get(p.name) ?? p.model];
+  let discovered = false;
+  let last: any = null;
 
-  // Only a missing model is worth re-trying; auth and rate-limit errors aren't.
-  const missing = first.status === 404 || /model_not_found|does not exist|unknown model/i.test(first.raw ?? "");
-  if (!missing || p.kind === "anthropic") return first;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS && queue.length; attempt++) {
+    const model = queue.shift() as string;
+    last = await callOnce(p, model, message, history);
 
-  const available = await listModels(p);
-  const next = pickModel(available);
-  if (!next || next === model) {
-    return {
-      ...first,
-      detail: `${first.detail} | available on ${p.name}: ${available.slice(0, 12).join(", ") || "none"}`,
-    };
+    if (last.ok) {
+      if (model !== p.model) resolved.set(p.name, model);
+      return last;
+    }
+
+    // A brief rate limit is worth simply waiting out — free tiers meter per
+    // minute and the provider tells us how long.
+    if (last.status === 429 && last.waitMs && attempt < MAX_ATTEMPTS - 1) {
+      await sleep(last.waitMs);
+      last = await callOnce(p, model, message, history);
+      if (last.ok) {
+        if (model !== p.model) resolved.set(p.name, model);
+        return last;
+      }
+    }
+
+    if (p.kind === "anthropic") break;
+
+    // Missing, still limited, or silent — step down to the next best model the
+    // provider actually serves.
+    const worthStepping =
+      last.status === 404 ||
+      last.status === 429 ||
+      last.status === 502 ||
+      /model_not_found|does not exist|unknown model/i.test(last.raw ?? "");
+    if (!worthStepping) break;
+
+    if (!discovered) {
+      discovered = true;
+      const ranked = rankModels(await listModels(p));
+      for (const id of ranked) if (id !== model && !queue.includes(id)) queue.push(id);
+      if (!ranked.length) {
+        last = { ...last, detail: `${last.detail} | ${p.name} lists no usable chat models` };
+        break;
+      }
+      console.log(`CAVEN chat: ${p.name}/${model} failed (${last.status}); trying ${queue.slice(0, 2).join(", ")}`);
+    }
   }
 
-  console.log(`CAVEN chat: ${p.name} model "${model}" is gone, falling back to "${next}"`);
-  const second = await callOnce(p, next, message, history, board);
-  if (second.ok) resolved.set(p.name, next);
-  return second;
-}
-
-async function loadBoard(): Promise<{ present: boolean; brief: string }> {
-  try {
-    const state = await loadCavenState();
-    const brief = boardBrief(state);
-    return { present: state != null, brief };
-  } catch (err) {
-    console.error("CAVEN chat: board load failed:", err);
-    return { present: false, brief: "" };
-  }
+  return last;
 }
 
 export default async function handler(req: Request) {
@@ -258,9 +325,11 @@ export default async function handler(req: Request) {
       return json({ ok: true, listed });
     }
 
+    const { present: board } = await loadBoard();
     return json({
       ok: configured.length > 0,
       configured: configured.map((p) => ({ provider: p.name, model: p.model })),
+      board,
       hint: configured.length
         ? undefined
         : "Set one of GROQ_API_KEY, GEMINI_API_KEY, CEREBRAS_API_KEY, OPENROUTER_API_KEY, ANTHROPIC_API_KEY or AI_GATEWAY_API_KEY.",
@@ -274,6 +343,7 @@ export default async function handler(req: Request) {
     const message = typeof body?.message === "string" ? body.message.trim() : "";
     if (!message) return json({ error: "message required" }, 400);
     const history = cleanHistory(body?.history);
+    const { brief: board } = await loadBoard();
 
     const configured = providers();
     if (!configured.length) {
@@ -290,7 +360,7 @@ export default async function handler(req: Request) {
     const failures: string[] = [];
     for (const p of configured) {
       try {
-        const result = await callProvider(p, message, history);
+        const result = await callProvider(p, message, history, board);
         if (result.ok) return json({ reply: result.reply, via: result.via });
         failures.push(result.detail);
         console.error("CAVEN chat provider failed:", result.detail);
