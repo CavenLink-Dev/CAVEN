@@ -70,7 +70,7 @@ body {
   margin: 0;
   color: var(--foreground);
   font-family: Manrope, 'Rajdhani', system-ui, sans-serif;
-  background: radial-gradient(ellipse 75% 58% at 50% 44%, #10202a 0%, #0a1117 40%, #06090d 76%);
+  background: #05060a;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
@@ -84,15 +84,14 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background-image:
-    radial-gradient(1.4px 1.4px at 20% 30%, rgba(210, 245, 250, .9), transparent),
-    radial-gradient(1px 1px at 70% 22%, rgba(180, 230, 240, .65), transparent),
-    radial-gradient(1.6px 1.6px at 42% 68%, rgba(220, 250, 255, .85), transparent),
-    radial-gradient(1px 1px at 88% 55%, rgba(160, 215, 225, .6), transparent),
-    radial-gradient(1.2px 1.2px at 12% 82%, rgba(200, 240, 248, .75), transparent),
-    radial-gradient(1px 1px at 60% 88%, rgba(175, 225, 235, .55), transparent),
-    radial-gradient(1.5px 1.5px at 33% 12%, rgba(215, 248, 252, .8), transparent);
+    radial-gradient(1.4px 1.4px at 20% 30%, rgba(255, 255, 255, .85), transparent),
+    radial-gradient(1px 1px at 70% 22%, rgba(255, 255, 255, .6), transparent),
+    radial-gradient(1.5px 1.5px at 42% 68%, rgba(255, 255, 255, .8), transparent),
+    radial-gradient(1px 1px at 88% 55%, rgba(255, 255, 255, .55), transparent),
+    radial-gradient(1.2px 1.2px at 12% 82%, rgba(255, 255, 255, .7), transparent),
+    radial-gradient(1px 1px at 60% 88%, rgba(255, 255, 255, .5), transparent),
+    radial-gradient(1.4px 1.4px at 33% 12%, rgba(255, 255, 255, .75), transparent);
   background-size: 340px 340px, 290px 290px, 400px 400px, 260px 260px, 370px 370px, 310px 310px, 420px 420px;
-  animation: starTwinkle 7s ease-in-out infinite;
 }
 
 button { font: inherit; }
