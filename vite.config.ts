@@ -2,7 +2,6 @@ import { defineConfig, type HtmlTagDescriptor, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
-import fs from 'node:fs'
 
 import siteConfiguration from './.figma/make/site.json'
 
@@ -40,29 +39,7 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (p) => `/functions/v1/make-server-3159d1b2${p.replace(/^\/api/, '')}`,
           configure(proxy) {
-            proxy.on('proxyReq', (proxyReq, req) => {
-              // #region agent log
-              try {
-                fs.appendFileSync(
-                  '/Users/keanucaven/Downloads/CAVEN/.cursor/debug-bd4e06.log',
-                  JSON.stringify({
-                    sessionId: 'bd4e06',
-                    runId: 'pre-fix',
-                    hypothesisId: 'B',
-                    location: 'vite.config.ts:proxyReq',
-                    message: 'local /api proxied to supabase functions',
-                    data: {
-                      url: req.url,
-                      incomingAuth: req.headers.authorization ? 'present' : 'missing',
-                      overwriteAuth: true,
-                    },
-                    timestamp: Date.now(),
-                  }) + '\n',
-                )
-              } catch {
-                /* debug log best-effort */
-              }
-              // #endregion
+            proxy.on('proxyReq', (proxyReq) => {
               proxyReq.setHeader(
                 'Authorization',
                 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVndHpwdml0Y2dxdXpwcHZsY3JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkwODc4MjksImV4cCI6MjEwNDY2MzgyOX0.UvjHvUZdwVK_-FTbyHb9rsWGvCJvRkETld0Q2fQ1ywA',

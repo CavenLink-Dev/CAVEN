@@ -204,14 +204,8 @@ export async function askCaven(message: string, history: ChatTurn[] = []): Promi
     if (!res.ok) throw new Error(`chat ${res.status}`);
     const data = await res.json();
     const reply = typeof data?.reply === 'string' ? data.reply.trim() : '';
-    // #region agent log
-    fetch('http://127.0.0.1:7792/ingest/0c9af2b6-971e-47f4-ab55-4bfb6bcae431',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bd4e06'},body:JSON.stringify({sessionId:'bd4e06',runId:'pre-fix',hypothesisId:'D',location:'voice.ts:askCaven',message:'chat reply',data:{status:res.status,hasReply:Boolean(reply),replyLen:reply.length,via:typeof data?.via==='string'?data.via:'',error:typeof data?.error==='string'?data.error:''},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     return reply || null;
   } catch (err) {
-    // #region agent log
-    fetch('http://127.0.0.1:7792/ingest/0c9af2b6-971e-47f4-ab55-4bfb6bcae431',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bd4e06'},body:JSON.stringify({sessionId:'bd4e06',runId:'pre-fix',hypothesisId:'D',location:'voice.ts:askCaven:catch',message:'chat failed',data:{err:err instanceof Error?err.message:String(err).slice(0,120)},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     console.warn('CAVEN chat failed, using fallback line:', err);
     return null;
   }
@@ -234,7 +228,7 @@ export function stopSpeaking() {
   }
 }
 
-// Speak with CAVEN's ElevenLabs (Edward) voice via /api/tts.
+// Speak with CAVEN's ElevenLabs British voice via /api/tts.
 // Falls back to the browser voice if the request fails. onAmp streams the
 // live audio amplitude so the core reacts to the actual speech.
 export async function speak(text: string, onAmp?: (a: number) => void): Promise<void> {
@@ -243,29 +237,11 @@ export async function speak(text: string, onAmp?: (a: number) => void): Promise<
       method: 'POST',
       body: JSON.stringify({ text }),
     });
-    const contentType = res.headers.get('content-type') || '';
-    if (!res.ok) {
-      let body = '';
-      try {
-        body = (await res.clone().text()).slice(0, 180);
-      } catch {
-        /* ignore */
-      }
-      // #region agent log
-      fetch('http://127.0.0.1:7792/ingest/0c9af2b6-971e-47f4-ab55-4bfb6bcae431',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bd4e06'},body:JSON.stringify({sessionId:'bd4e06',runId:'pre-fix',hypothesisId:'A',location:'voice.ts:speak',message:'tts not ok',data:{status:res.status,contentType,body,textLen:text.length},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
-      throw new Error(`tts ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`tts ${res.status}`);
 
     const buf = await res.arrayBuffer();
-    // #region agent log
-    fetch('http://127.0.0.1:7792/ingest/0c9af2b6-971e-47f4-ab55-4bfb6bcae431',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bd4e06'},body:JSON.stringify({sessionId:'bd4e06',runId:'pre-fix',hypothesisId:'E',location:'voice.ts:speak',message:'tts audio ok',data:{status:res.status,contentType,bytes:buf.byteLength},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     await playWithMeter(buf, onAmp);
   } catch (err) {
-    // #region agent log
-    fetch('http://127.0.0.1:7792/ingest/0c9af2b6-971e-47f4-ab55-4bfb6bcae431',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bd4e06'},body:JSON.stringify({sessionId:'bd4e06',runId:'pre-fix',hypothesisId:'E',location:'voice.ts:speak:fallback',message:'browser voice fallback',data:{err:err instanceof Error?err.message:String(err).slice(0,120)},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     console.warn('ElevenLabs TTS failed, using browser voice:', err);
     await browserSpeak(text);
   } finally {

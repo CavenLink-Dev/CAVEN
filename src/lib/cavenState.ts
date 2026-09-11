@@ -197,9 +197,6 @@ export function useCaven() {
       set('thinking');
 
       const r = route(said);
-      // #region agent log
-      fetch('http://127.0.0.1:7792/ingest/0c9af2b6-971e-47f4-ab55-4bfb6bcae431',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bd4e06'},body:JSON.stringify({sessionId:'bd4e06',runId:'pre-fix',hypothesisId:'D',location:'cavenState.ts:process',message:'turn routed',data:{saidLen:said.length,kind:r?.kind??null,wordCount:said.split(/\s+/).length},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       let line: string;
       let changed = false;
       if (r) {

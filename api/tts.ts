@@ -1,6 +1,31 @@
-import { EDWARD_VOICE, json, authenticate, apiError } from "./_caven";
+import { EDWARD_VOICE, PREMADE_VOICE, json, authenticate, apiError } from "./_caven";
+import { fallbackVoice } from "../shared/ttsVoice";
 
 export const config = { runtime: "edge" };
+
+// Remember a working voice on this isolate so we don't pay a 402 on every turn.
+let stickyVoice = EDWARD_VOICE;
+
+function elevenLabsRequest(apiKey: string, voiceId: string, text: string) {
+  return fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+    method: "POST",
+    headers: {
+      "xi-api-key": apiKey,
+      "content-type": "application/json",
+      accept: "audio/mpeg",
+    },
+    body: JSON.stringify({
+      text,
+      model_id: process.env.ELEVENLABS_MODEL_ID || "eleven_multilingual_v2",
+      voice_settings: {
+        stability: 0.3,
+        similarity_boost: 0.75,
+        style: 0.45,
+        use_speaker_boost: true,
+      },
+    }),
+  });
+}
 
 export default async function handler(req: Request) {
   if (req.method === "OPTIONS") return new Response(null, { status: 204 });
@@ -9,9 +34,6 @@ export default async function handler(req: Request) {
   try {
     await authenticate(req);
     const apiKey = process.env.ELEVENLABS_API_KEY;
-    // #region agent log
-    fetch('http://127.0.0.1:7792/ingest/0c9af2b6-971e-47f4-ab55-4bfb6bcae431',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bd4e06'},body:JSON.stringify({sessionId:'bd4e06',runId:'pre-fix',hypothesisId:'A',location:'api/tts.ts:handler',message:'tts after auth',data:{hasKey:Boolean(apiKey),voiceFromEnv:Boolean(process.env.ELEVENLABS_VOICE_ID),libraryEdward:EDWARD_VOICE==='goT3UYdM9bhm0n2lmKQx'},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if (!apiKey) return json({ error: "tts_unavailable" }, 502);
 
     const body = await req.json();
@@ -19,38 +41,23 @@ export default async function handler(req: Request) {
     if(text.length>4000) return json({error:"Text too long"},413);
     if (!text) return json({ error: "text required" }, 400);
 
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${EDWARD_VOICE}`, {
-      method: "POST",
-      headers: {
-        "xi-api-key": apiKey,
-        "content-type": "application/json",
-        accept: "audio/mpeg",
-      },
-      body: JSON.stringify({
-        text,
-        // Override with ELEVENLABS_MODEL_ID (e.g. eleven_turbo_v2_5) if you
-        // want lower latency; the default keeps Edward's full character.
-        model_id: process.env.ELEVENLABS_MODEL_ID || "eleven_multilingual_v2",
-        voice_settings: {
-          // Lower stability = more emotional range, which is what makes the
-          // fillers and trailing-off read as human rather than recited.
-          stability: 0.3,
-          similarity_boost: 0.75,
-          style: 0.45,
-          use_speaker_boost: true,
-        },
-      }),
-    });
+    let voiceId = stickyVoice;
+    let res = await elevenLabsRequest(apiKey, voiceId, text);
 
     if (!res.ok) {
       const detail = await res.text();
-      // #region agent log
-      fetch('http://127.0.0.1:7792/ingest/0c9af2b6-971e-47f4-ab55-4bfb6bcae431',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'bd4e06'},body:JSON.stringify({sessionId:'bd4e06',runId:'pre-fix',hypothesisId:'A',location:'api/tts.ts:elevenlabs',message:'elevenlabs not ok',data:{status:res.status,detail:detail.slice(0,220),libraryEdward:EDWARD_VOICE==='goT3UYdM9bhm0n2lmKQx'},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       console.error("ElevenLabs tts failed:", res.status, detail);
-      return json({ error: "tts_unavailable" }, 502);
+      const retryId = fallbackVoice(voiceId, res.status, PREMADE_VOICE);
+      if (!retryId) return json({ error: "tts_unavailable" }, 502);
+      voiceId = retryId;
+      res = await elevenLabsRequest(apiKey, voiceId, text);
+      if (!res.ok) {
+        console.error("ElevenLabs premade retry failed:", res.status, await res.text());
+        return json({ error: "tts_unavailable" }, 502);
+      }
     }
 
+    stickyVoice = voiceId;
     return new Response(res.body, {
       headers: {
         "content-type": "audio/mpeg",
