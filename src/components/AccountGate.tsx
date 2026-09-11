@@ -52,7 +52,7 @@ export function AccountGate({ children }: { children: ReactNode }) {
     <main className="auth-shell">
       <div className="auth-orbit auth-orbit-one" /><div className="auth-orbit auth-orbit-two" />
       <section className="auth-panel" aria-labelledby="auth-title">
-        <div className="auth-brand"><span className="auth-brand-mark">C</span><span className="font-display tracking-[0.35em]">CAVEN</span></div>
+        <div className="auth-brand"><img className="auth-wordmark" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-lfCMMGnKCnOIDetSbTUMiC2ZSafAi1.png" alt="CAVEN" /></div>
         <div className="auth-intro"><p className="auth-kicker">PRIVATE INTELLIGENCE SYSTEM</p><h1 id="auth-title">{signup ? 'Create your account' : 'Welcome back'}</h1><p>{signup ? 'A calmer, sharper place to keep your life in order.' : 'Your private board is ready when you are.'}</p></div>
         <form className="auth-form" onSubmit={submit}>
           <label className="auth-label" htmlFor="auth-email">Email address</label>
