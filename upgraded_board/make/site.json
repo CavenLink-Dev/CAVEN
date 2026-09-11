@@ -1,0 +1,10 @@
+{
+  "description": "A voice-first AI assistant that helps manage tasks, routines, and goals with personalized support for neurodiverse users to organize daily life efficiently.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

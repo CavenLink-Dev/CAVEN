@@ -23,15 +23,6 @@ export type CardKind =
   | 'journal'
   | 'brain';
 
-export type CardInstance = {
-  id: string;
-  kind: CardKind;
-  title: string;
-  transcript?: string;
-  minimized?: boolean;
-  fullscreen?: boolean;
-};
-
 type Route = { kind: CardKind; title: string };
 
 // Spoken only when Claude is unreachable. It must never claim to have done
@@ -94,7 +85,6 @@ export function useCaven() {
   const [reply, setReply] = useState(''); // CAVEN's latest spoken line, for the chat box
   const [locked, setLocked] = useState(false);
   const [conversing, setConversing] = useState(false); // mic loop is running
-  const [cards, setCards] = useState<CardInstance[]>([]);
 
   const lockedRef = useRef(false);
   const conversingRef = useRef(false);
@@ -107,10 +97,6 @@ export function useCaven() {
     stateRef.current = s;
     setState(s);
   };
-
-  const surface = useCallback((r: Route, said: string) => {
-    setCards((prev) => [...prev, { id: `${Date.now()}`, kind: r.kind, title: r.title, transcript: said }]);
-  }, []);
 
   // Refs let startMic and process reference each other without a circular
   // useCallback dependency (which breaks Fast Refresh and hook ordering).
@@ -189,7 +175,6 @@ export function useCaven() {
           const result = await capture(r.kind, said);
           if (!alive()) return;
           changed = result.changed;
-          surface(r, said);
           line = changed ? result.message : (await askCaven(said, historyRef.current) ?? OFFLINE_LINE);
         } catch (error) {
           line = error instanceof Error ? error.message : 'That did not save, sir. Please retry.';
@@ -221,7 +206,7 @@ export function useCaven() {
       setAmplitude(0);
       rearm();
     },
-    [surface, capture, rearm],
+    [capture, rearm],
   );
   processRef.current = process;
 
@@ -281,14 +266,6 @@ export function useCaven() {
     endConversation();
   }, [endConversation]);
 
-  const updateCard = useCallback((id: string, patch: Partial<CardInstance>) => {
-    setCards((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
-  }, []);
-
-  const closeCard = useCallback((id: string) => {
-    setCards((prev) => prev.filter((c) => c.id !== id));
-  }, []);
-
   return {
     state,
     amplitude,
@@ -296,12 +273,9 @@ export function useCaven() {
     reply,
     locked,
     conversing,
-    cards,
     toggle,
     toggleLock,
     cancel,
-    updateCard,
-    closeCard,
     runCommand,
   };
 }
