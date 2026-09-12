@@ -5,6 +5,12 @@ applied to the live project and have no file here, so `create or replace` on any
 function in this folder can silently revert work that only exists in production.
 Check the deployed definition first:
 
+> Applied on 12 Sep 2026, and present here: `20260912114206_reminder_delivery`
+> (recorded as `20260912101500_reminder_delivery.sql` — the filename predates the
+> apply) and `20260912224518_schedule_caven_push_dispatch`. Both were applied
+> from this session and verified afterwards: the cron job's first run returned
+> `200 {"ok":true,"claimed":0,"sent":0,"pruned":0}`.
+
 ```sql
 select pg_get_functiondef(p.oid)
 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
