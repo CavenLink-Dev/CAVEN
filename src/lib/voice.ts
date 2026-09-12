@@ -1,74 +1,74 @@
 // Web Speech API + Web Audio wrappers with graceful fallback.
 
 type SR = typeof window & {
-  SpeechRecognition?: any;
-  webkitSpeechRecognition?: any;
-};
-
-export function voiceSupported(): boolean {
-  const w = window as SR;
-  return Boolean(w.SpeechRecognition || w.webkitSpeechRecognition);
+  SpeechRecognition?: any
+  webkitSpeechRecognition?: any
 }
 
-let recognition: any = null;
-let audioCtx: AudioContext | null = null;
-let analyser: AnalyserNode | null = null;
-let rafId = 0;
-let stream: MediaStream | null = null;
+export function voiceSupported(): boolean {
+  const w = window as SR
+  return Boolean(w.SpeechRecognition || w.webkitSpeechRecognition)
+}
+
+let recognition: any = null
+let audioCtx: AudioContext | null = null
+let analyser: AnalyserNode | null = null
+let rafId = 0
+let stream: MediaStream | null = null
 
 async function startMeter(onAmp: (a: number) => void) {
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const src = audioCtx.createMediaStreamSource(stream);
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
-    src.connect(analyser);
-    const data = new Uint8Array(analyser.frequencyBinCount);
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const src = audioCtx.createMediaStreamSource(stream)
+    analyser = audioCtx.createAnalyser()
+    analyser.fftSize = 256
+    src.connect(analyser)
+    const data = new Uint8Array(analyser.frequencyBinCount)
     const tick = () => {
-      if (!analyser) return;
-      analyser.getByteTimeDomainData(data);
-      let sum = 0;
+      if (!analyser) return
+      analyser.getByteTimeDomainData(data)
+      let sum = 0
       for (let i = 0; i < data.length; i++) {
-        const v = (data[i] - 128) / 128;
-        sum += v * v;
+        const v = (data[i] - 128) / 128
+        sum += v * v
       }
-      const rms = Math.sqrt(sum / data.length);
-      onAmp(Math.min(1, rms * 4));
-      rafId = requestAnimationFrame(tick);
-    };
-    tick();
+      const rms = Math.sqrt(sum / data.length)
+      onAmp(Math.min(1, rms * 4))
+      rafId = requestAnimationFrame(tick)
+    }
+    tick()
   } catch {
     /* mic denied — recognition may still work; amplitude stays flat */
   }
 }
 
 function stopMeter() {
-  if (rafId) cancelAnimationFrame(rafId);
-  rafId = 0;
-  analyser = null;
-  audioCtx?.close().catch(() => {});
-  audioCtx = null;
-  stream?.getTracks().forEach((t) => t.stop());
-  stream = null;
+  if (rafId) cancelAnimationFrame(rafId)
+  rafId = 0
+  analyser = null
+  audioCtx?.close().catch(() => {})
+  audioCtx = null
+  stream?.getTracks().forEach((t) => t.stop())
+  stream = null
 }
 
 // Hands-free listening: the recogniser ends on end-of-utterance (continuous =
 // false) and a silence timer backs that up on browsers that linger. onEnd fires
 // as soon as the user stops talking — no second click required.
-const SILENCE_MS = 1400; // quiet gap that counts as "they've finished"
-const LEAD_IN_MS = 6000; // grace period before any speech has been heard
-const MAX_UTTERANCE_MS = 20000; // hard ceiling so the mic never hangs open
+const SILENCE_MS = 1400 // quiet gap that counts as "they've finished"
+const LEAD_IN_MS = 6000 // grace period before any speech has been heard
+const MAX_UTTERANCE_MS = 20000 // hard ceiling so the mic never hangs open
 
-let silenceTimer: ReturnType<typeof setTimeout> | null = null;
-let maxTimer: ReturnType<typeof setTimeout> | null = null;
-let aborted = false;
+let silenceTimer: ReturnType<typeof setTimeout> | null = null
+let maxTimer: ReturnType<typeof setTimeout> | null = null
+let aborted = false
 
 function clearTimers() {
-  if (silenceTimer) clearTimeout(silenceTimer);
-  if (maxTimer) clearTimeout(maxTimer);
-  silenceTimer = null;
-  maxTimer = null;
+  if (silenceTimer) clearTimeout(silenceTimer)
+  if (maxTimer) clearTimeout(maxTimer)
+  silenceTimer = null
+  maxTimer = null
 }
 
 export function startListening(
@@ -76,153 +76,160 @@ export function startListening(
   onEnd: (text: string) => void,
   onError: (fatal: boolean) => void,
 ) {
-  const w = window as SR;
-  const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition;
-  if (!Ctor) return onError(true);
+  const w = window as SR
+  const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition
+  if (!Ctor) return onError(true)
 
   // Tear down anything still running so we never stack two recognisers.
   try {
-    recognition?.abort?.();
+    recognition?.abort?.()
   } catch {
     /* noop */
   }
 
-  aborted = false;
-  recognition = new Ctor();
-  recognition.lang = 'en-AU';
-  recognition.interimResults = true;
+  aborted = false
+  recognition = new Ctor()
+  recognition.lang = "en-AU"
+  recognition.interimResults = true
   // The crux of the fix: end the utterance automatically instead of staying
   // open until a second click.
-  recognition.continuous = false;
-  recognition.maxAlternatives = 1;
+  recognition.continuous = false
+  recognition.maxAlternatives = 1
 
-  let amp = 0;
-  let finalText = '';
-  let settled = false;
-  startMeter((a) => (amp = a));
+  let amp = 0
+  let finalText = ""
+  let settled = false
+  startMeter((a) => (amp = a))
 
   const stopRecogniser = () => {
     try {
-      recognition?.stop();
+      recognition?.stop()
     } catch {
       /* noop */
     }
-  };
+  }
 
   const armSilence = (ms: number) => {
-    if (silenceTimer) clearTimeout(silenceTimer);
-    silenceTimer = setTimeout(stopRecogniser, ms);
-  };
+    if (silenceTimer) clearTimeout(silenceTimer)
+    silenceTimer = setTimeout(stopRecogniser, ms)
+  }
 
   const finish = () => {
-    if (settled) return;
-    settled = true;
-    clearTimers();
-    stopMeter();
-    if (aborted) return; // cancelled on purpose — swallow the utterance
-    onEnd(finalText.trim());
-  };
+    if (settled) return
+    settled = true
+    clearTimers()
+    stopMeter()
+    if (aborted) return // cancelled on purpose — swallow the utterance
+    onEnd(finalText.trim())
+  }
 
   recognition.onresult = (e: any) => {
-    let text = '';
-    for (let i = e.resultIndex ?? 0; i < e.results.length; i++) text += e.results[i][0].transcript;
+    let text = ""
+    for (let i = e.resultIndex ?? 0; i < e.results.length; i++)
+      text += e.results[i][0].transcript
     // Some browsers replay earlier results; keep the longest read we have seen.
-    finalText = text.trim() || finalText;
-    onPartial(finalText, amp);
-    armSilence(SILENCE_MS);
-  };
+    finalText = text.trim() || finalText
+    onPartial(finalText, amp)
+    armSilence(SILENCE_MS)
+  }
 
-  recognition.onspeechend = () => armSilence(400);
+  recognition.onspeechend = () => armSilence(400)
 
   recognition.onerror = (e: any) => {
-    if (settled) return;
-    const fatal = e?.error === 'not-allowed' || e?.error === 'service-not-allowed' || e?.error === 'audio-capture';
+    if (settled) return
+    const fatal =
+      e?.error === "not-allowed" ||
+      e?.error === "service-not-allowed" ||
+      e?.error === "audio-capture"
     if (fatal) {
-      settled = true;
-      clearTimers();
-      stopMeter();
-      onError(true);
-      return;
+      settled = true
+      clearTimers()
+      stopMeter()
+      onError(true)
+      return
     }
     // 'no-speech' / 'aborted' / 'network': settle with whatever we captured.
-    finish();
-  };
+    finish()
+  }
 
-  recognition.onend = () => finish();
+  recognition.onend = () => finish()
 
   // If nothing at all is said, close the mic politely rather than hanging.
-  armSilence(LEAD_IN_MS);
-  maxTimer = setTimeout(stopRecogniser, MAX_UTTERANCE_MS);
+  armSilence(LEAD_IN_MS)
+  maxTimer = setTimeout(stopRecogniser, MAX_UTTERANCE_MS)
 
   try {
-    recognition.start();
+    recognition.start()
   } catch {
     if (!settled) {
-      settled = true;
-      clearTimers();
-      stopMeter();
-      onError(true);
+      settled = true
+      clearTimers()
+      stopMeter()
+      onError(true)
     }
   }
 }
 
 // Graceful stop — whatever was captured is still processed.
 export function stopListening() {
-  clearTimers();
+  clearTimers()
   try {
-    recognition?.stop();
+    recognition?.stop()
   } catch {
     /* noop */
   }
-  stopMeter();
+  stopMeter()
 }
 
 // Hard cancel — the utterance is discarded and onEnd never fires.
 export function abortListening() {
-  aborted = true;
-  clearTimers();
+  aborted = true
+  clearTimers()
   try {
-    recognition?.abort?.() ?? recognition?.stop?.();
+    recognition?.abort?.() ?? recognition?.stop?.()
   } catch {
     /* noop */
   }
-  stopMeter();
+  stopMeter()
 }
 
-import { apiFetch } from './backend';
+import { apiFetch } from "./backend"
 
-export type ChatTurn = { role: 'user' | 'assistant'; content: string };
+export type ChatTurn = { role: "user" | "assistant" content: string }
 
 // Ask CAVEN for a live reply. Returns null on failure so the caller can fall
 // back to a canned line rather than leaving the user without a response.
-export async function askCaven(message: string, history: ChatTurn[] = []): Promise<string | null> {
+export async function askCaven(
+  message: string,
+  history: ChatTurn[] = [],
+): Promise<string | null> {
   try {
-    const res = await apiFetch('chat', {
-      method: 'POST',
+    const res = await apiFetch("chat", {
+      method: "POST",
       body: JSON.stringify({ message, history }),
-    });
-    if (!res.ok) throw new Error(`chat ${res.status}`);
-    const data = await res.json();
-    const reply = typeof data?.reply === 'string' ? data.reply.trim() : '';
-    return reply || null;
+    })
+    if (!res.ok) throw new Error(`chat ${res.status}`)
+    const data = await res.json()
+    const reply = typeof data?.reply === "string" ? data.reply.trim() : ""
+    return reply || null
   } catch (err) {
-    console.warn('CAVEN chat failed, using fallback line:', err);
-    return null;
+    console.warn("CAVEN chat failed, using fallback line:", err)
+    return null
   }
 }
 
 // Handle on the currently playing TTS, so a new turn can interrupt CAVEN.
-let speaking: { stop: () => void } | null = null;
+let speaking: { stop: () => void } | null = null
 
 export function stopSpeaking() {
   try {
-    speaking?.stop();
+    speaking?.stop()
   } catch {
     /* noop */
   }
-  speaking = null;
+  speaking = null
   try {
-    window.speechSynthesis?.cancel();
+    window.speechSynthesis?.cancel()
   } catch {
     /* noop */
   }
@@ -231,115 +238,125 @@ export function stopSpeaking() {
 // Speak with CAVEN's ElevenLabs British voice via /api/tts.
 // Falls back to the browser voice if the request fails. onAmp streams the
 // live audio amplitude so the core reacts to the actual speech.
-export async function speak(text: string, onAmp?: (a: number) => void): Promise<void> {
+export async function speak(
+  text: string,
+  onAmp?: (a: number) => void,
+): Promise<void> {
   try {
-    const res = await apiFetch('tts', {
-      method: 'POST',
+    const res = await apiFetch("tts", {
+      method: "POST",
       body: JSON.stringify({ text }),
-    });
-    if (!res.ok) throw new Error(`tts ${res.status}`);
+    })
+    if (!res.ok) throw new Error(`tts ${res.status}`)
 
-    const buf = await res.arrayBuffer();
-    await playWithMeter(buf, onAmp);
+    const buf = await res.arrayBuffer()
+    await playWithMeter(buf, onAmp)
   } catch (err) {
-    console.warn('ElevenLabs TTS failed, using browser voice:', err);
-    await browserSpeak(text);
+    console.warn("ElevenLabs TTS failed, using browser voice:", err)
+    await browserSpeak(text)
   } finally {
-    onAmp?.(0);
+    onAmp?.(0)
   }
 }
 
 // Plays an audio buffer while reporting amplitude via an AnalyserNode.
-function playWithMeter(buf: ArrayBuffer, onAmp?: (a: number) => void): Promise<void> {
+function playWithMeter(
+  buf: ArrayBuffer,
+  onAmp?: (a: number) => void,
+): Promise<void> {
   return new Promise((resolve) => {
-    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+    const Ctx = window.AudioContext || (window as any).webkitAudioContext
     if (!Ctx) {
-      const audio = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/mpeg' })));
+      const audio = new Audio(
+        URL.createObjectURL(new Blob([buf], { type: "audio/mpeg" })),
+      )
       const done = () => {
-        speaking = null;
-        resolve();
-      };
-      audio.onended = done;
-      audio.onerror = done;
+        speaking = null
+        resolve()
+      }
+      audio.onended = done
+      audio.onerror = done
       speaking = {
         stop: () => {
-          audio.pause();
-          done();
+          audio.pause()
+          done()
         },
-      };
-      audio.play().catch(done);
-      return;
+      }
+      audio.play().catch(done)
+      return
     }
-    const ctx: AudioContext = new Ctx();
-    let finished = false;
+    const ctx: AudioContext = new Ctx()
+    let finished = false
     const done = () => {
-      if (finished) return;
-      finished = true;
-      speaking = null;
-      ctx.close().catch(() => {});
-      resolve();
-    };
+      if (finished) return
+      finished = true
+      speaking = null
+      ctx.close().catch(() => {})
+      resolve()
+    }
     ctx.decodeAudioData(
       buf.slice(0),
       (decoded) => {
-        const src = ctx.createBufferSource();
-        src.buffer = decoded;
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 256;
-        src.connect(analyser);
-        analyser.connect(ctx.destination);
-        const data = new Uint8Array(analyser.frequencyBinCount);
-        let raf = 0;
+        const src = ctx.createBufferSource()
+        src.buffer = decoded
+        const analyser = ctx.createAnalyser()
+        analyser.fftSize = 256
+        src.connect(analyser)
+        analyser.connect(ctx.destination)
+        const data = new Uint8Array(analyser.frequencyBinCount)
+        let raf = 0
         const tick = () => {
-          analyser.getByteTimeDomainData(data);
-          let sum = 0;
+          analyser.getByteTimeDomainData(data)
+          let sum = 0
           for (let i = 0; i < data.length; i++) {
-            const v = (data[i] - 128) / 128;
-            sum += v * v;
+            const v = (data[i] - 128) / 128
+            sum += v * v
           }
-          onAmp?.(Math.min(1, Math.sqrt(sum / data.length) * 4));
-          raf = requestAnimationFrame(tick);
-        };
+          onAmp?.(Math.min(1, Math.sqrt(sum / data.length) * 4))
+          raf = requestAnimationFrame(tick)
+        }
         src.onended = () => {
-          cancelAnimationFrame(raf);
-          done();
-        };
+          cancelAnimationFrame(raf)
+          done()
+        }
         speaking = {
           stop: () => {
-            cancelAnimationFrame(raf);
+            cancelAnimationFrame(raf)
             try {
-              src.stop();
+              src.stop()
             } catch {
               /* already ended */
             }
-            done();
+            done()
           },
-        };
-        src.start();
-        tick();
+        }
+        src.start()
+        tick()
       },
       () => done(),
-    );
-  });
+    )
+  })
 }
 
 function browserSpeak(text: string): Promise<void> {
   return new Promise((resolve) => {
-    const synth = window.speechSynthesis;
+    const synth = window.speechSynthesis
     if (!synth) {
-      setTimeout(resolve, Math.min(2600, 700 + text.length * 45));
-      return;
+      setTimeout(resolve, Math.min(2600, 700 + text.length * 45))
+      return
     }
-    synth.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 1.02;
-    u.pitch = 0.9;
-    const voices = synth.getVoices();
-    const pref = voices.find((v) => /male|daniel|google uk english male|arthur/i.test(v.name));
-    if (pref) u.voice = pref;
-    u.onend = () => resolve();
-    u.onerror = () => resolve();
-    synth.speak(u);
-    setTimeout(resolve, 700 + text.length * 90);
-  });
+    synth.cancel()
+    const u = new SpeechSynthesisUtterance(text)
+    u.rate = 1.02
+    u.pitch = 0.9
+    const voices = synth.getVoices()
+    const pref = voices.find((v) =>
+      /male|daniel|google uk english male|arthur/i.test(v.name),
+    )
+    if (pref) u.voice = pref
+    u.onend = () => resolve()
+    u.onerror = () => resolve()
+    synth.speak(u)
+    setTimeout(resolve, 700 + text.length * 90)
+  })
 }

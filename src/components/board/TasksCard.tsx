@@ -1,9 +1,10 @@
-import { memo, useState } from 'react'
-import type { Task } from '../../lib/mockData'
-import { useCavenStore } from '../../lib/store'
-import { GlassPanel, PanelNote } from './GlassPanel'
+import { memo, useState } from "react"
+import type { Task } from "../../lib/mockData"
+import { useCavenStore } from "../../lib/store"
+import { GlassPanel, PanelNote } from "./GlassPanel"
 
-const detailOf = (task: Task) => [task.time, task.tag].filter(Boolean).join(' · ')
+const detailOf = (task: Task) =>
+  [task.time, task.tag].filter(Boolean).join(" · ")
 
 function TasksCardBase({ isVisible = true }: { isVisible?: boolean }) {
   const { data, ready, status, update } = useCavenStore()
@@ -13,17 +14,19 @@ function TasksCardBase({ isVisible = true }: { isVisible?: boolean }) {
 
   const toggle = (task: Task) => {
     const nextDone = !(pending[task.id] ?? task.done)
-    setPending(prev => ({ ...prev, [task.id]: nextDone }))
+    setPending((prev) => ({ ...prev, [task.id]: nextDone }))
     const settle = () =>
-      setPending(prev => {
+      setPending((prev) => {
         if (!(task.id in prev)) return prev
         const next = { ...prev }
         delete next[task.id]
         return next
       })
-    void update(prev => ({
+    void update((prev) => ({
       ...prev,
-      tasks: prev.tasks.map(t => (t.id === task.id ? { ...t, done: nextDone } : t)),
+      tasks: prev.tasks.map((t) =>
+        t.id === task.id ? { ...t, done: nextDone } : t,
+      ),
     })).then(settle, settle)
   }
 
@@ -40,9 +43,11 @@ function TasksCardBase({ isVisible = true }: { isVisible?: boolean }) {
         {!ready ? (
           <PanelNote>{status}</PanelNote>
         ) : data.tasks.length === 0 ? (
-          <PanelNote>No tasks on the list. Say the word and I'll add one.</PanelNote>
+          <PanelNote>
+            No tasks on the list. Say the word and I'll add one.
+          </PanelNote>
         ) : (
-          data.tasks.map(task => {
+          data.tasks.map((task) => {
             const complete = pending[task.id] ?? task.done
             const detail = detailOf(task)
             return (
@@ -52,15 +57,21 @@ function TasksCardBase({ isVisible = true }: { isVisible?: boolean }) {
                 key={task.id}
                 aria-pressed={complete}
               >
-                <span className={`task-check ${complete ? 'is-done' : ''}`}>{complete && '✓'}</span>
+                <span className={`task-check ${complete ? "is-done" : ""}`}>
+                  {complete && "✓"}
+                </span>
                 <span className="min-w-0 text-left">
                   <span
-                    className={`block t-title ${complete ? 'text-white/35 line-through' : 'text-white/85'}`}
+                    className={`block t-title ${
+                      complete ? "text-white/35 line-through" : "text-white/85"
+                    }`}
                   >
                     {task.title}
                   </span>
                   {detail && (
-                    <span className="block truncate t-caption text-white/45 mt-0.5">{detail}</span>
+                    <span className="block truncate t-caption text-white/45 mt-0.5">
+                      {detail}
+                    </span>
                   )}
                 </span>
               </button>

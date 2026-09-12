@@ -7,26 +7,26 @@
  * If something healthy is already serving that port, exit 0 and let the first
  * Vite keep running — v0 treats a second hung `dev.mjs` as a failed start.
  */
-import { createConnection } from 'node:net'
-import http from 'node:http'
-import { spawn } from 'node:child_process'
-import path from 'node:path'
+import { createConnection } from "node:net"
+import http from "node:http"
+import { spawn } from "node:child_process"
+import path from "node:path"
 
 const port = Number(process.env.PORT || 8443)
 
 function isListening(port) {
   return new Promise((resolve) => {
-    const socket = createConnection({ port, host: '127.0.0.1' })
+    const socket = createConnection({ port, host: "127.0.0.1" })
     socket.setTimeout(750)
-    socket.once('connect', () => {
+    socket.once("connect", () => {
       socket.destroy()
       resolve(true)
     })
-    socket.once('timeout', () => {
+    socket.once("timeout", () => {
       socket.destroy()
       resolve(false)
     })
-    socket.once('error', () => {
+    socket.once("error", () => {
       socket.destroy()
       resolve(false)
     })
@@ -37,36 +37,38 @@ function isListening(port) {
 function probeVite(port) {
   return new Promise((resolve) => {
     const req = http.get(
-      { hostname: '127.0.0.1', port, path: '/', timeout: 2000 },
+      { hostname: "127.0.0.1", port, path: "/", timeout: 2000 },
       (res) => {
-        let body = ''
-        res.setEncoding('utf8')
-        res.on('data', (chunk) => {
+        let body = ""
+        res.setEncoding("utf8")
+        res.on("data", (chunk) => {
           body += chunk
           if (body.length > 16_384) req.destroy()
         })
-        res.on('end', () => {
+        res.on("end", () => {
           resolve(
             res.statusCode !== undefined &&
               res.statusCode < 500 &&
-              (body.includes('@vite/client') ||
-                body.includes('/@react-refresh') ||
-                (body.includes('id="root"') && body.includes('<script'))),
+              (body.includes("@vite/client") ||
+                body.includes("/@react-refresh") ||
+                (body.includes('id="root"') && body.includes("<script"))),
           )
         })
       },
     )
-    req.on('timeout', () => {
+    req.on("timeout", () => {
       req.destroy()
       resolve(false)
     })
-    req.on('error', () => resolve(false))
+    req.on("error", () => resolve(false))
   })
 }
 
 if (await isListening(port)) {
   if (await probeVite(port)) {
-    console.log(`Dev server already running at http://127.0.0.1:${port} — reusing it.`)
+    console.log(
+      `Dev server already running at http://127.0.0.1:${port} — reusing it.`,
+    )
     process.exit(0)
   }
   console.error(
@@ -75,14 +77,14 @@ if (await isListening(port)) {
   process.exit(1)
 }
 
-const viteJs = path.resolve(process.cwd(), 'node_modules/vite/bin/vite.js')
-const child = spawn(process.execPath, [viteJs], { stdio: 'inherit' })
-for (const signal of ['SIGINT', 'SIGTERM']) {
+const viteJs = path.resolve(process.cwd(), "node_modules/vite/bin/vite.js")
+const child = spawn(process.execPath, [viteJs], { stdio: "inherit" })
+for (const signal of ["SIGINT", "SIGTERM"]) {
   process.on(signal, () => {
     if (!child.killed) child.kill(signal)
   })
 }
-child.on('exit', (code, signal) => {
+child.on("exit", (code, signal) => {
   if (signal) process.kill(process.pid, signal)
   process.exit(code ?? 0)
 })
