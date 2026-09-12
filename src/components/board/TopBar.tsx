@@ -102,16 +102,16 @@ function TopBarBase({ page, onPageChange, actions }: { page: Page; onPageChange:
         })}
       </nav>
       <div className="flex items-center gap-4" style={{ alignItems: 'center' }}>
+        <div style={{ transform: 'translateY(40px)' }}>{actions}</div>
+        <time className="hud-label" style={{ fontFamily: 'var(--font-mono)', fontSize: 'calc(var(--fs-meta) * 1.6)', color: 'rgba(255, 255, 255, 0.9)', padding: '0px' }}>
+          {clock}
+        </time>
         <span
           className="rounded-full border border-cyan-200/15 bg-cyan-100/5 font-bold text-cyan-100"
           style={{ height: '47px', width: '47px', paddingTop: '0px', paddingRight: '16px', paddingBottom: '0px', paddingLeft: '16px', fontSize: 'var(--fs-h2)', fontFamily: 'var(--font-body)', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
         >
           {initial}
         </span>
-        <time className="hud-label" style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-meta)', color: 'rgba(255, 255, 255, 0.9)', padding: '0px' }}>
-          {clock}
-        </time>
-        {actions}
       </div>
     </header>
   )

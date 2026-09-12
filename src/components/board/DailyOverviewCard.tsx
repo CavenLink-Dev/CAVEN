@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { useCavenStore } from '../../lib/store'
+import { todayLabel } from '../../lib/today'
 import { GlassPanel, PanelNote } from './GlassPanel'
 
 type OverviewItem = { key: string; label: string; meta?: string }
@@ -16,11 +17,7 @@ function reminderOrder(dueAt: string | undefined, index: number): [number, numbe
 function DailyOverviewCardBase({ isVisible = true }: { isVisible?: boolean }) {
   const { data, ready, status, loadFailed, reload } = useCavenStore()
   const { tasks, calendar, reminders } = data
-
-  const todayLabel = useMemo(
-    () => new Date().toLocaleDateString(undefined, { weekday: 'long' }),
-    [],
-  )
+  const dateLabel = useMemo(() => todayLabel(), [])
 
   const [now, next, later] = useMemo(() => {
     const openTasks: OverviewItem[] = tasks
@@ -64,10 +61,8 @@ function DailyOverviewCardBase({ isVisible = true }: { isVisible?: boolean }) {
   return (
     <GlassPanel
       label="Daily overview"
-      title={todayLabel}
+      title={dateLabel}
       isVisible={isVisible}
-      largeLabel
-      showTitle={false}
       headerRelative
     >
       <div className="space-y-3 t-body board-list-scroll">

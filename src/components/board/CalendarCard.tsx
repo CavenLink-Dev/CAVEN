@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react'
 import type { CalendarEvent } from '../../lib/mockData'
 import { useCavenStore } from '../../lib/store'
+import { todayLabel } from '../../lib/today'
 import { GlassPanel, PanelNote } from './GlassPanel'
 
 const KIND_LABEL: Record<CalendarEvent['kind'], string> = {
@@ -25,6 +26,7 @@ function minutesOf(time: string): number | null {
 function CalendarCardBase({ isVisible = true }: { isVisible?: boolean }) {
   const { data, ready, status, loadFailed, reload } = useCavenStore()
   const events = data.calendar
+  const dateLabel = useMemo(() => todayLabel(), [])
 
   // Highlight whatever is next on the clock today; nothing is highlighted if the
   // times can't be read or the day is already behind us.
@@ -42,10 +44,8 @@ function CalendarCardBase({ isVisible = true }: { isVisible?: boolean }) {
   return (
     <GlassPanel
       label="Today Calendar"
-      title="A decent amount of daylight"
+      title={dateLabel}
       isVisible={isVisible}
-      largeLabel
-      showTitle={false}
       headerRelative
     >
       <div className="space-y-3 board-list-scroll">

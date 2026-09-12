@@ -1,6 +1,7 @@
-import { memo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import type { Task } from '../../lib/mockData'
 import { useCavenStore } from '../../lib/store'
+import { todayLabel } from '../../lib/today'
 import { GlassPanel, PanelNote } from './GlassPanel'
 
 const detailOf = (task: Task) => [task.time, task.tag].filter(Boolean).join(' · ')
@@ -11,6 +12,7 @@ function TasksCardBase({ isVisible = true }: { isVisible?: boolean }) {
   // A failed save simply leaves the stored value showing, so nothing is ever faked.
   const [pending, setPending] = useState<Record<string, boolean>>({})
   const [removing, setRemoving] = useState<Record<string, boolean>>({})
+  const dateLabel = useMemo(() => todayLabel(), [])
 
   const toggle = (task: Task) => {
     const nextDone = !(pending[task.id] ?? task.done)
@@ -49,10 +51,8 @@ function TasksCardBase({ isVisible = true }: { isVisible?: boolean }) {
   return (
     <GlassPanel
       label={<strong>Tasks</strong>}
-      title="Small moves, real progress"
+      title={dateLabel}
       isVisible={isVisible}
-      largeLabel
-      showTitle={false}
       headerRelative
     >
       <div className="space-y-1 board-list-scroll">

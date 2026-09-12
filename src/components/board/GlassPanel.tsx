@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react"
 
 type WindowState = "normal" | "collapsed" | "expanded" | "closed"
 
@@ -48,6 +48,7 @@ export function GlassPanel({
   largeLabel = false,
   showTitle = true,
   headerRelative = false,
+  headerAction,
 }: {
   label: ReactNode
   title: string
@@ -57,6 +58,7 @@ export function GlassPanel({
   largeLabel?: boolean
   showTitle?: boolean
   headerRelative?: boolean
+  headerAction?: ReactNode
 }) {
   const headingId = useId()
   const storageKey = slugOf(label)
@@ -64,6 +66,9 @@ export function GlassPanel({
   const [win, setWin] = useState<WindowState>(() => readStoredWin(storageKey) ?? "normal")
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null)
+  const [resizing, setResizing] = useState(false)
+  const sectionRef = useRef<HTMLElement>(null)
 
   // Refs so the window listeners read live values without re-binding.
   const offsetRef = useRef(offset)
@@ -119,6 +124,58 @@ export function GlassPanel({
   // Safety net: drop any stray listeners if the panel unmounts mid-drag.
   useEffect(() => () => window.clearTimeout(drag.current.hold), [])
 
+  // Corner / edge resize. The handle's name lists the directions it pulls
+  // (n/s/e/w); a west or north drag also shifts the panel so the opposite
+  // edge stays put, which is what "pull that direction" should feel like.
+  const startResize = (dir: string) => (e: React.PointerEvent) => {
+    if (win !== "normal" || e.button !== 0) return
+    e.preventDefault()
+    e.stopPropagation()
+    const el = sectionRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const sx = e.clientX
+    const sy = e.clientY
+    const startW = rect.width
+    const startH = rect.height
+    const base = { ...offsetRef.current }
+    const hasE = dir.includes("e")
+    const hasW = dir.includes("w")
+    const hasS = dir.includes("s")
+    const hasN = dir.includes("n")
+    const MIN_W = 240
+    const MIN_H = 120
+
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - sx
+      const dy = ev.clientY - sy
+      let w = startW
+      let h = startH
+      let ox = base.x
+      let oy = base.y
+      if (hasE) w = Math.max(MIN_W, startW + dx)
+      if (hasW) {
+        w = Math.max(MIN_W, startW - dx)
+        ox = base.x + (startW - w)
+      }
+      if (hasS) h = Math.max(MIN_H, startH + dy)
+      if (hasN) {
+        h = Math.max(MIN_H, startH - dy)
+        oy = base.y + (startH - h)
+      }
+      setSize({ w, h })
+      setOffset({ x: ox, y: oy })
+    }
+    const onUp = () => {
+      setResizing(false)
+      window.removeEventListener("pointermove", onMove)
+      window.removeEventListener("pointerup", onUp)
+    }
+    setResizing(true)
+    window.addEventListener("pointermove", onMove)
+    window.addEventListener("pointerup", onUp)
+  }
+
   const setWinPersisted = (next: WindowState) => {
     setWin(next)
     writeStoredWin(storageKey, next)
@@ -132,6 +189,7 @@ export function GlassPanel({
   const toggleExpand = () => setWin(prev => (prev === "expanded" ? "normal" : "expanded"))
   const reopen = () => {
     setOffset({ x: 0, y: 0 })
+    setSize(null)
     setWinPersisted("normal")
   }
 
@@ -146,6 +204,13 @@ export function GlassPanel({
   }
 
   const transform = win === "expanded" ? undefined : `translate(${offset.x}px, ${offset.y}px)`
+  const sectionStyle: CSSProperties = {}
+  if (transform) sectionStyle.transform = transform
+  if (win === "normal" && size) {
+    sectionStyle.width = size.w
+    sectionStyle.height = size.h
+    sectionStyle.overflowY = "auto"
+  }
 
   return (
     <>
@@ -153,12 +218,13 @@ export function GlassPanel({
         <div className="panel-backdrop" onClick={toggleExpand} aria-hidden="true" />
       )}
       <section
+        ref={sectionRef}
         aria-labelledby={headingId}
         onPointerDown={onPointerDown}
-        style={transform ? { transform } : undefined}
+        style={sectionStyle}
         className={`glass-panel holo-board ${isVisible ? "holo-in" : "holo-out"}${
           canDrag ? " is-draggable" : ""
-        }${dragging ? " is-dragging" : ""}${
+        }${dragging ? " is-dragging" : ""}${resizing ? " is-resizing" : ""}${
           win === "collapsed" ? " glass-panel--collapsed" : ""
         }${win === "expanded" ? " glass-panel--expanded" : ""} ${className}`}
       >
@@ -168,6 +234,17 @@ export function GlassPanel({
 
         {/* Holographic Scanline Overlay */}
         <div className="holo-scanlines" />
+
+        {/* Edge & corner resize handles — only while the window is at normal size. */}
+        {win === "normal" &&
+          ["n", "s", "e", "w", "ne", "nw", "se", "sw"].map(dir => (
+            <span
+              key={dir}
+              className={`panel-resize panel-resize--${dir}`}
+              onPointerDown={startResize(dir)}
+              aria-hidden="true"
+            />
+          ))}
 
         {/* Card Header */}
         <div
@@ -179,7 +256,8 @@ export function GlassPanel({
             <div className="flex items-center gap-2">
               <h2
                 id={headingId}
-                className={`hud-label${largeLabel ? " hud-label--large" : ""} text-cyan-300/80`}
+                className={`hud-label${largeLabel ? " hud-label--large" : ""} text-cyan-100`}
+                style={largeLabel ? undefined : { fontSize: "calc(var(--fs-micro) * 1.2)" }}
               >
                 {label}
               </h2>
@@ -189,8 +267,11 @@ export function GlassPanel({
             )}
           </div>
 
-          {/* Traffic-light window controls: exit / shrink / expand. */}
-          <div className="win-lights mt-1">
+          {/* Manual add toggle sits beside the traffic-light window controls. */}
+          <div className="flex items-center gap-2 mt-1">
+            {win === "normal" && headerAction}
+            {/* Traffic-light window controls: exit / shrink / expand. */}
+            <div className="win-lights">
             <button
               type="button"
               className="win-light win-light--close"
@@ -225,6 +306,7 @@ export function GlassPanel({
                 )}
               </svg>
             </button>
+            </div>
           </div>
         </div>
 

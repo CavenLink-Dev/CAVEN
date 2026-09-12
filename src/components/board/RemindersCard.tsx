@@ -1,9 +1,11 @@
 import { memo, useMemo } from 'react'
 import { useCavenStore } from '../../lib/store'
+import { todayLabel } from '../../lib/today'
 import { GlassPanel, PanelNote } from './GlassPanel'
 
 function RemindersCardBase({ isVisible = true }: { isVisible?: boolean }) {
   const { data, ready, status, loadFailed, reload } = useCavenStore()
+  const dateLabel = useMemo(() => todayLabel(), [])
 
   // Soonest first where a due time was captured; anything undated keeps its place at the back.
   const ordered = useMemo(() => {
@@ -19,10 +21,8 @@ function RemindersCardBase({ isVisible = true }: { isVisible?: boolean }) {
   return (
     <GlassPanel
       label="Reminders"
-      title="Future you has cover"
+      title={dateLabel}
       isVisible={isVisible}
-      largeLabel
-      showTitle={false}
       headerRelative
     >
       <div className="space-y-3 board-list-scroll">

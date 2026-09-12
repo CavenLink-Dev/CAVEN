@@ -10,6 +10,8 @@ type Props = {
   conversing: boolean;
   onToggle: () => void;
   onLock: () => void;
+  muted?: boolean;
+  onToggleMute?: () => void;
 };
 
 // Polar helper for arc-reactor geometry (no gear teeth — smooth alien nano-tech arcs)
@@ -96,15 +98,6 @@ const STATE_LABEL: Record<CavenState, string> = {
   complete: 'COMPLETE',
 };
 
-// The hint under the status readout. CAVEN hears the end of an utterance on
-// its own, so there is never a "click to send" step.
-function subLabel(state: CavenState, locked: boolean, conversing: boolean): string {
-  if (locked) return state === 'listening' ? 'JUST TALK — DOUBLE-CLICK TO UNLOCK' : 'BACKGROUND · DOUBLE-CLICK TO UNLOCK';
-  if (state === 'listening') return 'JUST TALK — CLICK TO STOP';
-  if (state === 'idle') return conversing ? 'CLICK TO STOP' : 'CLICK TO SPEAK';
-  return 'CLICK TO STOP';
-}
-
 // The stylesheet already damps everything under prefers-reduced-motion; this
 // keeps the amplitude-driven transform from churning as well.
 function useReducedMotion() {
@@ -126,7 +119,7 @@ const outerSegments = ringSegments(150, 5, 0.7);
 const midSegments = ringSegments(118, 18, 0.34);
 const innerSegments = ringSegments(78, 7, 0.58);
 
-export function CavenCore({ state, amplitudeRef, locked, conversing, onToggle, onLock }: Props) {
+export function CavenCore({ state, amplitudeRef, locked, conversing, onToggle, onLock, muted, onToggleMute }: Props) {
   const reduced = useReducedMotion();
 
   // The container whose --core-amp CSS variable scales the reactor core. It is
@@ -240,6 +233,7 @@ export function CavenCore({ state, amplitudeRef, locked, conversing, onToggle, o
       {/* Holographic Projection Core Button */}
       <button
         className="core-button"
+        style={{ width: 'clamp(170px, 20vw, 285px)' }}
         onClick={handleClick}
         onKeyDown={onKeyDown}
         aria-label={`Caven core, currently ${POWER_LABEL[power]}. Click to start talking, click again to stop, double-click for background listening.`}
@@ -580,15 +574,53 @@ export function CavenCore({ state, amplitudeRef, locked, conversing, onToggle, o
 
       {/* Hologram Board Controls & HUD Status Bar */}
       <div className="holo-hud-controls mt-3 flex flex-col items-center gap-2" style={{ paddingBottom: '127px' }}>
-        <div className="t-body font-mono tracking-widest text-white uppercase flex items-center gap-2">
-          <span
-            className="w-[13px] h-[13px] rounded-full animate-pulse t-h2"
-            style={{ backgroundColor: dotColor, boxShadow: `0 0 10px ${dotColor}` }}
-          />
-          <span className="t-h2 text-white">{STATE_LABEL[state]}</span>
-        </div>
-        <div className="t-micro font-mono tracking-[0.25em] uppercase" style={{ color: 'rgba(204,239,241,0.45)' }}>
-          {subLabel(state, locked, conversing)}
+        <div className="flex items-center gap-5">
+          <div className="t-body font-mono tracking-widest text-white uppercase flex items-center gap-2">
+            <span
+              className="w-[13px] h-[13px] rounded-full animate-pulse t-h2"
+              style={{ backgroundColor: dotColor, boxShadow: `0 0 10px ${dotColor}` }}
+            />
+            <span className="t-h2 text-white">{STATE_LABEL[state]}</span>
+          </div>
+          {onToggleMute && (
+            <div className="flex flex-col items-center gap-1">
+              <button
+                type="button"
+                onClick={onToggleMute}
+                className="metal-surface grid h-[72px] w-[72px] place-items-center rounded-full"
+                style={{ color: 'var(--caven-cyan-bright)' }}
+                aria-label={muted ? 'Unmute sound effects' : 'Mute sound effects'}
+                aria-pressed={muted}
+              >
+                <svg
+                  width="34"
+                  height="34"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" fillOpacity="0.15" />
+                  {muted ? (
+                    <path d="M17 9l4 4m0-4l-4 4" />
+                  ) : (
+                    <>
+                      <path d="M16 8.5a4 4 0 0 1 0 7" />
+                      <path d="M18.5 6a7 7 0 0 1 0 12" opacity="0.6" />
+                    </>
+                  )}
+                </svg>
+              </button>
+              <span
+                className="font-mono t-micro tracking-[0.25em] uppercase"
+                style={{ color: 'rgba(204,239,241,0.6)' }}
+              >
+                {muted ? 'Unmute' : 'Mute'}
+              </span>
+            </div>
+          )}
         </div>
         {locked && (
           <div
