@@ -142,11 +142,10 @@ export default function App() {
           </div>
         </div>
       ) : (
-        <div
-          key={page}
-          className="anim-fade-up overflow-y-auto py-6"
-          style={{ minHeight: 'calc(100vh - 190px)', maxHeight: 'calc(100vh - 150px)' }}
-        >
+        // The height of this region depends on how tall the top bar is, and on a
+        // phone the top bar is two rows. Hard-coded pixel offsets could not know
+        // that, so it is a class now and the breakpoints own the arithmetic.
+        <div key={page} className="page-scroll anim-fade-up">
           {page === 'finance' && <FinancePage />}
           {page === 'journal' && <JournalPage />}
           {page === 'brain' && <BrainPage />}
@@ -167,7 +166,10 @@ export default function App() {
         </div>
       )}
 
-      <div className="mx-auto mt-3 flex w-[min(570px,100%)] items-center gap-2">
+      {/* Typing is the fallback for every time the mic mishears, so it must never
+          be somewhere you have to go looking for. On a phone it docks to the
+          bottom of the viewport rather than sitting below the fold. */}
+      <div className="command-bar">
         <form
           className="flex-1"
           onSubmit={(e) => {

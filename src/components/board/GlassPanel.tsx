@@ -85,6 +85,11 @@ export function GlassPanel({
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (!canDrag || e.button !== 0) return
+    // Touch never drags. A finger on a panel is someone scrolling the board;
+    // the press-and-hold that arms a drag after 160ms would take that gesture
+    // away and leave a phone unable to scroll past the first panel at all.
+    // Moving panels about is a pointer affordance and stays one.
+    if (e.pointerType === 'touch') return
     // Never hijack a real control — task ticks, the traffic lights, inputs.
     if ((e.target as HTMLElement).closest('button, a, input, textarea, select, [role="button"]')) return
 
@@ -129,6 +134,8 @@ export function GlassPanel({
   // edge stays put, which is what "pull that direction" should feel like.
   const startResize = (dir: string) => (e: React.PointerEvent) => {
     if (win !== "normal" || e.button !== 0) return
+    // Same reasoning as the drag: a resize edge under a thumb is a scroll lost.
+    if (e.pointerType === "touch") return
     e.preventDefault()
     e.stopPropagation()
     const el = sectionRef.current

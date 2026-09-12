@@ -136,8 +136,28 @@ button { font: inherit; }
 /* ═══════════════════════════════════════════════════════════════════════
    UPGRADED BOARD — shell, top bar, grid, glass panels
    ═══════════════════════════════════════════════════════════════════════ */
-.app-shell { min-height:100%; max-width:1860px; margin:auto; padding:0 26px 22px; overflow:hidden; }
+/* overflow-x rather than overflow: a plain `hidden` here makes the shell its own
+   scroll container, which both clips nothing useful and stops position:sticky
+   working inside it — and the command bar is sticky on a phone. */
+.app-shell { min-height:100%; max-width:1860px; margin:auto; padding:0 26px 22px; overflow-x:clip; }
+
+/* The typed-command row. Centred under the board on a desktop; docked to the
+   bottom of the viewport on a phone, where it was previously below the fold. */
+.command-bar { display:flex; align-items:center; gap:var(--sp-2); width:min(570px,100%); margin:var(--sp-3) auto 0; }
+
+/* Finance / Journal / Brain / Settings. Scrolls within what is left after the
+   top bar, which is a different height at each breakpoint — hence a class and
+   not a hard-coded pixel offset in the component. */
+.page-scroll { min-height:calc(100dvh - 190px); max-height:calc(100dvh - 150px); overflow-y:auto; padding:var(--sp-6) 0; }
 .topbar { height:72px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(149,212,224,.13); }
+/* Brand and account sizes. These were inline on the elements, where no media
+   query could reach them — which is why the bar could not be made to fit a
+   phone without editing the component. Desktop values are unchanged. */
+.topbar-logo { width:52px; height:52px; object-fit:contain; }
+.topbar-wordmark { height:24px; width:auto; object-fit:contain; }
+.topbar-avatar { display:flex; align-items:center; justify-content:center; width:47px; height:47px; font-family:var(--font-body); font-size:var(--fs-h2); }
+.topbar-clock { font-family:var(--font-mono); font-size:calc(var(--fs-meta) * 1.6); color:rgba(255,255,255,.9); }
+.topbar-actions { transform:translateY(40px); }
 .wordmark { font-family:var(--font-display); font-size:17px; font-weight:700; letter-spacing:.27em; color:#d7fbff; text-shadow:0 0 12px rgba(120,235,245,.4); }
 .brand-mark { width:26px; height:26px; color:#8ff5fa; filter:drop-shadow(0 0 6px rgba(120,235,245,.55)); }
 .hud-label { font-family:var(--font-mono); font-size:var(--fs-micro); letter-spacing:var(--track-label); text-transform:uppercase; }
@@ -416,7 +436,12 @@ button { font: inherit; }
 .topbar-nav-item { position:relative; display:flex; align-items:center; padding:var(--sp-2) var(--sp-4); border:0; background:transparent; border-radius:9px; color:rgba(255,255,255,.62); font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:var(--track-label); text-transform:uppercase; cursor:pointer; transition:color .25s, background .25s, box-shadow .25s; }
 .topbar-nav-item:hover { color:#ffffff; background:rgba(255,255,255,.06); }
 .topbar-nav-item.is-active { color:#ffffff; background:rgba(3,119,253,.16); box-shadow:inset 0 0 0 1px rgba(3,119,253,.55), 0 0 14px rgba(3,119,253,.3); text-shadow:0 0 10px rgba(120,180,255,.55); }
-@media (max-width:680px) { .topbar-nav { display:none; } }
+/* The nav is never hidden. It used to be display:none below 680px, which left
+   Finance, Journal, Brain and Settings with no way to reach them on a phone at
+   all. Below that width it wraps to its own full-width row (see RESPONSIVE) and
+   scrolls sideways if the five items don't fit. */
+.topbar-nav { scrollbar-width:none; }
+.topbar-nav::-webkit-scrollbar { display:none; }
 
 /* Double-tap lock beam surge */
 .lock-beam rect { fill:#9fe6ff; transform-origin:200px 200px; filter:drop-shadow(0 0 10px #7fdcff); animation:lockBeam .9s cubic-bezier(.16,1,.3,1) forwards; }
@@ -823,16 +848,90 @@ button { font: inherit; }
   .board-right { grid-column:1; }
   .core-zone { grid-column:2;grid-row:1 / span 2; }
 }
+
+/* ── Phone ──────────────────────────────────────────────────────────────
+   Same design, re-flowed. Three things had to change for the app to be
+   usable at this width at all:
+
+   1. The nav was display:none, so four of the five pages could not be
+      reached. It now takes a full-width row of its own beneath the brand.
+   2. The command input sat below the first viewport. It docks to the bottom
+      instead — it is the fallback for every mishearing and has to be to hand.
+   3. Panels are no longer draggable or resizable by touch (GlassPanel.tsx),
+      so a finger on the board scrolls the board.
+
+   dvh throughout, because a phone's address bar makes vh lie by about 60px
+   and the difference is exactly the row that goes missing.
+   ───────────────────────────────────────────────────────────────────── */
 @media (max-width:680px) {
-  .app-shell { padding:0 16px 22px; }
-  .topbar { height:62px; }
-  .topbar time { font-size:8px; }
+  .app-shell { padding:0 16px 0; }
+
+  /* The bar wraps to two rows: brand and account on the first, nav on the
+     second. No new component — the same segment control, given its own line. */
+  .topbar { height:auto; flex-wrap:wrap; row-gap:var(--sp-2); padding:var(--sp-2) 0; }
+  /* Small enough that the brand and the account share one row; a third row of
+     chrome is a third of the screen gone before any of the board shows. */
+  .topbar-logo { width:38px; height:38px; }
+  .topbar-wordmark { height:18px; }
+  .topbar-avatar { width:34px; height:34px; font-size:var(--fs-caption); }
+  /* The one thing that goes. A phone shows the time in its own status bar an
+     inch above this, and every board panel is titled with the date — keeping it
+     here costs a third row of chrome to say what is already said twice. */
+  .topbar-clock { display:none; }
+  .topbar-side { gap:var(--sp-3); }
+  /* The desktop offset drops this below the bar, which on a phone means on top
+     of the nav row. It sits in line here instead. */
+  .topbar-actions { transform:none; }
+  .topbar-nav {
+    order:3;
+    justify-content:flex-start;
+    overflow-x:auto;
+    /* Bleed to both screen edges — width has to grow by the shell's padding as
+       well as shift, or the row moves left and leaves a gap on the right. Its
+       own padding keeps the pills off the edge while it scrolls. */
+    width:calc(100% + 32px);
+    margin:0 -16px;
+    padding:4px 16px;
+    border-radius:0;
+    border-left:0;
+    border-right:0;
+  }
+  .topbar-nav-item { flex:0 0 auto; padding:var(--sp-2) var(--sp-3); }
+
   .board-grid { display:flex; flex-direction:column; min-height:0; padding-top:10px; gap:12px; }
-  .core-zone { order:-1; min-height:340px; width:100%; }
+  .core-zone { order:-1; min-height:300px; width:100%; }
   .board-left,.board-right { width:100%; }
   .core-button { width:min(86vw,410px); }
   .core-hint { bottom:2%; }
   .glass-panel { padding:19px; }
+
+  /* A phone has one screen's worth of height and a keyboard that eats half of
+     it, so the lists give up the 46vh cap and take a fixed, shorter bound. */
+  .board-list-scroll { max-height:min(52vh,300px); }
+
+  .page-scroll { min-height:0; max-height:none; overflow-y:visible; padding:var(--sp-5) 0; }
+
+  .command-bar {
+    position:sticky;
+    bottom:0;
+    z-index:20;
+    /* Clears the home indicator on an iPhone; zero everywhere else. */
+    padding:var(--sp-3) 0 calc(var(--sp-3) + env(safe-area-inset-bottom));
+    background:linear-gradient(to top, var(--background) 62%, transparent);
+  }
+  .command-bar .caven-text-input { height:44px; font-size:16px; }
+
+  .page-reply { max-width:100%; }
+  /* Wrap rather than squeeze: "Reload board" broke across two lines mid-word
+     when the strip tried to keep everything on one row. */
+  .save-strip, .listening-banner { width:auto; flex-wrap:wrap; row-gap:var(--sp-1); }
+  .save-strip button { white-space:nowrap; }
+}
+
+/* Anything genuinely small — an SE, or a phone at large text sizes. */
+@media (max-width:380px) {
+  .topbar-nav-item { padding:var(--sp-2); font-size:var(--fs-micro); }
+  .core-zone { min-height:260px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

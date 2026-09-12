@@ -66,21 +66,26 @@ function TopBarBase({ page, onPageChange, actions }: { page: Page; onPageChange:
   const initial = useAccountInitial()
 
   return (
-    <header className="topbar" style={{ paddingTop: '0px', paddingBottom: '0px' }}>
+    // Padding and nav width live in index.css now. They were inline, which meant
+    // the phone breakpoint could not move the nav onto its own row — an inline
+    // style beats a media query, so the nav stayed hidden with nowhere to go.
+    <header className="topbar">
       <div className="relative flex items-center gap-3 group select-none" style={{ rowGap: '12px' }}>
         <div className="absolute inset-0 bg-cyan-500/20 opacity-0 group-hover:opacity-100 blur-xl rounded-full transition-opacity duration-700"></div>
+        {/* Sizes moved to index.css so the phone breakpoint can shrink them and
+            keep the brand and the account on one row. Same marks, same filters. */}
         <img
           src={logoImg}
           alt="CAVEN Logo"
-          className="relative h-[52px] w-[52px] object-contain drop-shadow-[0_0_8px_rgba(34,211,238,0.4)] [filter:invert(1)_hue-rotate(180deg)_drop-shadow(0_0_8px_rgba(34,211,238,0.4))]"
+          className="topbar-logo relative drop-shadow-[0_0_8px_rgba(34,211,238,0.4)] [filter:invert(1)_hue-rotate(180deg)_drop-shadow(0_0_8px_rgba(34,211,238,0.4))]"
         />
         <img
           src={wordmarkImg}
           alt="CAVEN"
-          className="relative h-[24px] w-auto object-contain [filter:invert(1)_hue-rotate(180deg)_drop-shadow(0_0_6px_rgba(34,211,238,0.45))]"
+          className="topbar-wordmark relative [filter:invert(1)_hue-rotate(180deg)_drop-shadow(0_0_6px_rgba(34,211,238,0.45))]"
         />
       </div>
-      <nav className="topbar-nav" style={{ width: 'fit-content', paddingTop: '4px', paddingBottom: '4px', alignItems: 'center' }}>
+      <nav className="topbar-nav" aria-label="Pages">
         {NAV_PAGES.map(({ id, label }) => {
           const active = page === id
           return (
@@ -101,15 +106,13 @@ function TopBarBase({ page, onPageChange, actions }: { page: Page; onPageChange:
           )
         })}
       </nav>
-      <div className="flex items-center gap-4" style={{ alignItems: 'center' }}>
-        <div style={{ transform: 'translateY(40px)' }}>{actions}</div>
-        <time className="hud-label" style={{ fontFamily: 'var(--font-mono)', fontSize: 'calc(var(--fs-meta) * 1.6)', color: 'rgba(255, 255, 255, 0.9)', padding: '0px' }}>
-          {clock}
-        </time>
-        <span
-          className="rounded-full border border-cyan-200/15 bg-cyan-100/5 font-bold text-cyan-100"
-          style={{ height: '47px', width: '47px', paddingTop: '0px', paddingRight: '16px', paddingBottom: '0px', paddingLeft: '16px', fontSize: 'var(--fs-h2)', fontFamily: 'var(--font-body)', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
-        >
+      {/* The offset that drops the music control below the bar, and the clock's
+          size, are classes rather than inline styles — inline beats a media
+          query, and on a phone that offset lands the control on top of the nav. */}
+      <div className="topbar-side flex items-center gap-4">
+        <div className="topbar-actions">{actions}</div>
+        <time className="hud-label topbar-clock">{clock}</time>
+        <span className="topbar-avatar rounded-full border border-cyan-200/15 bg-cyan-100/5 font-bold text-cyan-100">
           {initial}
         </span>
       </div>
