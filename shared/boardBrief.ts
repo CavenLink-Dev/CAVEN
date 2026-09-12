@@ -1,5 +1,10 @@
 // Compact briefing of Keanu's persisted board for the chat model.
 // Loose objects only — do not import mockData, or the Edge bundle pulls seed.
+// shared/when.ts is safe to pull in: it is pure date arithmetic and no data.
+//
+// Every line here is resent on every turn, so each one has to earn its tokens.
+// That is why the lists are short and the notes are trimmed to a first line.
+import { dayKey, dayLabel, parseStamp } from "./when.ts";
 
 function list(value: unknown): Record<string, unknown>[] {
   if (!Array.isArray(value)) return [];
@@ -30,10 +35,11 @@ function firstLine(value: unknown, max = 80): string {
   return `${line.slice(0, max - 1).trimEnd()}…`;
 }
 
-export function boardBrief(state: unknown): string {
+export function boardBrief(state: unknown, now = new Date()): string {
   if (!state || typeof state !== "object") return "";
   const s = state as Record<string, unknown>;
   const lines: string[] = [];
+  const today = dayKey(now);
 
   // Only when he has chosen something other than the default — the common case costs nothing.
   const address = text(s.address);
@@ -49,21 +55,39 @@ export function boardBrief(state: unknown): string {
     .slice(0, 6)
     .map((h) => {
       const streak = text(h.streak);
-      return join(
-        [text(h.name), streak ? `streak ${streak}` : "", h.done ? "done today" : "not done"],
-        " ",
-      );
+      // The stored `done` flag was written on whatever day it was last ticked
+      // and nothing clears it, so the date decides — never the flag.
+      const ticked = text(h.lastDone) === today;
+      return join([text(h.name), streak ? `streak ${streak}` : "", ticked ? "done today" : "not done"], " ");
     });
   if (habits.length) lines.push(`Habits: ${habits.join("; ")}`);
 
-  const calendar = list(s.calendar)
+  // Events used to be listed under "Today" wholesale, whatever day they were
+  // for, because nothing recorded the day. Anything undated is still one of
+  // those older rows, and those were all saved as today.
+  const events = list(s.calendar)
+    .map((e) => ({ row: e, at: parseStamp(e.at) }))
+    .filter(({ at }) => !at || dayKey(at) >= today)
+    .sort((a, b) => (a.at?.getTime() ?? 0) - (b.at?.getTime() ?? 0));
+  const todays = events
+    .filter(({ at }) => !at || dayKey(at) === today)
     .slice(0, 6)
-    .map((e) => join([text(e.time), text(e.title)], " "));
-  if (calendar.length) lines.push(`Today: ${calendar.join("; ")}`);
+    .map(({ row }) => join([text(row.time), text(row.title)], " "));
+  if (todays.length) lines.push(`Today: ${todays.join("; ")}`);
+  const ahead = events
+    .filter(({ at }) => at && dayKey(at) > today)
+    .slice(0, 4)
+    .map(({ row, at }) => join([dayLabel(at as Date, now), text(row.time), text(row.title)], " "));
+  if (ahead.length) lines.push(`Upcoming: ${ahead.join("; ")}`);
 
   const reminders = list(s.reminders)
     .slice(0, 4)
-    .map((r) => join([text(r.title), text(r.date), text(r.time)], " "));
+    .map((r) => {
+      const due = parseStamp(r.dueAt);
+      const when = due ? `${dayLabel(due, now)} ${text(r.time)}` : join([text(r.date), text(r.time)], " ");
+      const repeat = text(r.repeat);
+      return join([text(r.title), when, repeat ? `repeats ${repeat}` : ""], " ");
+    });
   if (reminders.length) lines.push(`Reminders: ${reminders.join("; ")}`);
 
   const budgets = list(s.budgets).map((b) => {
@@ -87,6 +111,20 @@ export function boardBrief(state: unknown): string {
     const bit = join([title, body], " — ");
     if (bit) lines.push(`Journal: ${bit}`);
   }
+
+  // Saved notes were left out entirely, so CAVEN would take a note, confirm it,
+  // and then say he could not see the contents of his own notes when asked.
+  // He can read them now; he still must not invent one that isn't here.
+  const kept = list(s.voiceNotes)
+    .slice(0, 4)
+    .map((n) => {
+      const body = firstLine(n.text, 70);
+      if (!body) return "";
+      const at = parseStamp(n.at ?? n.when);
+      return at ? `${body} (${dayLabel(at, now)})` : body;
+    })
+    .filter(Boolean);
+  if (kept.length) lines.push(`Notes: ${kept.join("; ")}`);
 
   const notes = (Array.isArray(s.brainNotes) ? s.brainNotes : [])
     .map((n) => text(n))

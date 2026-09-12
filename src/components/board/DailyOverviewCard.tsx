@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react'
 import { useCavenStore } from '../../lib/store'
 import { todayLabel } from '../../lib/today'
+import { dayKey, dayLabel, parseStamp } from '../../../shared/when'
 import { GlassPanel, PanelNote } from './GlassPanel'
 
 type OverviewItem = { key: string; label: string; meta?: string }
@@ -24,20 +25,32 @@ function DailyOverviewCardBase({ isVisible = true }: { isVisible?: boolean }) {
       .filter(task => !task.done)
       .map(task => ({ key: `task:${task.id}`, label: task.title, meta: join(task.time, task.tag) }))
 
-    const events: OverviewItem[] = calendar.map(event => ({
-      key: `event:${event.id}`,
-      label: event.title,
-      meta: event.time,
-    }))
+    // Today's diary only. Everything used to be listed here regardless of the
+    // day it was for, because nothing recorded the day; undated rows are the
+    // older shape and were all written as today.
+    const clock = new Date()
+    const key = dayKey(clock)
+    const events: OverviewItem[] = calendar
+      .map(event => ({ event, at: parseStamp(event.at) }))
+      .filter(({ at }) => !at || dayKey(at) === key)
+      .map(({ event }) => ({
+        key: `event:${event.id}`,
+        label: event.title,
+        meta: event.time,
+      }))
 
     const upcoming: OverviewItem[] = reminders
       .map((reminder, index) => ({ reminder, order: reminderOrder(reminder.dueAt, index) }))
       .sort((a, b) => a.order[0] - b.order[0] || a.order[1] - b.order[1])
-      .map(({ reminder }) => ({
-        key: `reminder:${reminder.id}`,
-        label: reminder.title,
-        meta: join(reminder.date, reminder.time),
-      }))
+      .map(({ reminder }) => {
+        // "12/09/2026 · 6:26 pm" tells you nothing at a glance; "tomorrow" does.
+        const due = parseStamp(reminder.dueAt)
+        return {
+          key: `reminder:${reminder.id}`,
+          label: reminder.title,
+          meta: due ? join(dayLabel(due, clock), reminder.time) : join(reminder.date, reminder.time),
+        }
+      })
 
     // Same precedence as the RIGHT NOW widget — an open task first, then what is
     // actually scheduled — and then whatever is left over, in the same order.

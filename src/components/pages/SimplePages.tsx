@@ -1,5 +1,7 @@
 import type React from 'react';
+import { useMemo } from 'react';
 import { useCavenStore } from '../../lib/store';
+import { dayLabel, monthKey, parseStamp } from '../../../shared/when';
 import { Bar, Panel, Ring, Row } from '../widgets';
 
 /** Same quiet, in-character note the board cards use, so an empty page reads
@@ -12,16 +14,40 @@ function money(n: number) {
   return `${n < 0 ? '-' : '+'}$${Math.abs(n).toFixed(2)}`;
 }
 
+const MONTH_FMT = new Intl.DateTimeFormat('en-AU', { month: 'long', year: 'numeric' });
+
 export function FinancePage() {
   const { data } = useCavenStore();
   const { budgets, transactions } = data;
-  const balance = transactions.reduce((s, t) => s + t.amount, 0);
+
+  // The heading said "this month" while the figure summed every transaction ever
+  // recorded. It is the month now. Rows written before transactions carried an
+  // ISO stamp fall back to their printed en-AU date rather than being dropped.
+  const { balance, month, counted } = useMemo(() => {
+    const now = new Date();
+    const key = monthKey(now);
+    const inMonth = transactions.filter((t) => {
+      const at = parseStamp(t.at ?? t.when);
+      return at ? monthKey(at) === key : false;
+    });
+    return {
+      balance: inMonth.reduce((sum, t) => sum + t.amount, 0),
+      month: MONTH_FMT.format(now),
+      counted: inMonth.length,
+    };
+  }, [transactions]);
+
   return (
     <div className="w-full max-w-md space-y-3">
       <Panel>
         <div className="t-micro tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>BALANCE THIS MONTH</div>
         <div className="font-display text-4xl" style={{ color: 'var(--caven-cyan-bright)', textShadow: '0 0 18px var(--caven-glow)' }}>
           ${balance.toFixed(2)}
+        </div>
+        <div className="mt-1 t-caption" style={{ color: 'var(--caven-steel)' }}>
+          {counted === 0
+            ? `Nothing recorded in ${month}.`
+            : `${month} · ${counted} ${counted === 1 ? 'entry' : 'entries'}`}
         </div>
       </Panel>
       <Panel title="Budgets">
@@ -84,7 +110,7 @@ export function JournalPage() {
 
 export function BrainPage() {
   const { data } = useCavenStore();
-  const { brainMetrics, brainNotes, interests } = data;
+  const { brainMetrics, brainNotes, interests, voiceNotes } = data;
   return (
     <div className="w-full max-w-md space-y-3">
       <Panel>
@@ -114,6 +140,20 @@ export function BrainPage() {
             </span>
           ))}
         </div>
+      </Panel>
+      {/* Notes had nowhere at all to live: CAVEN would take one, confirm it, and
+          then there was no screen in the app that showed it back. */}
+      <Panel title="Notes">
+        {voiceNotes.length === 0 && <EmptyNote>No notes kept. Say “make a note” and I'll hold on to it.</EmptyNote>}
+        {voiceNotes.map((n) => {
+          const at = parseStamp(n.at ?? n.when);
+          return (
+            <Row key={n.id}>
+              <span className="flex-1">{n.text}</span>
+              <span className="text-xs opacity-60">{at ? dayLabel(at, new Date()) : n.when}</span>
+            </Row>
+          );
+        })}
       </Panel>
       <Panel title="What I've learned">
         <ul className="space-y-2 text-sm opacity-85">

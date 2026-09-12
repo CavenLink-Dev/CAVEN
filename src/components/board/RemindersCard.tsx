@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react'
 import { useCavenStore } from '../../lib/store'
 import { todayLabel } from '../../lib/today'
+import { dayLabel, parseStamp, repeatLabel } from '../../../shared/when'
 import { GlassPanel, PanelNote } from './GlassPanel'
 
 function RemindersCardBase({ isVisible = true }: { isVisible?: boolean }) {
@@ -32,10 +33,22 @@ function RemindersCardBase({ isVisible = true }: { isVisible?: boolean }) {
           <PanelNote>No reminders armed. I'll hold one for you whenever you like.</PanelNote>
         ) : (
           ordered.map(reminder => {
-            const note = [reminder.date, reminder.note].filter(Boolean).join(' · ')
+            const due = parseStamp(reminder.dueAt)
+            const now = new Date()
+            // "12/09/2026" reads as a database row; "tomorrow" reads as a plan.
+            // A repeating one says so, or the board would look like it forgot.
+            const when = due ? dayLabel(due, now) : reminder.date
+            const overdue = Boolean(due && due.getTime() < now.getTime())
+            const note = [
+              when,
+              reminder.repeat ? repeatLabel(reminder.repeat, due ?? undefined) : '',
+              reminder.note,
+            ]
+              .filter(Boolean)
+              .join(' · ')
             return (
               <div className="flex gap-3" key={reminder.id}>
-                <span className="w-[52px] shrink-0 t-meta text-cyan-100/60">
+                <span className={`w-[52px] shrink-0 t-meta ${overdue ? 'text-amber-200/80' : 'text-cyan-100/60'}`}>
                   {reminder.time}
                 </span>
                 <span>
