@@ -82,7 +82,6 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export function useCaven() {
   const { data, capture, perform } = useCavenStore();
   const [state, setState] = useState<CavenState>('idle');
-  const [amplitude, setAmplitude] = useState(0);
   const [transcript, setTranscript] = useState('');
   const [reply, setReply] = useState(''); // CAVEN's latest spoken line, for the chat box
   const [locked, setLocked] = useState(false);
@@ -98,23 +97,16 @@ export function useCaven() {
   const addressRef = useRef(DEFAULT_ADDRESS);
   addressRef.current = addressOf(data);
 
-  // speak() streams amplitude every animation frame. Pushing all ~60 of those
-  // into state per second re-rendered the whole board (TopBar, MusicMenu, every
-  // glass panel) and made the UI crawl. Coalesce to ~15fps and ignore changes
-  // too small for the eye to catch; resetAmp still lands immediately.
-  const ampAt = useRef(0);
-  const ampLast = useRef(0);
+  // speak()/startListening() stream amplitude every animation frame. Writing
+  // those into React state re-rendered the whole board (TopBar, MusicMenu, every
+  // glass panel) and made the UI crawl. Instead the live value lives in a ref
+  // that the core reads in its own rAF loop, so audio frames never re-render.
+  const amplitudeRef = useRef(0);
   const pushAmp = useCallback((a: number) => {
-    const now = performance.now();
-    if (now - ampAt.current < 66 && Math.abs(a - ampLast.current) < 0.06) return;
-    ampAt.current = now;
-    ampLast.current = a;
-    setAmplitude(a);
+    amplitudeRef.current = Number.isFinite(a) ? a : 0;
   }, []);
   const resetAmp = useCallback(() => {
-    ampAt.current = 0;
-    ampLast.current = 0;
-    setAmplitude(0);
+    amplitudeRef.current = 0;
   }, []);
 
   const set = (s: CavenState) => {
@@ -326,7 +318,7 @@ export function useCaven() {
 
   return {
     state,
-    amplitude,
+    amplitudeRef,
     transcript,
     reply,
     locked,

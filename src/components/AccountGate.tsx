@@ -13,18 +13,33 @@ function EyeIcon({ visible }: { visible: boolean }) {
 export function AccountGate({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [signup, setSignup] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setLoading(false); });
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
     return () => data.subscription.unsubscribe();
   }, []);
+
+  if (loading) return <div className="auth-loading"><span className="auth-mark">C</span><span>Loading</span></div>;
+  if (session) return <div key={session.user.id} className="size-full">{children}</div>;
+
+  return (
+    <main className="auth-shell">
+      <div className="auth-stars auth-stars-one" /><div className="auth-stars auth-stars-two" />
+      <AuthPanel />
+    </main>
+  );
+}
+
+// The typing surface lives in its own component so each keystroke only
+// reconciles the form, never the session listener or the animated starfield.
+function AuthPanel() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [signup, setSignup] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -45,9 +60,6 @@ export function AccountGate({ children }: { children: ReactNode }) {
     } finally { setBusy(false); }
   };
 
-  if (loading) return <div className="auth-loading"><span className="auth-mark">C</span><span>Loading</span></div>;
-  if (session) return <div key={session.user.id} className="size-full">{children}</div>;
-
   const switchMode = (nextSignup: boolean) => {
     if (nextSignup === signup) return;
     setSignup(nextSignup);
@@ -56,9 +68,7 @@ export function AccountGate({ children }: { children: ReactNode }) {
   };
 
   return (
-    <main className="auth-shell">
-      <div className="auth-stars auth-stars-one" /><div className="auth-stars auth-stars-two" />
-      <section className="auth-panel" aria-labelledby="auth-title">
+    <section className="auth-panel" aria-labelledby="auth-title">
         <div className="auth-header">
           <img className="auth-icon" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-Ihy4CDV5qSbccIzEPhuVPOH6kdjCxy.png" alt="" />
           <img className="auth-wordmark" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-lfCMMGnKCnOIDetSbTUMiC2ZSafAi1.png" alt="CAVEN" />
@@ -76,7 +86,6 @@ export function AccountGate({ children }: { children: ReactNode }) {
           {message && <p className="auth-message" role="status">{message}</p>}
           <button disabled={busy} className="auth-submit" type="submit">{busy ? 'Working…' : signup ? 'Create account' : 'Sign in'}</button>
         </form>
-      </section>
-    </main>
+    </section>
   );
 }

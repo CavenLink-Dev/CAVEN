@@ -17,7 +17,7 @@ export default function App() {
   const [typed, setTyped] = useState('');
   // Stable element: a fresh <MusicMenu /> each render would defeat memo(TopBar).
   const musicMenu = useMemo(() => <MusicMenu />, []);
-  const { state, amplitude, transcript, reply, locked, conversing, toggle, toggleLock, cancel, runCommand } =
+  const { state, amplitudeRef, transcript, reply, locked, conversing, toggle, toggleLock, cancel, runCommand } =
     useCaven();
 
   // Enter sends immediately and takes the same path as speaking does.
@@ -49,32 +49,36 @@ export default function App() {
             <TasksCard />
           </div>
 
-          <div className="flex flex-col items-center justify-center gap-3">
-            {state === 'listening' && transcript && (
-              <div
-                className="metal-surface anim-fade-up max-w-[280px] rounded-2xl px-4 py-2 text-center text-sm"
-                style={{ color: 'var(--caven-cyan-bright)' }}
-              >
-                {transcript}
-              </div>
-            )}
-            {reply && state !== 'listening' && (
-              <div
-                className="metal-surface anim-fade-up max-w-[300px] rounded-2xl px-4 py-2.5 text-center text-sm"
-                style={{ color: 'var(--caven-cyan-bright)', boxShadow: '0 0 22px rgba(63,208,255,0.22)' }}
-              >
-                <span
-                  className="font-display mr-1 t-micro tracking-[0.25em]"
-                  style={{ color: 'var(--caven-steel)' }}
+          <div className="board-center">
+            {/* Fixed-height slot so an appearing transcript/reply never shifts
+                the core (or the panels either side of it). */}
+            <div className="board-center-msgs">
+              {state === 'listening' && transcript && (
+                <div
+                  className="metal-surface anim-fade-up max-w-[280px] rounded-2xl px-4 py-2 text-center text-sm"
+                  style={{ color: 'var(--caven-cyan-bright)' }}
                 >
-                  CAVEN
-                </span>
-                {reply}
-              </div>
-            )}
+                  {transcript}
+                </div>
+              )}
+              {reply && state !== 'listening' && (
+                <div
+                  className="metal-surface anim-fade-up max-w-[300px] rounded-2xl px-4 py-2.5 text-center text-sm"
+                  style={{ color: 'var(--caven-cyan-bright)', boxShadow: '0 0 22px rgba(63,208,255,0.22)' }}
+                >
+                  <span
+                    className="font-display mr-1 t-micro tracking-[0.25em]"
+                    style={{ color: 'var(--caven-steel)' }}
+                  >
+                    CAVEN
+                  </span>
+                  {reply}
+                </div>
+              )}
+            </div>
             <CavenCore
               state={state}
-              amplitude={amplitude}
+              amplitudeRef={amplitudeRef}
               locked={locked}
               conversing={conversing}
               onToggle={toggle}

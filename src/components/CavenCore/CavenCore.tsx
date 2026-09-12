@@ -1,11 +1,11 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { CavenState } from '../../lib/cavenState';
 
 type Props = {
   state: CavenState;
-  amplitude: number;
+  amplitudeRef: RefObject<number>;
   locked: boolean;
   conversing: boolean;
   onToggle: () => void;
@@ -126,8 +126,12 @@ const outerSegments = ringSegments(150, 5, 0.7);
 const midSegments = ringSegments(118, 18, 0.34);
 const innerSegments = ringSegments(78, 7, 0.58);
 
-export function CavenCore({ state, amplitude, locked, conversing, onToggle, onLock }: Props) {
+export function CavenCore({ state, amplitudeRef, locked, conversing, onToggle, onLock }: Props) {
   const reduced = useReducedMotion();
+
+  // The container whose --core-amp CSS variable scales the reactor core. It is
+  // written directly from a rAF loop (below) so live audio never re-renders.
+  const zoneRef = useRef<HTMLDivElement>(null);
 
   // Transient coloured feedback: green = starting, red = stopping, blue = lock.
   const [pulse, setPulse] = useState<{ id: number; type: PulseType | null }>({ id: 0, type: null });
@@ -199,19 +203,34 @@ export function CavenCore({ state, amplitude, locked, conversing, onToggle, onLo
   const power: PowerState = locked ? 'locked' : live ? 'on' : standingDown ? 'powering-off' : 'off';
 
   // Amplitude drives the orb, exactly as the production core did: listening and
-  // speaking both ride real audio, acting holds a small steady swell.
-  const amp = Number.isFinite(amplitude) ? Math.min(1, Math.max(0, amplitude)) : 0;
-  const coreScale = reduced
-    ? 1
-    : 1 + (state === 'listening' ? amp * 0.28 : state === 'speaking' ? 0.05 + amp * 0.22 : state === 'acting' ? 0.06 : 0);
+  // speaking both ride real audio, acting holds a small steady swell. Only these
+  // two states need a per-frame loop; every other state is a fixed value set
+  // once, so the rAF runs only while the mic or voice is actually live.
+  useEffect(() => {
+    const zone = zoneRef.current;
+    if (!zone) return;
+    const setAmp = (v: number) => zone.style.setProperty('--core-amp', String(v));
+    if (reduced) return setAmp(1);
+    if (state === 'acting') return setAmp(1.06);
+    if (state !== 'listening' && state !== 'speaking') return setAmp(1);
+    let raf = 0;
+    const tick = () => {
+      const a = Math.min(1, Math.max(0, amplitudeRef.current || 0));
+      setAmp(state === 'listening' ? 1 + a * 0.28 : 1.05 + a * 0.22);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [state, reduced, amplitudeRef]);
 
   // Status indicator colour: off/standing down = red, on = green, locked = yellow
   const dotColor = power === 'on' ? 'rgb(35, 157, 14)' : power === 'locked' ? '#ffd53d' : '#ff5a4b';
 
   return (
     <div
+      ref={zoneRef}
       className={`core-zone core-${power} core-${visual}`}
-      style={{ '--core-amp': coreScale } as CSSProperties}
+      style={{ '--core-amp': 1 } as CSSProperties}
     >
       {/* Holographic Projection Core Button */}
       <button
@@ -293,13 +312,12 @@ export function CavenCore({ state, amplitude, locked, conversing, onToggle, onLo
                 stroke="url(#metalGrad)"
                 strokeWidth="6"
                 strokeLinecap="round"
-                filter="url(#glow)"
               />
             ))}
             {/* Node caps at each arc terminus */}
             {Array.from({ length: 5 }, (_, i) => {
               const p = polar(200, 200, 150, i * 72);
-              return <circle key={`onode-${i}`} cx={p.x} cy={p.y} r="3.2" fill="#d8fdff" filter="url(#glow)" />;
+              return <circle key={`onode-${i}`} cx={p.x} cy={p.y} r="3.2" fill="#d8fdff" />;
             })}
           </g>
 
@@ -347,7 +365,6 @@ export function CavenCore({ state, amplitude, locked, conversing, onToggle, onLo
                 stroke="url(#metalGrad)"
                 strokeWidth="4.5"
                 strokeLinecap="round"
-                filter="url(#glow)"
               />
             ))}
           </g>
