@@ -13,13 +13,22 @@ alter table public.caven_reminders add column if not exists timezone text;
 -- rule and zone travel through to the scheduler, and a reminder the app already
 -- announced itself (firedAt) arrives already marked delivered, so push does not
 -- say the same thing a second time.
+--
+-- Two things kept exactly as deployed, because this file is REPLACING a function
+-- the database already has and the repo's copy of it is out of date:
+--   * errcode PT409, not 40001. PostgREST maps a PTnnn code straight to that HTTP
+--     status, which is how a conflict reaches the client as a 409.
+--   * claim_caven_reminders() is deliberately NOT redefined here. The deployed
+--     one only claims reminders belonging to a user who has a registered device,
+--     and takes ten at a time. That hardening is not in this repository either.
+-- See supabase/migrations/README.md.
 create or replace function public.save_caven_board(expected_version bigint, new_state jsonb) returns bigint language plpgsql security invoker set search_path='' as $$
 declare next_version bigint; item jsonb;
 begin
  if auth.uid() is null then raise exception 'unauthorized'; end if;
  insert into public.caven_boards(user_id) values(auth.uid()) on conflict do nothing;
  update public.caven_boards set state=new_state,version=version+1 where user_id=auth.uid() and version=expected_version returning version into next_version;
- if next_version is null then raise exception 'version_conflict' using errcode='40001'; end if;
+ if next_version is null then raise exception 'version_conflict' using errcode='PT409'; end if;
  delete from public.caven_reminders where user_id=auth.uid() and id not in (select r->>'id' from jsonb_array_elements(coalesce(new_state->'reminders','[]')) r where r->>'dueAt' is not null);
  for item in select * from jsonb_array_elements(coalesce(new_state->'reminders','[]')) loop
   if item->>'dueAt' is not null then

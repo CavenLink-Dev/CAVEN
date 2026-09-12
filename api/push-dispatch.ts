@@ -61,6 +61,10 @@ export default async function handler(req: Request) {
     webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:cavenlink.dev@gmail.com', publicKey, privateKey);
 
     const db = adminDb();
+    // The deployed claim only returns reminders belonging to a user who has a
+    // registered device, ten at a time. So a user who has never armed push has
+    // nothing claimed here and nothing advanced — their repeating reminders roll
+    // on in the open tab instead, which is the only place they would see them.
     const { data, error } = await db.rpc('claim_caven_reminders');
     if (error) return json({ error: 'Could not claim reminders' }, 503);
     const claimed = (data ?? []) as ClaimedRow[];
