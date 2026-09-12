@@ -81,7 +81,7 @@ function isGone(error: unknown): boolean {
   return status === 404 || status === 410;
 }
 
-export default async function handler(req: Request) {
+async function handle(req: Request): Promise<Response> {
   try {
     if (req.method !== 'POST' && req.method !== 'GET') return json({ error: 'method_not_allowed' }, 405);
     if (!authorised(req)) return json({ error: 'forbidden' }, 403);
@@ -181,3 +181,15 @@ export default async function handler(req: Request) {
     return apiError(err);
   }
 }
+
+// Named method exports, not a default one.
+//
+// The Edge routes in this folder all `export default` a function that returns a
+// Response, because that is the Edge signature. On the Node runtime a default
+// export is `(req, res) => void` and a returned Response is *ignored* — the
+// function simply never replies, and Vercel kills it at the 300s timeout. That
+// is a 504 per call, with nothing in the log to say the code was wrong.
+// A named HTTP method export takes the Web fetch signature, which is what this
+// handler already is.
+export const GET = handle;
+export const POST = handle;
