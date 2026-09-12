@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react"
 
 type WindowState = "normal" | "collapsed" | "expanded" | "closed"
 
@@ -37,6 +37,9 @@ export function GlassPanel({
   const [win, setWin] = useState<WindowState>("normal")
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null)
+  const [resizing, setResizing] = useState(false)
+  const sectionRef = useRef<HTMLElement>(null)
 
   // Refs so the window listeners read live values without re-binding.
   const offsetRef = useRef(offset)
@@ -92,6 +95,58 @@ export function GlassPanel({
   // Safety net: drop any stray listeners if the panel unmounts mid-drag.
   useEffect(() => () => window.clearTimeout(drag.current.hold), [])
 
+  // Corner / edge resize. The handle's name lists the directions it pulls
+  // (n/s/e/w); a west or north drag also shifts the panel so the opposite
+  // edge stays put, which is what "pull that direction" should feel like.
+  const startResize = (dir: string) => (e: React.PointerEvent) => {
+    if (win !== "normal" || e.button !== 0) return
+    e.preventDefault()
+    e.stopPropagation()
+    const el = sectionRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const sx = e.clientX
+    const sy = e.clientY
+    const startW = rect.width
+    const startH = rect.height
+    const base = { ...offsetRef.current }
+    const hasE = dir.includes("e")
+    const hasW = dir.includes("w")
+    const hasS = dir.includes("s")
+    const hasN = dir.includes("n")
+    const MIN_W = 240
+    const MIN_H = 120
+
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - sx
+      const dy = ev.clientY - sy
+      let w = startW
+      let h = startH
+      let ox = base.x
+      let oy = base.y
+      if (hasE) w = Math.max(MIN_W, startW + dx)
+      if (hasW) {
+        w = Math.max(MIN_W, startW - dx)
+        ox = base.x + (startW - w)
+      }
+      if (hasS) h = Math.max(MIN_H, startH + dy)
+      if (hasN) {
+        h = Math.max(MIN_H, startH - dy)
+        oy = base.y + (startH - h)
+      }
+      setSize({ w, h })
+      setOffset({ x: ox, y: oy })
+    }
+    const onUp = () => {
+      setResizing(false)
+      window.removeEventListener("pointermove", onMove)
+      window.removeEventListener("pointerup", onUp)
+    }
+    setResizing(true)
+    window.addEventListener("pointermove", onMove)
+    window.addEventListener("pointerup", onUp)
+  }
+
   const closePanel = () => {
     setDragging(false)
     setWin("closed")
@@ -100,6 +155,7 @@ export function GlassPanel({
   const toggleExpand = () => setWin(prev => (prev === "expanded" ? "normal" : "expanded"))
   const reopen = () => {
     setOffset({ x: 0, y: 0 })
+    setSize(null)
     setWin("normal")
   }
 
@@ -114,6 +170,13 @@ export function GlassPanel({
   }
 
   const transform = win === "expanded" ? undefined : `translate(${offset.x}px, ${offset.y}px)`
+  const sectionStyle: CSSProperties = {}
+  if (transform) sectionStyle.transform = transform
+  if (win === "normal" && size) {
+    sectionStyle.width = size.w
+    sectionStyle.height = size.h
+    sectionStyle.overflowY = "auto"
+  }
 
   return (
     <>
@@ -121,12 +184,13 @@ export function GlassPanel({
         <div className="panel-backdrop" onClick={toggleExpand} aria-hidden="true" />
       )}
       <section
+        ref={sectionRef}
         aria-labelledby={headingId}
         onPointerDown={onPointerDown}
-        style={transform ? { transform } : undefined}
+        style={sectionStyle}
         className={`glass-panel holo-board ${isVisible ? "holo-in" : "holo-out"}${
           canDrag ? " is-draggable" : ""
-        }${dragging ? " is-dragging" : ""}${
+        }${dragging ? " is-dragging" : ""}${resizing ? " is-resizing" : ""}${
           win === "collapsed" ? " glass-panel--collapsed" : ""
         }${win === "expanded" ? " glass-panel--expanded" : ""} ${className}`}
       >
@@ -136,6 +200,17 @@ export function GlassPanel({
 
         {/* Holographic Scanline Overlay */}
         <div className="holo-scanlines" />
+
+        {/* Edge & corner resize handles — only while the window is at normal size. */}
+        {win === "normal" &&
+          ["n", "s", "e", "w", "ne", "nw", "se", "sw"].map(dir => (
+            <span
+              key={dir}
+              className={`panel-resize panel-resize--${dir}`}
+              onPointerDown={startResize(dir)}
+              aria-hidden="true"
+            />
+          ))}
 
         {/* Card Header */}
         <div
@@ -147,7 +222,8 @@ export function GlassPanel({
             <div className="flex items-center gap-2">
               <h2
                 id={headingId}
-                className={`hud-label${largeLabel ? " hud-label--large" : ""} text-cyan-300/80`}
+                className={`hud-label${largeLabel ? " hud-label--large" : ""} text-cyan-100`}
+                style={largeLabel ? undefined : { fontSize: "calc(var(--fs-micro) * 1.2)" }}
               >
                 {label}
               </h2>
@@ -213,84 +289,4 @@ export function GlassPanel({
  */
 export function PanelNote({ children }: { children: ReactNode }) {
   return <p className="t-caption text-white/45">{children}</p>
-}
-
-/** The small + in a panel header that reveals its manual add row. Turns into an × while open. */
-export function PanelAddButton({ active, onClick }: { active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      className={`panel-add-btn${active ? " is-active" : ""}`}
-      onClick={onClick}
-      aria-label={active ? "Cancel adding" : "Add item"}
-      aria-pressed={active}
-    >
-      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-        <path d="M6 2v8M2 6h8" />
-      </svg>
-    </button>
-  )
-}
-
-/**
- * The lightweight input row a board shows while adding by hand. Title is required;
- * an optional narrow time field appears for the diary-style boards. Enter or the
- * Add button commits; Escape or an empty title closes without saving.
- */
-export function BoardAddRow({
-  placeholder,
-  withTime = false,
-  onAdd,
-  onClose,
-}: {
-  placeholder: string
-  withTime?: boolean
-  onAdd: (value: { title: string; time: string }) => void
-  onClose: () => void
-}) {
-  const [title, setTitle] = useState("")
-  const [time, setTime] = useState("")
-
-  const submit = () => {
-    const trimmed = title.trim()
-    if (!trimmed) {
-      onClose()
-      return
-    }
-    onAdd({ title: trimmed, time: time.trim() })
-    onClose()
-  }
-
-  return (
-    <form
-      className="board-add"
-      onSubmit={e => {
-        e.preventDefault()
-        submit()
-      }}
-    >
-      {withTime && (
-        <input
-          value={time}
-          onChange={e => setTime(e.target.value)}
-          onKeyDown={e => e.key === "Escape" && onClose()}
-          placeholder="Time"
-          className="board-add-time"
-          aria-label="Time"
-        />
-      )}
-      <input
-        autoFocus
-        value={title}
-        onChange={e => setTitle(e.target.value)}
-        onKeyDown={e => e.key === "Escape" && onClose()}
-        placeholder={placeholder}
-        className="board-add-title"
-        aria-label={placeholder}
-      />
-      <button type="submit" className="board-add-go">
-        Add
-      </button>
-    </form>
-  )
 }

@@ -1,18 +1,11 @@
-import { memo, useMemo, useState } from 'react'
-import type { Reminder } from '../../lib/mockData'
+import { memo, useMemo } from 'react'
 import { useCavenStore } from '../../lib/store'
 import { todayLabel } from '../../lib/today'
-import { BoardAddRow, GlassPanel, PanelAddButton, PanelNote } from './GlassPanel'
+import { GlassPanel, PanelNote } from './GlassPanel'
 
 function RemindersCardBase({ isVisible = true }: { isVisible?: boolean }) {
-  const { data, ready, status, update } = useCavenStore()
-  const [adding, setAdding] = useState(false)
+  const { data, ready, status } = useCavenStore()
   const dateLabel = useMemo(() => todayLabel(), [])
-
-  const add = ({ title, time }: { title: string; time: string }) => {
-    const reminder: Reminder = { id: crypto.randomUUID(), title, date: '', time }
-    void update(prev => ({ ...prev, reminders: [reminder, ...prev.reminders] }))
-  }
 
   // Soonest first where a due time was captured; anything undated keeps its place at the back.
   const ordered = useMemo(() => {
@@ -31,17 +24,8 @@ function RemindersCardBase({ isVisible = true }: { isVisible?: boolean }) {
       title={dateLabel}
       isVisible={isVisible}
       headerRelative
-      headerAction={<PanelAddButton active={adding} onClick={() => setAdding(v => !v)} />}
     >
       <div className="space-y-3">
-        {adding && (
-          <BoardAddRow
-            placeholder="Add a reminder…"
-            withTime
-            onAdd={add}
-            onClose={() => setAdding(false)}
-          />
-        )}
         {!ready ? (
           <PanelNote>{status}</PanelNote>
         ) : ordered.length === 0 ? (

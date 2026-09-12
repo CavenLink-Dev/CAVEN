@@ -1,8 +1,7 @@
-import { memo, useMemo, useState } from 'react'
-import type { Task } from '../../lib/mockData'
+import { memo, useMemo } from 'react'
 import { useCavenStore } from '../../lib/store'
 import { todayLabel } from '../../lib/today'
-import { BoardAddRow, GlassPanel, PanelAddButton, PanelNote } from './GlassPanel'
+import { GlassPanel, PanelNote } from './GlassPanel'
 
 type OverviewItem = { key: string; label: string; meta?: string }
 
@@ -16,15 +15,9 @@ function reminderOrder(dueAt: string | undefined, index: number): [number, numbe
 }
 
 function DailyOverviewCardBase({ isVisible = true }: { isVisible?: boolean }) {
-  const { data, ready, status, update } = useCavenStore()
+  const { data, ready, status } = useCavenStore()
   const { tasks, calendar, reminders } = data
-  const [adding, setAdding] = useState(false)
   const dateLabel = useMemo(() => todayLabel(), [])
-
-  const add = ({ title }: { title: string }) => {
-    const task: Task = { id: crypto.randomUUID(), title, done: false }
-    void update(prev => ({ ...prev, tasks: [task, ...prev.tasks] }))
-  }
 
   const [now, next, later] = useMemo(() => {
     const openTasks: OverviewItem[] = tasks
@@ -71,12 +64,8 @@ function DailyOverviewCardBase({ isVisible = true }: { isVisible?: boolean }) {
       title={dateLabel}
       isVisible={isVisible}
       headerRelative
-      headerAction={<PanelAddButton active={adding} onClick={() => setAdding(v => !v)} />}
     >
       <div className="space-y-3 t-body">
-        {adding && (
-          <BoardAddRow placeholder="Add a task…" onAdd={add} onClose={() => setAdding(false)} />
-        )}
         {!ready ? (
           <PanelNote>{status}</PanelNote>
         ) : rows.length === 0 ? (

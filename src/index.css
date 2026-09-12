@@ -226,18 +226,19 @@ button { font: inherit; }
 .event-line { border-left:1px solid rgba(119,210,220,.2); padding-left:10px; }
 .event-line b { display:block; font-size:var(--fs-title); font-weight:500; line-height:1.4; color:rgba(244,252,252,.92); }
 .event-line small { font-size:var(--fs-caption); line-height:1.45; color:rgba(216,237,239,.5); }
-.panel-add-btn { display:grid; place-items:center; height:20px; width:20px; border:1px solid var(--border); border-radius:6px; color:rgba(143,230,238,.75); transition:background .2s, color .2s; }
-.panel-add-btn:hover { background:rgba(100,224,232,.08); color:#bff3f8; }
-.panel-add-btn svg { width:11px; height:11px; transition:transform .2s; }
-.panel-add-btn.is-active svg { transform:rotate(45deg); }
-.board-add { display:flex; align-items:center; gap:var(--sp-2); margin-bottom:var(--sp-3); }
-.board-add input { height:30px; border:1px solid var(--border); border-radius:8px; background:rgba(10,26,32,.35); padding:0 10px; font-size:var(--fs-caption); color:rgba(244,252,252,.92); }
-.board-add input::placeholder { color:rgba(216,237,239,.4); }
-.board-add input:focus { outline:none; border-color:rgba(119,210,220,.5); }
-.board-add-time { width:64px; flex:0 0 auto; }
-.board-add-title { flex:1 1 auto; min-width:0; }
-.board-add-go { flex:0 0 auto; height:30px; padding:0 12px; border:1px solid rgba(119,210,220,.4); border-radius:8px; font-family:var(--font-mono); font-size:var(--fs-micro); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(143,230,238,.9); transition:background .2s; }
-.board-add-go:hover { background:rgba(100,224,232,.1); }
+/* Drag-to-resize handles — thin invisible strips on each edge, larger pads at each corner. */
+.panel-resize { position:absolute; z-index:30; touch-action:none; }
+.panel-resize--n { top:0; left:12px; right:12px; height:8px; cursor:ns-resize; }
+.panel-resize--s { bottom:0; left:12px; right:12px; height:8px; cursor:ns-resize; }
+.panel-resize--e { top:12px; bottom:12px; right:0; width:8px; cursor:ew-resize; }
+.panel-resize--w { top:12px; bottom:12px; left:0; width:8px; cursor:ew-resize; }
+.panel-resize--ne { top:0; right:0; width:16px; height:16px; cursor:nesw-resize; }
+.panel-resize--nw { top:0; left:0; width:16px; height:16px; cursor:nwse-resize; }
+.panel-resize--se { bottom:0; right:0; width:16px; height:16px; cursor:nwse-resize; }
+.panel-resize--sw { bottom:0; left:0; width:16px; height:16px; cursor:nesw-resize; }
+.panel-resize--se::after { content:''; position:absolute; right:3px; bottom:3px; width:7px; height:7px; border-right:1.5px solid rgba(143,230,238,.4); border-bottom:1.5px solid rgba(143,230,238,.4); border-bottom-right-radius:3px; opacity:0; transition:opacity .2s; }
+.glass-panel:hover .panel-resize--se::after { opacity:1; }
+.glass-panel.is-resizing { transition:none; user-select:none; z-index:60; border-color:rgba(123,205,220,.5); box-shadow:0 24px 60px rgba(0,0,0,.55); }
 .free-time { margin-top:var(--sp-4); padding-top:var(--sp-3); border-top:1px solid rgba(255,255,255,.07); color:rgba(157,220,224,.8); font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:.03em; }
 
 /* ── Core zone & SVG core ───────────────────────────────────────────────── */
@@ -832,7 +833,7 @@ button { font: inherit; }
    These come last on purpose: they override the older minified .auth-*
    block above without needing surgery on it. Every value here is a token,
    so the sign-in screen and the board cannot drift apart again.
-   ═══════════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════���═══ */
 
 /* The sign-in card is the same object as a board panel, just larger. */
 .auth-panel {
