@@ -5,7 +5,7 @@
 //   DELETE  forget one endpoint (this browser standing itself down).
 //
 // Delivery itself is api/push-dispatch.ts; this route only keeps the register.
-import { authenticate, json, apiError } from './_caven';
+import { authenticate, json, apiError } from './_caven.js';
 export const config = { runtime: 'edge' };
 
 /** A subscription is opaque to us apart from its shape; store it, don't trust it. */

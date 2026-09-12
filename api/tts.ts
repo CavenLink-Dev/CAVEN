@@ -1,5 +1,5 @@
-import { EDWARD_VOICE, PREMADE_VOICE, json, authenticate, apiError } from "./_caven";
-import { fallbackVoice } from "../shared/ttsVoice";
+import { EDWARD_VOICE, PREMADE_VOICE, json, authenticate, apiError } from "./_caven.js";
+import { fallbackVoice } from "../shared/ttsVoice.js";
 
 export const config = { runtime: "edge" };
 

@@ -1,4 +1,4 @@
-import {authenticate,loadCavenState,json,apiError} from './_caven';
+import {authenticate,loadCavenState,json,apiError} from './_caven.js';
 export const config={runtime:'edge'};
 const fields=['tasks','habits','reminders','calendar','voiceNotes','transactions','budgets','journal','brainMetrics','interests','brainNotes'];
 export default async function handler(req: Request) {

@@ -1,5 +1,5 @@
-import { boardBrief } from "../shared/boardBrief";
-import { CAVEN_SYSTEM, json, loadCavenState, apiError } from "./_caven";
+import { boardBrief } from "../shared/boardBrief.js";
+import { CAVEN_SYSTEM, json, loadCavenState, apiError } from "./_caven.js";
 
 export const config = { runtime: "edge" };
 

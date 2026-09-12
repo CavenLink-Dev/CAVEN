@@ -1,7 +1,12 @@
+// `.js` on every relative import. This file is pulled into both an Edge bundle
+// (api/chat) and a Node one (api/push-dispatch); extensionless worked while it
+// was Edge-only, but Node resolves the specifier literally and throws
+// ERR_MODULE_NOT_FOUND at invocation. `.js` is correct for both — the emitted
+// siblings are .js either way.
 import { createClient } from '@supabase/supabase-js';
-import { signedInUser } from '../shared/authUser';
-import { GEORGE_VOICE, preferredVoice } from '../shared/ttsVoice';
-export { CAVEN_SYSTEM } from '../shared/cavenSystem';
+import { signedInUser } from '../shared/authUser.js';
+import { GEORGE_VOICE, preferredVoice } from '../shared/ttsVoice.js';
+export { CAVEN_SYSTEM } from '../shared/cavenSystem.js';
 export const EDWARD_VOICE = preferredVoice(process.env.ELEVENLABS_VOICE_ID);
 export const PREMADE_VOICE = GEORGE_VOICE;
 export const SUPABASE_URL = 'https://egtzpvitcgquzppvlcrj.supabase.co';

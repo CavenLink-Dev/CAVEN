@@ -18,9 +18,14 @@
 // GET is a health probe in the manner of GET /api/chat: it says what is
 // configured and what is waiting to go out, and sends nothing. POST dispatches.
 // Nothing here ever returns a secret value.
+// Explicit .js on every relative import. This route runs on the Node runtime,
+// where the emitted files are plain ESM and Node will not guess an extension —
+// an extensionless specifier fails at invocation with ERR_MODULE_NOT_FOUND,
+// long after a green build and a green deploy. The Edge routes get away with it
+// because their bundler inlines everything; this one is not bundled that way.
 import webpush from 'web-push';
-import { adminDb, json, apiError } from './_caven';
-import { notificationBody, settle, type DueReminder } from '../shared/reminders';
+import { adminDb, json, apiError } from './_caven.js';
+import { notificationBody, settle, type DueReminder } from '../shared/reminders.js';
 
 type ClaimedRow = {
   user_id: string;
