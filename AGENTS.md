@@ -89,12 +89,16 @@ This project uses **Tailwind CSS v4** through the `@tailwindcss/vite` plugin con
 
 - Do not restore autoplay ambient or looping background audio; that bed was removed on purpose. Optional MusicMenu tracks are fine unless asked otherwise.
 - Spoken replies should sound human (contractions, occasional fillers). Do not revive the old "no filler, complete sentences only" valet prompt.
-- When checking the live app, use https://caven-green.vercel.app — preview and Dependabot deployments lack production keys and will fail or sound wrong.
+- When checking the live app, use https://caven-green.vercel.app — preview and Dependabot deployments lack production keys and will fail or sound wrong. In v0 / Figma Make, `/api` should hit that origin too.
 - Do not tell the user a feature is live (push reminders, bookings, saves) in confirmation copy unless the code actually does it.
+- Do not invent HUD, calendar, or widget numbers; an empty board stays empty.
 
 ## Learned Workspace Facts
 
 - Chat injects a limited BOARD briefing from `shared/boardBrief.ts` so CAVEN can talk about saved tasks without guessing; missing fields stay unknown.
 - `tsconfig.json` includes `api/` and `shared/` so `pnpm build` type-checks the backend, not only `src/`.
 - Boards are scoped to the signed-in account (`AccountGate`); the old shared KV store is not auto-assigned on signup.
-- Design source is the Figma Make file https://www.figma.com/make/UVgV67Uj9R8sfRvLge4GRe/CAVEN-Personal-Assistant-Webapp
+- Live board UI is the upgraded_board JARVIS 3-column layout (CavenCore, Settings, MusicMenu in the top bar). Original design file: https://www.figma.com/make/UVgV67Uj9R8sfRvLge4GRe/CAVEN-Personal-Assistant-Webapp
+- `pnpm run dev` is `scripts/dev.mjs`: if 8443 already has Vite, keep it (Figma Make/v0 starts a second `dev` after writing `.env`). `/api` proxies to `pnpm dev:api` (`vercel dev` on :3000) locally, or to https://caven-green.vercel.app in v0/Figma Make sandboxes.
+- Keep `ACTION_VERBS` in `shared/actions.ts` and the verb list in `shared/cavenSystem.ts` in lockstep — a verb missing from the prompt is never spoken.
+- Do not set `letter-spacing` on unlayered `.font-display`; Tailwind v4 utilities lose to unlayered CSS. Family only, inside `@layer` (`tests/fontDisplay.test.ts`).
