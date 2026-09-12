@@ -1,7 +1,8 @@
-import { memo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import type { Task } from '../../lib/mockData'
 import { useCavenStore } from '../../lib/store'
-import { GlassPanel, PanelNote } from './GlassPanel'
+import { todayLabel } from '../../lib/today'
+import { BoardAddRow, GlassPanel, PanelAddButton, PanelNote } from './GlassPanel'
 
 const detailOf = (task: Task) => [task.time, task.tag].filter(Boolean).join(' · ')
 
@@ -10,6 +11,13 @@ function TasksCardBase({ isVisible = true }: { isVisible?: boolean }) {
   // Optimistic overlay: the tick flips at once, then clears when the save settles.
   // A failed save simply leaves the stored value showing, so nothing is ever faked.
   const [pending, setPending] = useState<Record<string, boolean>>({})
+  const [adding, setAdding] = useState(false)
+  const dateLabel = useMemo(() => todayLabel(), [])
+
+  const add = ({ title }: { title: string }) => {
+    const task: Task = { id: crypto.randomUUID(), title, done: false }
+    void update(prev => ({ ...prev, tasks: [task, ...prev.tasks] }))
+  }
 
   const toggle = (task: Task) => {
     const nextDone = !(pending[task.id] ?? task.done)
@@ -30,13 +38,15 @@ function TasksCardBase({ isVisible = true }: { isVisible?: boolean }) {
   return (
     <GlassPanel
       label={<strong>Tasks</strong>}
-      title="Small moves, real progress"
+      title={dateLabel}
       isVisible={isVisible}
-      largeLabel
-      showTitle={false}
       headerRelative
+      headerAction={<PanelAddButton active={adding} onClick={() => setAdding(v => !v)} />}
     >
       <div className="space-y-1">
+        {adding && (
+          <BoardAddRow placeholder="Add a task…" onAdd={add} onClose={() => setAdding(false)} />
+        )}
         {!ready ? (
           <PanelNote>{status}</PanelNote>
         ) : data.tasks.length === 0 ? (

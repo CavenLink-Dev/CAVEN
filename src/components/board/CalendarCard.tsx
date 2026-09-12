@@ -1,7 +1,8 @@
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useState } from 'react'
 import type { CalendarEvent } from '../../lib/mockData'
 import { useCavenStore } from '../../lib/store'
-import { GlassPanel, PanelNote } from './GlassPanel'
+import { todayLabel } from '../../lib/today'
+import { BoardAddRow, GlassPanel, PanelAddButton, PanelNote } from './GlassPanel'
 
 const KIND_LABEL: Record<CalendarEvent['kind'], string> = {
   routine: 'Routine',
@@ -23,8 +24,20 @@ function minutesOf(time: string): number | null {
 }
 
 function CalendarCardBase({ isVisible = true }: { isVisible?: boolean }) {
-  const { data, ready, status } = useCavenStore()
+  const { data, ready, status, update } = useCavenStore()
   const events = data.calendar
+  const [adding, setAdding] = useState(false)
+  const dateLabel = useMemo(() => todayLabel(), [])
+
+  const add = ({ title, time }: { title: string; time: string }) => {
+    const event: CalendarEvent = {
+      id: crypto.randomUUID(),
+      title,
+      time: time || 'All day',
+      kind: 'event',
+    }
+    void update(prev => ({ ...prev, calendar: [event, ...prev.calendar] }))
+  }
 
   // Highlight whatever is next on the clock today; nothing is highlighted if the
   // times can't be read or the day is already behind us.
@@ -42,13 +55,20 @@ function CalendarCardBase({ isVisible = true }: { isVisible?: boolean }) {
   return (
     <GlassPanel
       label="Today Calendar"
-      title="A decent amount of daylight"
+      title={dateLabel}
       isVisible={isVisible}
-      largeLabel
-      showTitle={false}
       headerRelative
+      headerAction={<PanelAddButton active={adding} onClick={() => setAdding(v => !v)} />}
     >
       <div className="space-y-3">
+        {adding && (
+          <BoardAddRow
+            placeholder="Add an event…"
+            withTime
+            onAdd={add}
+            onClose={() => setAdding(false)}
+          />
+        )}
         {!ready ? (
           <PanelNote>{status}</PanelNote>
         ) : events.length === 0 ? (

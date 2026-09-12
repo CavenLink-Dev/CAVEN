@@ -20,6 +20,7 @@ export function GlassPanel({
   largeLabel = false,
   showTitle = true,
   headerRelative = false,
+  headerAction,
 }: {
   label: ReactNode
   title: string
@@ -29,6 +30,7 @@ export function GlassPanel({
   largeLabel?: boolean
   showTitle?: boolean
   headerRelative?: boolean
+  headerAction?: ReactNode
 }) {
   const headingId = useId()
 
@@ -155,8 +157,11 @@ export function GlassPanel({
             )}
           </div>
 
-          {/* Traffic-light window controls: exit / shrink / expand. */}
-          <div className="win-lights mt-1">
+          {/* Manual add toggle sits beside the traffic-light window controls. */}
+          <div className="flex items-center gap-2 mt-1">
+            {win === "normal" && headerAction}
+            {/* Traffic-light window controls: exit / shrink / expand. */}
+            <div className="win-lights">
             <button
               type="button"
               className="win-light win-light--close"
@@ -191,6 +196,7 @@ export function GlassPanel({
                 )}
               </svg>
             </button>
+            </div>
           </div>
         </div>
 
@@ -207,4 +213,84 @@ export function GlassPanel({
  */
 export function PanelNote({ children }: { children: ReactNode }) {
   return <p className="t-caption text-white/45">{children}</p>
+}
+
+/** The small + in a panel header that reveals its manual add row. Turns into an × while open. */
+export function PanelAddButton({ active, onClick }: { active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className={`panel-add-btn${active ? " is-active" : ""}`}
+      onClick={onClick}
+      aria-label={active ? "Cancel adding" : "Add item"}
+      aria-pressed={active}
+    >
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+        <path d="M6 2v8M2 6h8" />
+      </svg>
+    </button>
+  )
+}
+
+/**
+ * The lightweight input row a board shows while adding by hand. Title is required;
+ * an optional narrow time field appears for the diary-style boards. Enter or the
+ * Add button commits; Escape or an empty title closes without saving.
+ */
+export function BoardAddRow({
+  placeholder,
+  withTime = false,
+  onAdd,
+  onClose,
+}: {
+  placeholder: string
+  withTime?: boolean
+  onAdd: (value: { title: string; time: string }) => void
+  onClose: () => void
+}) {
+  const [title, setTitle] = useState("")
+  const [time, setTime] = useState("")
+
+  const submit = () => {
+    const trimmed = title.trim()
+    if (!trimmed) {
+      onClose()
+      return
+    }
+    onAdd({ title: trimmed, time: time.trim() })
+    onClose()
+  }
+
+  return (
+    <form
+      className="board-add"
+      onSubmit={e => {
+        e.preventDefault()
+        submit()
+      }}
+    >
+      {withTime && (
+        <input
+          value={time}
+          onChange={e => setTime(e.target.value)}
+          onKeyDown={e => e.key === "Escape" && onClose()}
+          placeholder="Time"
+          className="board-add-time"
+          aria-label="Time"
+        />
+      )}
+      <input
+        autoFocus
+        value={title}
+        onChange={e => setTitle(e.target.value)}
+        onKeyDown={e => e.key === "Escape" && onClose()}
+        placeholder={placeholder}
+        className="board-add-title"
+        aria-label={placeholder}
+      />
+      <button type="submit" className="board-add-go">
+        Add
+      </button>
+    </form>
+  )
 }
