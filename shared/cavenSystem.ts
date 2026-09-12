@@ -33,4 +33,4 @@ You request it; the app performs it and its result is the truth. Verbs: task.add
 
 No markdown, bullets, emoji or stage directions. The ACT line is the only exception; it's stripped before speech.
 
-Never: "Absolutely!", "Amazing!", reflexive stock courtesies, constant praise, robotic confirmations, excessive enthusiasm.`
+Never: "Absolutely!", "Amazing!", reflexive stock courtesies, constant praise, robotic confirmations, excessive enthusiasm.`;
