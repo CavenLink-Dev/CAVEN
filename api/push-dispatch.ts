@@ -12,8 +12,12 @@
 // a two-minute lease with `for update skip locked`, so two overlapping runs
 // cannot deliver the same occurrence twice.
 //
-// Needs: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, CRON_SECRET,
-// and SUPABASE_SECRET_KEY (already set). `pnpm vapid` prints a fresh key pair.
+// Needs: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, CAVEN_CRON_SECRET,
+// and SUPABASE_SECRET_KEY. `pnpm vapid` prints a fresh key pair if one is needed.
+//
+// GET is a health probe in the manner of GET /api/chat: it says what is
+// configured and what is waiting to go out, and sends nothing. POST dispatches.
+// Nothing here ever returns a secret value.
 import webpush from 'web-push';
 import { adminDb, json, apiError } from './_caven';
 import { notificationBody, settle, type DueReminder } from '../shared/reminders';
@@ -28,16 +32,42 @@ type ClaimedRow = {
 };
 
 /**
- * Vercel Cron sends `Authorization: Bearer $CRON_SECRET`. A Supabase pg_cron job
- * (the usual route, since a Hobby plan only schedules daily) sends the same
- * secret as `x-caven-cron`. Anything else is a stranger asking us to send push
- * notifications to our own users, so it gets nothing.
+ * The Supabase pg_cron job (the usual route, since a Hobby plan only schedules
+ * daily) sends the shared secret as `x-caven-cron`. Vercel Cron sends
+ * `Authorization: Bearer` with its own reserved CRON_SECRET, which is accepted
+ * too so the vercel.json schedule works on a plan that honours it.
+ *
+ * CAVEN_CRON_SECRET is the provisioned name and comes first; CRON_SECRET is only
+ * the fallback, because Vercel reserves that name for its own scheduler.
+ * Anything else is a stranger asking us to notify our own users, so it gets
+ * nothing — and if no secret is configured at all, nobody is authorised.
  */
 function authorised(req: Request): boolean {
-  const secret = process.env.CRON_SECRET;
+  const secret = process.env.CAVEN_CRON_SECRET || process.env.CRON_SECRET;
   if (!secret) return false;
   const bearer = req.headers.get('authorization')?.replace(/^Bearer /i, '').trim();
   return bearer === secret || req.headers.get('x-caven-cron')?.trim() === secret;
+}
+
+/**
+ * Confirm the key pair is usable before trusting it. A malformed or mismatched
+ * pair makes setVapidDetails throw, which would otherwise surface as a bare 500
+ * every minute and tell nobody what was actually wrong.
+ */
+function vapidReady(): { ok: boolean; reason?: string } {
+  const publicKey = process.env.VAPID_PUBLIC_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  if (!publicKey || !privateKey) return { ok: false, reason: 'VAPID keys are not configured' };
+  try {
+    webpush.setVapidDetails(
+      process.env.VAPID_SUBJECT || 'mailto:cavenlink.dev@gmail.com',
+      publicKey,
+      privateKey,
+    );
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, reason: `VAPID keys are not usable: ${err instanceof Error ? err.message : 'unknown'}` };
+  }
 }
 
 /** 404 or 410 means the browser threw the subscription away; stop writing to it. */
@@ -51,14 +81,33 @@ export default async function handler(req: Request) {
     if (req.method !== 'POST' && req.method !== 'GET') return json({ error: 'method_not_allowed' }, 405);
     if (!authorised(req)) return json({ error: 'forbidden' }, 403);
 
-    const publicKey = process.env.VAPID_PUBLIC_KEY;
-    const privateKey = process.env.VAPID_PRIVATE_KEY;
-    if (!publicKey || !privateKey) {
-      // Not an error: push simply isn't configured yet. Say so plainly rather
-      // than reporting a successful run that delivered nothing.
-      return json({ ok: false, reason: 'VAPID keys are not configured', claimed: 0, sent: 0 });
+    const vapid = vapidReady();
+
+    // Health probe. Says what is configured and what is waiting, sends nothing,
+    // and names no secret — the same bargain GET /api/chat makes.
+    if (req.method === 'GET') {
+      const db = adminDb();
+      const { count: waiting } = await db
+        .from('caven_reminders')
+        .select('id', { count: 'exact', head: true })
+        .is('delivered_at', null)
+        .lte('due_at', new Date().toISOString());
+      const { count: devices } = await db.from('caven_push').select('endpoint', { count: 'exact', head: true });
+      return json({
+        ok: vapid.ok,
+        reason: vapid.reason,
+        authorised: true,
+        vapidConfigured: vapid.ok,
+        registeredDevices: devices ?? 0,
+        remindersDue: waiting ?? 0,
+      });
     }
-    webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:cavenlink.dev@gmail.com', publicKey, privateKey);
+
+    if (!vapid.ok) {
+      // Not an error: push simply isn't ready. Say so plainly rather than
+      // reporting a successful run that delivered nothing.
+      return json({ ok: false, reason: vapid.reason, claimed: 0, sent: 0 });
+    }
 
     const db = adminDb();
     // The deployed claim only returns reminders belonging to a user who has a

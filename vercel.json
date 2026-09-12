@@ -2,12 +2,6 @@
   "framework": "vite",
   "buildCommand": "pnpm build",
   "outputDirectory": "dist",
-  "crons": [
-    {
-      "path": "/api/push-dispatch",
-      "schedule": "* * * * *"
-    }
-  ],
   "headers": [
     {
       "source": "/sw.js",
