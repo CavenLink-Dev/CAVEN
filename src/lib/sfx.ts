@@ -22,11 +22,29 @@ const VOL: Record<SfxName, number> = {
 };
 
 let muted = false;
+// Mute is global and covers everything audible: interface blips, CAVEN's own
+// spoken replies (see voice.ts) and the ambient music (see MusicMenu). Anything
+// that plays audio should either check isMuted() at play time or subscribe here
+// so it can stop something already in flight.
+type MuteListener = (muted: boolean) => void;
+const muteListeners = new Set<MuteListener>();
 export function setMuted(v: boolean) {
+  if (muted === v) return;
   muted = v;
+  for (const listener of muteListeners) {
+    try {
+      listener(v);
+    } catch {
+      /* a bad listener must never break muting */
+    }
+  }
 }
 export function isMuted() {
   return muted;
+}
+export function onMuteChange(listener: MuteListener): () => void {
+  muteListeners.add(listener);
+  return () => muteListeners.delete(listener);
 }
 
 // Throttle rapid repeats (e.g. hover) so it never gets noisy.

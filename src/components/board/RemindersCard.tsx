@@ -4,7 +4,7 @@ import { todayLabel } from '../../lib/today'
 import { GlassPanel, PanelNote } from './GlassPanel'
 
 function RemindersCardBase({ isVisible = true }: { isVisible?: boolean }) {
-  const { data, ready, status } = useCavenStore()
+  const { data, ready, status, loadFailed, reload } = useCavenStore()
   const dateLabel = useMemo(() => todayLabel(), [])
 
   // Soonest first where a due time was captured; anything undated keeps its place at the back.
@@ -25,9 +25,9 @@ function RemindersCardBase({ isVisible = true }: { isVisible?: boolean }) {
       isVisible={isVisible}
       headerRelative
     >
-      <div className="space-y-3">
+      <div className="space-y-3 board-list-scroll">
         {!ready ? (
-          <PanelNote>{status}</PanelNote>
+          <PanelNote onRetry={loadFailed ? reload : undefined}>{status}</PanelNote>
         ) : ordered.length === 0 ? (
           <PanelNote>No reminders armed. I'll hold one for you whenever you like.</PanelNote>
         ) : (

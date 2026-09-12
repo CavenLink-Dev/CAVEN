@@ -1,5 +1,12 @@
+import type React from 'react';
 import { useCavenStore } from '../../lib/store';
 import { Bar, Panel, Ring, Row } from '../widgets';
+
+/** Same quiet, in-character note the board cards use, so an empty page reads
+ *  as "nothing here yet" rather than as something that failed to load. */
+function EmptyNote({ children }: { children: React.ReactNode }) {
+  return <p className="t-caption" style={{ color: 'var(--caven-steel)' }}>{children}</p>;
+}
 
 function money(n: number) {
   return `${n < 0 ? '-' : '+'}$${Math.abs(n).toFixed(2)}`;
@@ -19,6 +26,7 @@ export function FinancePage() {
       </Panel>
       <Panel title="Budgets">
         <div className="space-y-3">
+          {budgets.length === 0 && <EmptyNote>No budgets set. Tell me a category and a limit whenever you like.</EmptyNote>}
           {budgets.map((b) => (
             <div key={b.id}>
               <div className="mb-1 flex justify-between text-sm">
@@ -31,6 +39,7 @@ export function FinancePage() {
         </div>
       </Panel>
       <Panel title="Recent activity">
+        {transactions.length === 0 && <EmptyNote>Nothing recorded yet. Say what you spent and I'll log it.</EmptyNote>}
         {transactions.map((x) => (
           <Row key={x.id}>
             <span className="flex-1">{x.label}</span>
@@ -54,6 +63,11 @@ export function JournalPage() {
         <div className="t-micro tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>JOURNAL</div>
         <div className="mt-1 text-sm opacity-80">Say “journal” and tell me how today felt — I'll write it here.</div>
       </Panel>
+      {journal.length === 0 && (
+        <Panel>
+          <EmptyNote>No entries yet. The first one is always the hardest.</EmptyNote>
+        </Panel>
+      )}
       {journal.map((j) => (
         <Panel key={j.id}>
           <div className="flex items-center gap-2">
@@ -79,6 +93,7 @@ export function BrainPage() {
       </Panel>
       <Panel title="Wellbeing">
         <div className="grid grid-cols-2 gap-3">
+          {brainMetrics.length === 0 && <EmptyNote>Nothing tracked yet.</EmptyNote>}
           {brainMetrics.map((m) => (
             <div key={m.label} className="flex items-center gap-2">
               <Ring value={m.value} label={`${m.value}`} />
@@ -92,6 +107,7 @@ export function BrainPage() {
       </Panel>
       <Panel title="Interests & hobbies">
         <div className="flex flex-wrap gap-1.5">
+          {interests.length === 0 && <EmptyNote>Tell me what you enjoy and I'll remember it.</EmptyNote>}
           {interests.map((i) => (
             <span key={i} className="rounded-full px-2.5 py-1 text-xs" style={{ background: 'rgba(63,208,255,0.1)', border: '1px solid rgba(63,208,255,0.2)' }}>
               {i}
@@ -101,6 +117,7 @@ export function BrainPage() {
       </Panel>
       <Panel title="What I've learned">
         <ul className="space-y-2 text-sm opacity-85">
+          {brainNotes.length === 0 && <li><EmptyNote>Nothing noted yet. I learn as we go.</EmptyNote></li>}
           {brainNotes.map((n) => (
             <li key={n} className="flex gap-2">
               <span style={{ color: 'var(--caven-cyan)' }}>▸</span>

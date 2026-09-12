@@ -56,25 +56,33 @@ function stopMeter() {
 // Hands-free listening: the recogniser ends on end-of-utterance (continuous =
 // false) and a silence timer backs that up on browsers that linger. onEnd fires
 // as soon as the user stops talking — no second click required.
-const SILENCE_MS = 1400; // quiet gap that counts as "they've finished"
+const SILENCE_MS = 1800; // quiet gap that counts as "they've finished"
+const WRAP_WARN_MS = 700; // how long before the cutoff the UI is warned
 const LEAD_IN_MS = 6000; // grace period before any speech has been heard
 const MAX_UTTERANCE_MS = 20000; // hard ceiling so the mic never hangs open
 
 let silenceTimer: ReturnType<typeof setTimeout> | null = null;
 let maxTimer: ReturnType<typeof setTimeout> | null = null;
+let warnTimer: ReturnType<typeof setTimeout> | null = null;
 let aborted = false;
 
 function clearTimers() {
   if (silenceTimer) clearTimeout(silenceTimer);
   if (maxTimer) clearTimeout(maxTimer);
+  if (warnTimer) clearTimeout(warnTimer);
   silenceTimer = null;
   maxTimer = null;
+  warnTimer = null;
 }
 
 export function startListening(
   onPartial: (text: string, amp: number) => void,
   onEnd: (text: string) => void,
   onError: (fatal: boolean) => void,
+  // Fired shortly before the silence cutoff closes the mic, and again with
+  // false if the user starts speaking again. Lets the UI warn rather than
+  // cutting someone off mid-thought with no signal at all.
+  onWrapUp?: (soon: boolean) => void,
 ) {
   const w = window as SR;
   const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition;
@@ -111,7 +119,11 @@ export function startListening(
 
   const armSilence = (ms: number) => {
     if (silenceTimer) clearTimeout(silenceTimer);
+    if (warnTimer) clearTimeout(warnTimer);
+    onWrapUp?.(false);
     silenceTimer = setTimeout(stopRecogniser, ms);
+    // Warn just before the cutoff so a pause mid-sentence is visible, not fatal.
+    if (ms > WRAP_WARN_MS) warnTimer = setTimeout(() => onWrapUp?.(true), ms - WRAP_WARN_MS);
   };
 
   const finish = () => {
@@ -119,6 +131,7 @@ export function startListening(
     settled = true;
     clearTimers();
     stopMeter();
+    onWrapUp?.(false);
     if (aborted) return; // cancelled on purpose — swallow the utterance
     onEnd(finalText.trim());
   };
@@ -190,6 +203,7 @@ export function abortListening() {
 }
 
 import { apiFetch } from './backend';
+import { isMuted } from './sfx';
 
 export type ChatTurn = { role: 'user' | 'assistant'; content: string };
 
@@ -232,6 +246,14 @@ export function stopSpeaking() {
 // Falls back to the browser voice if the request fails. onAmp streams the
 // live audio amplitude so the core reacts to the actual speech.
 export async function speak(text: string, onAmp?: (a: number) => void): Promise<void> {
+  // Muted means muted — including CAVEN's own voice, not just interface blips.
+  // The reply still renders on screen, and we still hold the turn open for a
+  // plausible reading time so the mic doesn't re-arm the instant we "finish".
+  if (isMuted()) {
+    await new Promise((resolve) => setTimeout(resolve, Math.min(2600, 600 + text.length * 38)));
+    onAmp?.(0);
+    return;
+  }
   try {
     const res = await apiFetch('tts', {
       method: 'POST',

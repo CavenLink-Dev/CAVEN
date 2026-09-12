@@ -30,11 +30,11 @@ export function applyCommand(kind:ActionKind,text:string,prev:CavenData,now=new 
   const done=said.match(/^(?:please )?(?:tick|cross) (.+?) off(?: my (?:list|tasks))?$/i)||said.match(/^(?:complete|finish|mark complete) (.+)$/i);
   if(done){const target=prev.tasks.filter(t=>t.title.toLowerCase()===done[1].toLowerCase());if(target.length!==1)throw new Error(`Please use the exact task name, ${term}. Nothing changed.`);return{data:{...prev,tasks:prev.tasks.map(t=>t.id===target[0].id?{...t,done:true}:t)},message:"That's done.",changed:true};}
   const add=said.match(/^(?:please )?(?:add (?:a |an )?task[: ]*|new task[: ]*|add )(.+?)(?: to my (?:tasks|list))?$/i);
-  if(add)return{data:{...prev,tasks:[{id,title:add[1],done:false},...prev.tasks]},message:"Noted. It's on the list.",changed:true};
+  if(add)return{data:{...prev,tasks:[{id,title:add[1],done:false},...prev.tasks]},message:`Noted: ${add[1]}.`,changed:true};
  }
  if(kind==='journal'&&/^(?:journal[: ]|(?:add|write|save|log)\b)/i.test(said))return{data:{...prev,journal:[{id,date:day,mood:'',title:'Journal entry',body:said.replace(/^journal[: ]*/i,'')},...prev.journal]},message:"It's in the journal.",changed:true};
  if(kind==='voicenote'&&/^(?:make|take|save|add|note|jot|remember)\b/i.test(said))return{data:{...prev,voiceNotes:[{id,text:said,when:day},...prev.voiceNotes]},message:"I've got that down.",changed:true};
- if(kind==='calendar'&&/^(book|schedule|add)\b/i.test(said))throw new Error(`Calendar booking is not connected yet, ${term}. I can save a reminder with a date and time.`);
+ // Calendar bookings fall through to the model path, which owns event.add.
  return unchanged;
 }
 
@@ -50,6 +50,7 @@ export const ACTION_VERBS: readonly string[] = [
   'task.done',
   'task.undone',
   'task.delete',
+  'undo',
   'reminder.add',
   'reminder.delete',
   'event.add',
@@ -111,8 +112,15 @@ function findOne<T>(rows: readonly T[], label: (row: T) => string, needle: strin
   const pool = exact.length > 0 ? exact : rows.filter((row) => label(row).toLowerCase().includes(want));
   if (pool.length === 0) throw new Error(`I've no ${noun} by the name of ${needle}, ${term}. Nothing has changed.`);
   if (pool.length > 1) {
+    // Name the candidates. "Give me the exact wording" is useless when the whole
+    // problem is that the user can't tell the two apart from memory.
+    const names = pool.slice(0, 4).map((row) => label(row).trim()).filter(Boolean);
+    const listed = names.length > 1
+      ? `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`
+      : names[0] ?? needle;
+    const more = pool.length > names.length ? `, and ${pool.length - names.length} more` : '';
     throw new Error(
-      `Several ${noun}s match ${needle}, ${term}. Give me the exact wording and I'll see to it. Nothing has changed.`,
+      `I have ${pool.length} that match, ${term}: ${listed}${more}. Which one? Nothing has changed.`,
     );
   }
   return pool[0] as T;
@@ -155,6 +163,21 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
   const idle = (message = ''): ActionResult => ({ data: prev, message, changed: false });
 
   switch (verb) {
+    // Puts back whatever the last delete removed. Deletions are instant, so this
+    // is the safety net for a mis-heard "delete the dentist reminder".
+    case 'undo': {
+      const stash = prev.lastDeleted;
+      if (!stash) return idle(`There's nothing to undo, ${term}.`);
+      const { kind, row } = stash;
+      const rows = prev[kind] as unknown[];
+      const restored = { ...prev, [kind]: [row, ...rows], lastDeleted: undefined } as CavenData;
+      const label =
+        (row as { title?: string; name?: string }).title ??
+        (row as { title?: string; name?: string }).name ??
+        'That';
+      return { data: restored, message: `${label} is back, ${term}.`, changed: true };
+    }
+
     case 'task.add': {
       const title = required(action.title, `What should the task be, ${term}? Nothing has been added.`);
       const task: Task = { id, title, done: false };
@@ -181,8 +204,8 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
       const title = required(action.title, `Which task should go, ${term}? Nothing has changed.`);
       const target = findOne(prev.tasks, (t) => t.title, title, 'task', term);
       return {
-        data: { ...prev, tasks: prev.tasks.filter((t) => t.id !== target.id) },
-        message: `${target.title} is off the list.`,
+        data: { ...prev, tasks: prev.tasks.filter((t) => t.id !== target.id), lastDeleted: { kind: 'tasks', row: target } },
+        message: `${target.title} is off the list. Say undo if that was wrong.`,
         changed: true,
       };
     }
@@ -210,8 +233,8 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
       const title = required(action.title, `Which reminder should go, ${term}? Nothing has changed.`);
       const target = findOne(prev.reminders, (r) => r.title, title, 'reminder', term);
       return {
-        data: { ...prev, reminders: prev.reminders.filter((r) => r.id !== target.id) },
-        message: `${target.title} is off the board.`,
+        data: { ...prev, reminders: prev.reminders.filter((r) => r.id !== target.id), lastDeleted: { kind: 'reminders', row: target } },
+        message: `${target.title} is off the board. Say undo if that was wrong.`,
         changed: true,
       };
     }
@@ -234,8 +257,8 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
       const title = required(action.title, `Which entry should go, ${term}? Nothing has changed.`);
       const target = findOne(prev.calendar, (e) => e.title, title, 'diary entry', term);
       return {
-        data: { ...prev, calendar: prev.calendar.filter((e) => e.id !== target.id) },
-        message: `${target.title} is out of the diary.`,
+        data: { ...prev, calendar: prev.calendar.filter((e) => e.id !== target.id), lastDeleted: { kind: 'calendar', row: target } },
+        message: `${target.title} is out of the diary. Say undo if that was wrong.`,
         changed: true,
       };
     }
@@ -272,8 +295,8 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
       const name = required(action.name, `Which habit should go, ${term}? Nothing has changed.`);
       const target = findOne(prev.habits, (h) => h.name, name, 'habit', term);
       return {
-        data: { ...prev, habits: prev.habits.filter((h) => h.id !== target.id) },
-        message: `I'll stop tracking ${target.name}.`,
+        data: { ...prev, habits: prev.habits.filter((h) => h.id !== target.id), lastDeleted: { kind: 'habits', row: target } },
+        message: `I'll stop tracking ${target.name}. Say undo if that was wrong.`,
         changed: true,
       };
     }
@@ -301,8 +324,8 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
       const body = required(action.text, `Which note should go, ${term}? Nothing has changed.`);
       const target = findOne(prev.voiceNotes, (n) => n.text, body, 'note', term);
       return {
-        data: { ...prev, voiceNotes: prev.voiceNotes.filter((n) => n.id !== target.id) },
-        message: 'That note is gone.',
+        data: { ...prev, voiceNotes: prev.voiceNotes.filter((n) => n.id !== target.id), lastDeleted: { kind: 'voiceNotes', row: target } },
+        message: 'That note is gone. Say undo if that was wrong.',
         changed: true,
       };
     }
