@@ -4,7 +4,12 @@
 //
 // Every line here is resent on every turn, so each one has to earn its tokens.
 // That is why the lists are short and the notes are trimmed to a first line.
-import { dayKey, dayLabel, parseStamp } from "./when.ts";
+// No .ts extension: this module is pulled into the Edge bundle by api/chat.ts,
+// and that bundler will not resolve an explicit .ts specifier — it fails the
+// deploy with "referencing unsupported modules", after a build that passed.
+// `pnpm build` cannot catch it because it never bundles the functions; `vercel
+// build` does. Anything under shared/ that an api/ route reaches follows this.
+import { dayKey, dayLabel, parseStamp } from "./when";
 
 function list(value: unknown): Record<string, unknown>[] {
   if (!Array.isArray(value)) return [];

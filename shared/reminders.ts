@@ -5,7 +5,9 @@
 // the open tab and the push dispatcher have to agree on, so it is pure and kept
 // out of both of them.
 
-import { clockLabel, dateLabel, momentLabel, nextOccurrenceIn, parseStamp, type Repeat } from './when.ts';
+// Extensionless: api/push-dispatch.ts pulls this into a serverless bundle, and
+// an explicit .ts specifier is not resolved there. See shared/boardBrief.ts.
+import { clockLabel, dateLabel, momentLabel, nextOccurrenceIn, parseStamp, type Repeat } from './when';
 
 export type DueReminder = {
   id: string;
