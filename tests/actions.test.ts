@@ -5,10 +5,12 @@ import {
   DEFAULT_ADDRESS,
   addressOf,
   applyCommand,
+  habitDoneOn,
   parseActions,
   runAction,
   type CavenAction,
 } from '../shared/actions.ts';
+import { dayKeyOf } from '../shared/when.ts';
 import type { CavenData } from '../src/lib/store';
 
 const empty = (): CavenData => ({
@@ -62,7 +64,10 @@ test('an ambiguous name changes nothing and says so', () => {
       { id: 'b', title: 'Call the bank', done: false },
     ],
   });
-  assert.throws(() => runAction({ do: 'task.done', title: 'call' }, prev, NOW), /several tasks match/i);
+  // findOne names the candidates rather than demanding "the exact wording" —
+  // the whole problem is that the user can't tell the two apart from memory.
+  assert.throws(() => runAction({ do: 'task.done', title: 'call' }, prev, NOW), /2 that match/i);
+  assert.throws(() => runAction({ do: 'task.done', title: 'call' }, prev, NOW), /Call mum or Call the bank/i);
 });
 
 test('a name that matches nothing changes nothing and says so', () => {
@@ -131,13 +136,114 @@ test('event.add stores a readable clock time and a known kind', () => {
   assert.equal(result.data.calendar[0]?.kind, 'event');
 });
 
+test('event.add keeps the day, not just the clock', () => {
+  // The audit's case: asked for tomorrow, confirmed as tomorrow, filed as today.
+  const result = runAction({ do: 'event.add', title: 'UX audit check', when: 'tomorrow at 10am' }, frozen(), NOW);
+  const saved = result.data.calendar[0];
+  assert.ok(saved?.at, 'the event lost its date');
+  assert.equal(dayKeyOf(saved?.at), '2026-09-12');
+  // And the spoken line has to agree with what was filed.
+  assert.match(result.message, /tomorrow/i);
+});
+
+test('a delete is never answered by creating something', () => {
+  // Verbatim from the audit. It matches the reminder intent on "reminder for",
+  // reached the fast path and saved a second reminder for the same time.
+  const said = 'Delete the reminder titled check the UX audit. It is the audit reminder for 6:26pm on the board.';
+  const prev = frozen({
+    reminders: [{ id: 'r', title: 'check the UX audit', date: '12/09/2026', time: '6:26 pm' }],
+  });
+  const result = applyCommand('reminder', said, prev, NOW);
+  assert.equal(result.changed, false, 'the fast path wrote something on a delete');
+  assert.equal(result.data.reminders.length, 1);
+});
+
+test('every phrasing of removal stays off the fast path', () => {
+  const prev = frozen();
+  for (const said of [
+    'delete my 6pm reminder',
+    'remove the reminder for 9am tomorrow',
+    'cancel the reminder for tomorrow at 8am',
+    'get rid of the reminder for 3pm',
+    'take the dentist reminder off the board',
+    'clear the reminder for 5pm today',
+  ]) {
+    assert.equal(applyCommand('reminder', said, prev, NOW).changed, false, said);
+  }
+});
+
+test('a repeating reminder keeps its rule and a clean title', () => {
+  const result = applyCommand('reminder', 'remind me every weekday at 9am to take my tablets', frozen(), NOW);
+  assert.equal(result.changed, true);
+  const saved = result.data.reminders[0];
+  assert.equal(saved?.repeat, 'weekdays');
+  // The repeat phrase used to survive into the title: "every weekday at take my tablets".
+  assert.equal(saved?.title, 'take my tablets');
+  assert.doesNotMatch(saved?.title ?? '', /every|weekday/i);
+  assert.match(result.message, /every weekday/i);
+});
+
+test('a weekday rule never first fires at the weekend', () => {
+  // Saturday morning. "Every weekday at 6" must open on the Monday.
+  const saturday = new Date('2026-09-12T08:00:00+09:30');
+  const result = applyCommand('reminder', 'remind me every weekday at 6pm to log off', frozen(), saturday);
+  const due = new Date(result.data.reminders[0]?.dueAt ?? 0);
+  assert.equal(due.getDay(), 1, 'first occurrence was not a Monday');
+});
+
+test('every Monday said on a Friday waits for the Monday', () => {
+  const friday = new Date('2026-09-11T10:00:00+09:30');
+  const result = runAction(
+    { do: 'reminder.add', title: 'Team sync', when: 'every monday at 9am' },
+    frozen(),
+    friday,
+  );
+  const saved = result.data.reminders[0];
+  assert.equal(saved?.repeat, 'weekly');
+  assert.equal(new Date(saved?.dueAt ?? 0).getDay(), 1);
+});
+
 test('habit.done moves the streak once a day', () => {
-  const prev = frozen({ habits: [{ id: 'h', name: 'Read', streak: 4, goal: 7, done: false, icon: 'o' }] });
+  // Ticked yesterday, so today continues the run.
+  const prev = frozen({
+    habits: [{ id: 'h', name: 'Read', streak: 4, goal: 7, done: true, lastDone: '2026-09-10', icon: 'o' }],
+  });
   const first = runAction({ do: 'habit.done', name: 'read' }, prev, NOW);
   assert.equal(first.changed, true);
   assert.equal(first.data.habits[0]?.streak, 5);
+  assert.equal(first.data.habits[0]?.lastDone, '2026-09-11');
   const again = runAction({ do: 'habit.done', name: 'read' }, first.data, NOW);
   assert.equal(again.changed, false);
+  assert.match(again.message, /already ticked today/i);
+});
+
+test('a habit ticked yesterday is tickable again today', () => {
+  // The bug the audit caught: `done` was a bare boolean that nothing reset, so
+  // the next day's tick was refused as "already ticked today" for ever.
+  const prev = frozen({
+    habits: [{ id: 'h', name: 'Read', streak: 1, goal: 7, done: true, lastDone: '2026-09-10', icon: 'o' }],
+  });
+  const nextMorning = new Date('2026-09-11T07:00:00+09:30');
+  const result = runAction({ do: 'habit.done', name: 'Read' }, prev, nextMorning);
+  assert.equal(result.changed, true);
+  assert.equal(result.data.habits[0]?.streak, 2);
+});
+
+test('a skipped day starts the streak over rather than inflating it', () => {
+  const prev = frozen({
+    habits: [{ id: 'h', name: 'Read', streak: 9, goal: 7, done: true, lastDone: '2026-09-01', icon: 'o' }],
+  });
+  const result = runAction({ do: 'habit.done', name: 'Read' }, prev, NOW);
+  assert.equal(result.changed, true);
+  assert.equal(result.data.habits[0]?.streak, 1);
+  assert.match(result.message, /day one/i);
+});
+
+test('habitDoneOn reads the date, never the stale flag', () => {
+  assert.equal(habitDoneOn({ done: true, lastDone: '2026-09-11' }, NOW), true);
+  assert.equal(habitDoneOn({ done: true, lastDone: '2026-09-10' }, NOW), false);
+  // A board written before lastDone existed: the flag alone proves nothing.
+  assert.equal(habitDoneOn({ done: true }, NOW), false);
 });
 
 test('habit.add fills the shape the board reads', () => {
@@ -196,7 +302,17 @@ test('an unknown verb changes nothing and claims nothing', () => {
 
 test('every listed verb is actually wired up', () => {
   for (const verb of ACTION_VERBS) {
-    assert.throws(() => runAction({ do: verb }, frozen(), NOW), /\S/, verb);
+    // Wired up means: called bare, it either refuses aloud or answers aloud.
+    // Silence would mean the verb fell through to the unknown-verb default and
+    // the prompt is advertising something runAction does not serve. `undo` is
+    // the one that answers rather than throws — nothing to undo is not an error.
+    let spoke = '';
+    try {
+      spoke = runAction({ do: verb }, frozen(), NOW).message;
+    } catch (error) {
+      spoke = error instanceof Error ? error.message : '';
+    }
+    assert.match(spoke, /\S/, `${verb} said nothing at all`);
   }
 });
 
@@ -307,7 +423,9 @@ test('a chosen address is spoken in a confirmation and in a thrown refusal', () 
 test('the regex fast path speaks the chosen address as well', () => {
   const prev = frozen({ address: 'Master' });
   assert.throws(() => applyCommand('reminder', 'remind me to ring the bank', prev, NOW), /Master/);
-  assert.throws(() => applyCommand('calendar', 'book a table for two', prev, NOW), /Master/);
+  // Calendar bookings are not the fast path's to answer — they belong to the
+  // model, which owns event.add — so this one changes nothing and says nothing new.
+  assert.equal(applyCommand('calendar', 'book a table for two', prev, NOW).changed, false);
   assert.throws(
     () => applyCommand('reminder', 'remind me to ring the bank at 9am yesterday', prev, NOW),
     /Master/,

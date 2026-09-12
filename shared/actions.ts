@@ -6,6 +6,20 @@
 // never a claim larger than what actually happened.
 import * as chrono from 'chrono-node';
 import type {CavenData} from '../src/lib/store';
+// Day, month and repeat arithmetic. Every "is this today?" question in the app
+// answers from here, so the board, the briefing and the voice cannot disagree.
+import {
+  alignToRule,
+  clockLabel,
+  dayKey,
+  dayLabel,
+  daysBetween,
+  momentLabel,
+  parseStamp,
+  readRepeat,
+  repeatLabel,
+  type Repeat,
+} from './when.ts';
 export type ActionKind='reminder'|'tasks'|'journal'|'voicenote'|'calendar'|'habits'|'finance'|'brain';
 export type CavenAction={do:string;[key:string]:unknown};
 export type ActionResult={data:CavenData;message:string;changed:boolean};
@@ -14,17 +28,84 @@ export type ActionResult={data:CavenData;message:string;changed:boolean};
 import { addressOf, checkAddress } from './address.ts';
 // Re-exported so callers keep one import for the action engine's whole surface.
 export { addressOf, checkAddress, DEFAULT_ADDRESS, ADDRESS_LIMIT } from './address.ts';
+/**
+ * Anything that means "take it away".
+ *
+ * These must never reach the fast path. "Delete the reminder for 6:26pm"
+ * matches the reminder intent on the words "reminder for", and the fast path
+ * answered by creating a *second* reminder for 6:26pm — the user asked for one
+ * fewer record and got one more. Removal needs the model path, which owns
+ * reminder.delete / task.delete / event.delete and the findOne() questioning
+ * that refuses to guess which record was meant.
+ */
+export const REMOVAL =
+  /\b(delete|remove|cancel|clear|scrap|erase|wipe|bin (?:off|it)|get rid of|take (?:it |that |the )?.{0,40}?\boff\b|no longer (?:need|want))\b/i;
+
+/** Queries and negations. Viewing and writing are separate operations. */
+const READ_ONLY =
+  /^(show|what|how|when|where|do i|did i|have i|can you show|tell me|open|check|don'?t (add|save|create|log|delete)|do not)\b/i;
+
+/** The phrasings that ask for a reminder to exist. */
+const REMINDER_INTENT = /\b(remind me|set a reminder|reminder for|nudge me|wake me|let me forget)\b/i;
+
+type Reminder = CavenData['reminders'][number];
+
+/** One shape for a stored reminder, so the fast path and the model path agree. */
+function makeReminder(id: string, title: string, due: Date, repeat?: Repeat): Reminder {
+  const reminder: Reminder = {
+    id,
+    title,
+    date: due.toLocaleDateString('en-AU'),
+    time: clockLabel(due),
+    dueAt: due.toISOString(),
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  };
+  if (repeat) reminder.repeat = repeat;
+  return reminder;
+}
+
+/** What CAVEN says once a reminder is actually on the board. */
+function reminderLine(due: Date, now: Date, repeat?: Repeat): string {
+  if (!repeat) return `It's on the board for ${momentLabel(due, now)}.`;
+  return `On the board ${repeatLabel(repeat, due)} at ${clockLabel(due)}, starting ${dayLabel(due, now)}.`;
+}
+
+/** Whatever is left of a sentence once the command words and the date are gone. */
+function titleFrom(said: string, cut: { index: number; text: string }): string {
+  return (
+    `${said.slice(0, cut.index)}${said.slice(cut.index + cut.text.length)}`
+      // Collapse first: lifting a date out of the middle leaves a double space,
+      // and "remind me  to …" would then not match the "remind me to" prefix,
+      // stranding a bare "to" at the front of the title.
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+      .replace(
+        /^(?:caven[, ]*)?(?:remind me(?: to)?|set a reminder(?: for)?|nudge me(?: to)?|wake me|don'?t let me forget(?: to)?)\s*/i,
+        '',
+      )
+      .replace(/^(?:to|that|about)\s+/i, '')
+      .replace(/\b(at|on|for|to)\s*$/i, '')
+      .trim()
+  );
+}
+
 export function applyCommand(kind:ActionKind,text:string,prev:CavenData,now=new Date()):ActionResult {
- const said=text.trim(), term=addressOf(prev), id=crypto.randomUUID(), day=now.toLocaleDateString('en-AU'), unchanged={data:prev,message:'Here it is.',changed:false};
+ const said=text.trim(), term=addressOf(prev), id=crypto.randomUUID(), day=now.toLocaleDateString('en-AU'), at=now.toISOString(), unchanged={data:prev,message:'Here it is.',changed:false};
  // Queries and negations never mutate data. Viewing and writing are separate operations.
- if(/^(show|what|how|when|where|do i|did i|have i|can you show|tell me|open|check|don'?t (add|save|create|log|delete)|do not)\b/i.test(said)) return unchanged;
- if(kind==='reminder' && /\b(remind me|set a reminder|reminder for|nudge me|wake me|let me forget)\b/i.test(said)) {
-  const match=chrono.en.GB.parse(said,now,{forwardDate:true})[0];
+ if(READ_ONLY.test(said)) return unchanged;
+ // A removal is never a creation. Hand it to the model path untouched.
+ if(REMOVAL.test(said)) return unchanged;
+ if(kind==='reminder' && REMINDER_INTENT.test(said)) {
+  // Lift any "every weekday" out first: chrono then reads a single clean time
+  // instead of tripping over the repeat phrase, and the title keeps only the
+  // words a person would recognise as the thing they asked to be reminded of.
+  const {rule,rest}=readRepeat(said);
+  const match=chrono.en.GB.parse(rest,now,{forwardDate:true})[0];
   if(!match||!match.start.isCertain('hour'))throw new Error(`What date and time should I remind you, ${term}? Nothing has been saved yet.`);
-  const due=match.start.date();
+  const due=rule?alignToRule(match.start.date(),rule,now):match.start.date();
   if(due.getTime()<=now.getTime())throw new Error(`That time has already passed, ${term}. Please give me a future date and time.`);
-  const title=(said.slice(0,match.index)+said.slice(match.index+match.text.length)).replace(/^(?:caven[, ]*)?(?:remind me(?: to)?|set a reminder(?: for)?|nudge me(?: to)?|wake me|don'?t let me forget(?: to)?)\s*/i,'').replace(/\b(at|on|for)\s*$/i,'').trim()||'Reminder';
-  return {data:{...prev,reminders:[{id,title,date:due.toLocaleDateString('en-AU'),time:due.toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'}),dueAt:due.toISOString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone},...prev.reminders]},message:`It's on the board for ${due.toLocaleString('en-AU')}.`,changed:true};
+  const title=titleFrom(rest,{index:match.index,text:match.text})||'Reminder';
+  return {data:{...prev,reminders:[makeReminder(id,title,due,rule?.repeat),...prev.reminders]},message:reminderLine(due,now,rule?.repeat),changed:true};
  }
  if(kind==='tasks') {
   const done=said.match(/^(?:please )?(?:tick|cross) (.+?) off(?: my (?:list|tasks))?$/i)||said.match(/^(?:complete|finish|mark complete) (.+)$/i);
@@ -32,8 +113,8 @@ export function applyCommand(kind:ActionKind,text:string,prev:CavenData,now=new 
   const add=said.match(/^(?:please )?(?:add (?:a |an )?task[: ]*|new task[: ]*|add )(.+?)(?: to my (?:tasks|list))?$/i);
   if(add)return{data:{...prev,tasks:[{id,title:add[1],done:false},...prev.tasks]},message:`Noted: ${add[1]}.`,changed:true};
  }
- if(kind==='journal'&&/^(?:journal[: ]|(?:add|write|save|log)\b)/i.test(said))return{data:{...prev,journal:[{id,date:day,mood:'',title:'Journal entry',body:said.replace(/^journal[: ]*/i,'')},...prev.journal]},message:"It's in the journal.",changed:true};
- if(kind==='voicenote'&&/^(?:make|take|save|add|note|jot|remember)\b/i.test(said))return{data:{...prev,voiceNotes:[{id,text:said,when:day},...prev.voiceNotes]},message:"I've got that down.",changed:true};
+ if(kind==='journal'&&/^(?:journal[: ]|(?:add|write|save|log)\b)/i.test(said))return{data:{...prev,journal:[{id,date:day,at,mood:'',title:'Journal entry',body:said.replace(/^journal[: ]*/i,'')},...prev.journal]},message:"It's in the journal.",changed:true};
+ if(kind==='voicenote'&&/^(?:make|take|save|add|note|jot|remember)\b/i.test(said))return{data:{...prev,voiceNotes:[{id,text:said,when:day,at},...prev.voiceNotes]},message:"I've got that down.",changed:true};
  // Calendar bookings fall through to the model path, which owns event.add.
  return unchanged;
 }
@@ -43,6 +124,20 @@ type Habit = CavenData['habits'][number];
 type CalendarEvent = CavenData['calendar'][number];
 type Transaction = CavenData['transactions'][number];
 type Budget = CavenData['budgets'][number];
+
+/**
+ * Whether a habit counts as ticked for the given day.
+ *
+ * Never read the stored `done` flag on its own: it was written on whatever day
+ * the habit was last ticked and nothing ever cleared it overnight, which is why
+ * the same habit stayed "already ticked today" indefinitely. `lastDone` is the
+ * record; the flag is only kept so older readers of the board still see something
+ * sensible. A habit saved before `lastDone` existed reads as not yet done — it
+ * costs one streak, once, and is the only reading that can't be wrong tomorrow.
+ */
+export function habitDoneOn(habit: { done?: boolean; lastDone?: string }, now = new Date()): boolean {
+  return habit.lastDone === dayKey(now);
+}
 
 /** Every verb runAction understands. The system prompt is kept in step with this list. */
 export const ACTION_VERBS: readonly string[] = [
@@ -130,7 +225,13 @@ function findOne<T>(rows: readonly T[], label: (row: T) => string, needle: strin
  * Natural language time, read exactly as the reminder fast path reads it.
  * A vague hour, or a moment already gone, is refused aloud rather than saved wrong.
  */
-function whenDate(said: string, now: Date, noun: 'reminder' | 'event', term: string): Date {
+function whenDate(
+  said: string,
+  now: Date,
+  noun: 'reminder' | 'event',
+  term: string,
+  rule?: ReturnType<typeof readRepeat>['rule'],
+): Date {
   const match = chrono.en.GB.parse(said, now, { forwardDate: true })[0];
   if (!match || !match.start.isCertain('hour')) {
     throw new Error(
@@ -139,15 +240,23 @@ function whenDate(said: string, now: Date, noun: 'reminder' | 'event', term: str
         : `What date and time is that, ${term}? Nothing has gone in the diary.`,
     );
   }
-  const due = match.start.date();
+  // A repeating reminder starts on the rule's own footing: "every Monday at 9",
+  // said on a Wednesday, must not first fire on the Wednesday.
+  const due = rule ? alignToRule(match.start.date(), rule, now) : match.start.date();
   if (due.getTime() <= now.getTime()) {
     throw new Error(`That time has already passed, ${term}. Please give me a future date and time.`);
   }
   return due;
 }
 
-function clockOf(date: Date): string {
-  return date.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' });
+/** The repeat the model asked for, either as a field or inside the `when` phrase. */
+function repeatOf(action: CavenAction, when: string): { rule: ReturnType<typeof readRepeat>['rule']; when: string } {
+  const asked = text(action.repeat).toLowerCase().replace(/[\s_-]+/g, '');
+  if (asked === 'daily' || asked === 'everyday') return { rule: { repeat: 'daily' }, when };
+  if (asked === 'weekdays' || asked === 'weekday') return { rule: { repeat: 'weekdays' }, when };
+  if (asked === 'weekly' || asked === 'everyweek') return { rule: { repeat: 'weekly' }, when };
+  const read = readRepeat(when);
+  return { rule: read.rule, when: read.rest };
 }
 
 /**
@@ -160,6 +269,9 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
   const term = addressOf(prev);
   const id = crypto.randomUUID();
   const day = now.toLocaleDateString('en-AU');
+  // Rows carry both: `day` is what the board prints, `at` is what anything
+  // comparing days or months has to read.
+  const at = now.toISOString();
   const idle = (message = ''): ActionResult => ({ data: prev, message, changed: false });
 
   switch (verb) {
@@ -212,19 +324,12 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
 
     case 'reminder.add': {
       const title = required(action.title, `What should I remind you about, ${term}? Nothing has been saved.`);
-      const when = required(action.when, `What date and time should I remind you, ${term}? Nothing has been saved yet.`);
-      const due = whenDate(when, now, 'reminder', term);
-      const reminder = {
-        id,
-        title,
-        date: due.toLocaleDateString('en-AU'),
-        time: clockOf(due),
-        dueAt: due.toISOString(),
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      };
+      const asked = required(action.when, `What date and time should I remind you, ${term}? Nothing has been saved yet.`);
+      const { rule, when } = repeatOf(action, asked);
+      const due = whenDate(when, now, 'reminder', term, rule);
       return {
-        data: { ...prev, reminders: [reminder, ...prev.reminders] },
-        message: `On the board for ${due.toLocaleString('en-AU')}.`,
+        data: { ...prev, reminders: [makeReminder(id, title, due, rule?.repeat), ...prev.reminders] },
+        message: reminderLine(due, now, rule?.repeat),
         changed: true,
       };
     }
@@ -242,13 +347,16 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     case 'event.add': {
       const title = required(action.title, `What shall I call it, ${term}? Nothing has gone in the diary.`);
       const when = required(action.when, `What date and time is that, ${term}? Nothing has gone in the diary.`);
-      const at = whenDate(when, now, 'event', term);
+      const moment = whenDate(when, now, 'event', term);
       const asked = text(action.kind).toLowerCase();
       const kind: CalendarEvent['kind'] = asked === 'routine' || asked === 'reminder' ? asked : 'event';
-      const event: CalendarEvent = { id, title, time: clockOf(at), kind };
+      // The whole moment is stored. Keeping only the clock time was why a booking
+      // for tomorrow appeared under Today, and why CAVEN could agree it was
+      // tomorrow while the board beside him said otherwise.
+      const event: CalendarEvent = { id, title, time: clockLabel(moment), kind, at: moment.toISOString() };
       return {
         data: { ...prev, calendar: [event, ...prev.calendar] },
-        message: `In the diary at ${event.time}.`,
+        message: `In the diary for ${momentLabel(moment, now)}.`,
         changed: true,
       };
     }
@@ -285,10 +393,18 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     case 'habit.done': {
       const name = required(action.name, `Which habit, ${term}? Nothing has changed.`);
       const target = findOne(prev.habits, (h) => h.name, name, 'habit', term);
-      if (target.done) return idle(`${target.name} is already ticked today, ${term}.`);
-      const streak = target.streak + 1;
-      const habits = prev.habits.map((h) => (h.id === target.id ? { ...h, done: true, streak } : h));
-      return { data: { ...prev, habits }, message: `${target.name} ticked. That's ${streak} in a row.`, changed: true };
+      // The tick used to be a bare boolean that nothing ever reset, so a habit
+      // done on Monday was still "already ticked today" on Tuesday and the
+      // streak counted ticks rather than days. The date is the record now.
+      if (habitDoneOn(target, now)) return idle(`${target.name} is already ticked today, ${term}.`);
+      const last = parseStamp(target.lastDone);
+      // Yesterday continues the run; any longer a gap starts a new one.
+      const streak = last && daysBetween(last, now) === 1 ? target.streak + 1 : 1;
+      const habits = prev.habits.map((h) =>
+        h.id === target.id ? { ...h, done: true, lastDone: dayKey(now), streak } : h,
+      );
+      const run = streak === 1 ? "That's day one." : `That's ${streak} days in a row.`;
+      return { data: { ...prev, habits }, message: `${target.name} ticked. ${run}`, changed: true };
     }
 
     case 'habit.delete': {
@@ -303,7 +419,7 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
 
     case 'journal.add': {
       const body = required(action.body, `What should I write, ${term}? Nothing has gone in the journal.`);
-      const entry = { id, date: day, mood: text(action.mood), title: text(action.title) || 'Journal entry', body };
+      const entry = { id, date: day, at, mood: text(action.mood), title: text(action.title) || 'Journal entry', body };
       return {
         data: { ...prev, journal: [entry, ...prev.journal] },
         message: 'Written up in the journal.',
@@ -314,7 +430,7 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     case 'note.add': {
       const body = required(action.text, `What should the note say, ${term}? Nothing has been kept.`);
       return {
-        data: { ...prev, voiceNotes: [{ id, text: body, when: day }, ...prev.voiceNotes] },
+        data: { ...prev, voiceNotes: [{ id, text: body, when: day, at }, ...prev.voiceNotes] },
         message: 'I have that down.',
         changed: true,
       };
@@ -337,7 +453,8 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
       // Money out is stored negative; the finance page sums transactions for the balance.
       const spent = Math.abs(raw);
       const category = text(action.category) || 'General';
-      const tx: Transaction = { id, label, amount: -spent, category, when: day };
+      // `at` is what the month balance filters on; `when` is what the page prints.
+      const tx: Transaction = { id, label, amount: -spent, category, when: day, at };
       const budget = prev.budgets.find((b) => sameText(b.category, category));
       const budgets = budget
         ? prev.budgets.map((b) => (b.id === budget.id ? { ...b, spent: b.spent + spent } : b))

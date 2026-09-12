@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { addressOf, DEFAULT_ADDRESS } from '../../shared/address';
-import { parseActions } from '../../shared/actions';
+import { parseActions, REMOVAL } from '../../shared/actions';
 import { playSfx } from './sfx';
 import { useCavenStore } from './store';
 import {
@@ -71,6 +71,10 @@ export function route(text: string): Route | null {
   if (!t) return null;
   // A bare greeting is never a command, even if it happens to contain a keyword.
   if (CHITCHAT.test(t) && t.split(/\s+/).length <= 6) return null;
+  // Nor is "delete the reminder for 6:26pm" a request for a reminder, however
+  // much it reads like one. Removal belongs to the model, which owns the delete
+  // verbs and asks which record was meant instead of guessing.
+  if (REMOVAL.test(t)) return null;
   for (const intent of INTENTS) {
     if (intent.re.test(t)) return { kind: intent.kind, title: intent.title };
   }

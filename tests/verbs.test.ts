@@ -57,7 +57,7 @@ test('honesty: failures throw and write nothing', () => {
   const base = { ...seedData(), tasks:[{id:'1',title:'Email Bob',done:false},{id:'2',title:'Email Sue',done:false}] };
   assert.throws(() => runAction({do:'reminder.add',title:'x',when:'sometime'}, base, now), /date and time/i);
   assert.throws(() => runAction({do:'reminder.add',title:'x',when:'yesterday at 6pm'}, base, now), /passed/i);
-  assert.throws(() => runAction({do:'task.done',title:'Email'}, base, now), /several|exact/i);
+  assert.throws(() => runAction({do:'task.done',title:'Email'}, base, now), /2 that match/i);
   assert.throws(() => runAction({do:'task.done',title:'Nonexistent'}, base, now), /no task/i);
   assert.equal(runAction({do:'wat.nope'}, base, now).changed, false);
   assert.deepEqual(base.tasks.length, 2, 'prev was mutated');
