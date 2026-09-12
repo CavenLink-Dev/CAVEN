@@ -2,6 +2,34 @@ import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 
 
 type WindowState = "normal" | "collapsed" | "expanded" | "closed"
 
+// Panels remember whether the user closed/collapsed them, per browser, so a
+// refresh doesn't quietly bring back something they dismissed on purpose.
+// Keyed by a slug of the panel's own label — good enough since labels here are
+// static per-card ("Tasks", "Reminders", ...) rather than user-authored text.
+const STORAGE_PREFIX = "caven:panel:"
+function slugOf(label: ReactNode): string {
+  return String(label).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "panel"
+}
+function readStoredWin(key: string): WindowState | null {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_PREFIX + key)
+    return raw === "collapsed" || raw === "closed" ? raw : null
+  } catch {
+    return null
+  }
+}
+function writeStoredWin(key: string, win: WindowState) {
+  try {
+    // Only "closed"/"collapsed" are worth remembering — "expanded" is a
+    // momentary focus view, not a layout preference, so it always resets.
+    if (win === "closed" || win === "collapsed") window.localStorage.setItem(STORAGE_PREFIX + key, win)
+    else window.localStorage.removeItem(STORAGE_PREFIX + key)
+  } catch {
+    // Best-effort only — a private window or blocked storage just means the
+    // preference doesn't survive a refresh, not that the panel misbehaves.
+  }
+}
+
 /**
  * Every board panel is a little window: it can be picked up and moved
  * (press-hold or drag from any empty part of the panel), and the three
@@ -31,8 +59,9 @@ export function GlassPanel({
   headerRelative?: boolean
 }) {
   const headingId = useId()
+  const storageKey = slugOf(label)
 
-  const [win, setWin] = useState<WindowState>("normal")
+  const [win, setWin] = useState<WindowState>(() => readStoredWin(storageKey) ?? "normal")
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
 
@@ -90,15 +119,20 @@ export function GlassPanel({
   // Safety net: drop any stray listeners if the panel unmounts mid-drag.
   useEffect(() => () => window.clearTimeout(drag.current.hold), [])
 
+  const setWinPersisted = (next: WindowState) => {
+    setWin(next)
+    writeStoredWin(storageKey, next)
+  }
+
   const closePanel = () => {
     setDragging(false)
-    setWin("closed")
+    setWinPersisted("closed")
   }
-  const toggleCollapse = () => setWin(prev => (prev === "collapsed" ? "normal" : "collapsed"))
+  const toggleCollapse = () => setWinPersisted(win === "collapsed" ? "normal" : "collapsed")
   const toggleExpand = () => setWin(prev => (prev === "expanded" ? "normal" : "expanded"))
   const reopen = () => {
     setOffset({ x: 0, y: 0 })
-    setWin("normal")
+    setWinPersisted("normal")
   }
 
   if (win === "closed") {
@@ -161,7 +195,7 @@ export function GlassPanel({
               type="button"
               className="win-light win-light--close"
               onClick={closePanel}
-              aria-label="Close panel"
+              aria-label="Close panel (remembered until you reopen it)"
             >
               <svg viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
                 <path d="M1.5 1.5l5 5M6.5 1.5l-5 5" />
@@ -204,7 +238,30 @@ export function GlassPanel({
  * A quiet line of copy for the states where there is nothing to show:
  * still loading, failed to load, or a genuinely empty board.
  * Plain utility classes only, so it never competes with the panel design.
+ *
+ * Pass onRetry (with a failed load) to turn the note into a real, clickable
+ * retry — not just the word "retry" sitting there with nothing behind it.
  */
-export function PanelNote({ children }: { children: ReactNode }) {
-  return <p className="t-caption text-white/45">{children}</p>
+export function PanelNote({
+  children,
+  onRetry,
+  retryLabel = "Retry",
+}: {
+  children: ReactNode
+  onRetry?: () => void
+  retryLabel?: string
+}) {
+  if (!onRetry) return <p className="t-caption text-white/45">{children}</p>
+  return (
+    <p className="t-caption text-white/45 flex flex-wrap items-center gap-2">
+      <span>{children}</span>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="t-caption text-cyan-300/90 underline underline-offset-2 hover:text-cyan-200"
+      >
+        {retryLabel}
+      </button>
+    </p>
+  )
 }

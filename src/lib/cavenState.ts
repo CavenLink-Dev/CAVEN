@@ -86,6 +86,7 @@ export function useCaven() {
   const [reply, setReply] = useState(''); // CAVEN's latest spoken line, for the chat box
   const [locked, setLocked] = useState(false);
   const [conversing, setConversing] = useState(false); // mic loop is running
+  const [wrapUp, setWrapUp] = useState(false); // mic is about to close on silence
 
   const lockedRef = useRef(false);
   const conversingRef = useRef(false);
@@ -122,6 +123,7 @@ export function useCaven() {
   // Open the mic. It closes itself the moment the user stops talking.
   const startMic = useCallback(() => {
     setTranscript('');
+    setWrapUp(false);
     playSfx('start');
     set('listening');
 
@@ -138,7 +140,10 @@ export function useCaven() {
         setTranscript(partial);
         pushAmp(amp);
       },
-      (final) => processRef.current(final),
+      (final) => {
+        setWrapUp(false);
+        processRef.current(final);
+      },
       (fatal) => {
         // Mic denied or unavailable — say so plainly and stand down rather
         // than pretending to have heard a command.
@@ -151,12 +156,14 @@ export function useCaven() {
         setReply(`I can't get at your microphone, ${addressRef.current}. Grant me access, or simply type it.`);
         set('idle');
       },
+      (soon) => setWrapUp(soon),
     );
   }, [pushAmp, resetAmp]);
   startMicRef.current = startMic;
 
   // Re-open the mic after CAVEN finishes speaking, so it is a conversation.
   const rearm = useCallback(() => {
+    setWrapUp(false);
     if (!conversingRef.current && !lockedRef.current) return;
     // Small gap so the tail of CAVEN's own voice isn't captured as input.
     setTimeout(() => {
@@ -227,7 +234,15 @@ export function useCaven() {
           if (changed) line = result.message;
           else await converse();
         } catch (error) {
-          line = error instanceof Error ? error.message : `That did not save, ${addressRef.current}. Please retry.`;
+          // The fast path refused — most often a date it couldn't read. Hand the
+          // turn to the model rather than stopping here: it has the last few
+          // turns of history, so a follow-up like "tomorrow at six" completes the
+          // original request instead of dead-ending on a question nothing hears.
+          const refusal = error instanceof Error ? error.message : '';
+          await converse();
+          if (!alive()) return;
+          // Only fall back to the raw refusal if the model gave us nothing.
+          if (!line) line = refusal || `That did not save, ${addressRef.current}. Please retry.`;
         }
       } else {
         await converse();
@@ -323,6 +338,7 @@ export function useCaven() {
     reply,
     locked,
     conversing,
+    wrapUp,
     toggle,
     toggleLock,
     cancel,

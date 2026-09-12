@@ -14,7 +14,7 @@ function reminderOrder(dueAt: string | undefined, index: number): [number, numbe
 }
 
 function DailyOverviewCardBase({ isVisible = true }: { isVisible?: boolean }) {
-  const { data, ready, status } = useCavenStore()
+  const { data, ready, status, loadFailed, reload } = useCavenStore()
   const { tasks, calendar, reminders } = data
 
   const todayLabel = useMemo(
@@ -70,9 +70,9 @@ function DailyOverviewCardBase({ isVisible = true }: { isVisible?: boolean }) {
       showTitle={false}
       headerRelative
     >
-      <div className="space-y-3 t-body">
+      <div className="space-y-3 t-body board-list-scroll">
         {!ready ? (
-          <PanelNote>{status}</PanelNote>
+          <PanelNote onRetry={loadFailed ? reload : undefined}>{status}</PanelNote>
         ) : rows.length === 0 ? (
           <PanelNote>Nothing on the board yet. The day is entirely yours.</PanelNote>
         ) : (

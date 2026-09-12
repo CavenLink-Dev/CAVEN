@@ -78,7 +78,7 @@ const VISUAL: Record<CavenState, CoreVisual> = {
 
 // Power is the second visual axis: whether the rig is lit at all.
 type PowerState = 'off' | 'on' | 'powering-off' | 'locked';
-type PulseType = 'green' | 'red' | 'blue';
+type PulseType = 'green' | 'red' | 'blue' | 'armed';
 
 const POWER_LABEL: Record<PowerState, string> = {
   off: 'standing by',
@@ -178,11 +178,16 @@ export function CavenCore({ state, amplitudeRef, locked, conversing, onToggle, o
       onLock();
       return;
     }
-    const stopping = conversing || state !== 'idle';
-    flash(stopping ? 'red' : 'green');
-    standDown(stopping);
+    // The press is acknowledged straight away with a neutral pulse, so the core
+    // never feels dead — but the committing red/green (and the stand-down) wait
+    // until we know this wasn't the first half of a double click. Previously the
+    // core visibly performed the single-click action and then took it back.
+    flash('armed');
     clickTimer.current = setTimeout(() => {
       clickTimer.current = null;
+      const stopping = conversing || state !== 'idle';
+      flash(stopping ? 'red' : 'green');
+      standDown(stopping);
       onToggle();
     }, 220);
   };

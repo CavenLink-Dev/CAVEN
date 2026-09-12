@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react';
-import { playSfx } from '../lib/sfx';
+import { isMuted, onMuteChange, playSfx } from '../lib/sfx';
 
 // Background music the user can pick from the top-right. Files live in imports/.
 const TRACKS = [
@@ -38,6 +38,24 @@ function MusicMenuBase() {
     if (audioRef.current) audioRef.current.volume = volume;
   }, [volume]);
 
+  // Muting silences the ambient track too, and unmuting picks it back up if a
+  // track was playing when the user muted — so "mute" means the room goes quiet.
+  const resumeOnUnmute = useRef(false);
+  useEffect(() => {
+    return onMuteChange(muted => {
+      const a = audioRef.current;
+      if (!a) return;
+      if (muted) {
+        resumeOnUnmute.current = !a.paused;
+        a.pause();
+        setPlaying(false);
+      } else if (resumeOnUnmute.current) {
+        resumeOnUnmute.current = false;
+        void a.play().then(() => setPlaying(true)).catch(() => {});
+      }
+    });
+  }, []);
+
   // Close the dropdown when clicking elsewhere.
   useEffect(() => {
     if (!open) return;
@@ -62,7 +80,7 @@ function MusicMenuBase() {
         a.pause();
         setPlaying(false);
       } else {
-        a.play().catch(() => {});
+        if (!isMuted()) a.play().catch(() => {});
         setPlaying(true);
       }
       return;
@@ -70,7 +88,7 @@ function MusicMenuBase() {
     playSfx('select', 120);
     a.src = TRACKS[i].url;
     a.currentTime = 0;
-    a.play().catch(() => {});
+    if (!isMuted()) a.play().catch(() => {});
     setCurrent(i);
     setPlaying(true);
   };

@@ -9,6 +9,7 @@ import { TopBar, type Page } from './components/board/TopBar';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { BrainPage, FinancePage, JournalPage } from './components/pages/SimplePages';
 import { useCaven } from './lib/cavenState';
+import { useCavenStore } from './lib/store';
 import { isMuted, setMuted } from './lib/sfx';
 
 export default function App() {
@@ -17,8 +18,11 @@ export default function App() {
   const [typed, setTyped] = useState('');
   // Stable element: a fresh <MusicMenu /> each render would defeat memo(TopBar).
   const musicMenu = useMemo(() => <MusicMenu />, []);
-  const { state, amplitudeRef, transcript, reply, locked, conversing, toggle, toggleLock, cancel, runCommand } =
+  const { state, amplitudeRef, transcript, reply, locked, conversing, wrapUp, toggle, toggleLock, cancel, runCommand } =
     useCaven();
+  // Save/action failures used to be written to state and never shown. They now
+  // surface here, above the board, on whichever page the user is looking at.
+  const { lastError, clearError } = useCavenStore();
 
   // Enter sends immediately and takes the same path as speaking does.
   // It works mid-turn too, interrupting CAVEN rather than being ignored.
@@ -32,6 +36,23 @@ export default function App() {
   return (
     <main className="app-shell">
       <TopBar page={page} onPageChange={setPage} actions={musicMenu} />
+
+      {/* Always-on listening is visible from every page, not just the board —
+          an always-hot mic the user can't see is a trust problem. */}
+      {locked && (
+        <div className="listening-banner" role="status">
+          <span className="listening-dot" aria-hidden="true" />
+          <span>Listening in background</span>
+          <button type="button" onClick={cancel}>Stop</button>
+        </div>
+      )}
+
+      {lastError && (
+        <div className="save-strip" role="alert">
+          <span>{lastError}</span>
+          <button type="button" onClick={clearError} aria-label="Dismiss">Dismiss</button>
+        </div>
+      )}
 
       {/* Announce speech capture and CAVEN's replies to assistive tech. */}
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
@@ -55,10 +76,13 @@ export default function App() {
             <div className="board-center-msgs">
               {state === 'listening' && transcript && (
                 <div
-                  className="metal-surface anim-fade-up max-w-[280px] rounded-2xl px-4 py-2 text-center text-sm"
+                  className={`metal-surface anim-fade-up max-w-[280px] rounded-2xl px-4 py-2 text-center text-sm${wrapUp ? ' is-wrapping' : ''}`}
                   style={{ color: 'var(--caven-cyan-bright)' }}
                 >
                   {transcript}
+                  {/* Warns before the silence cutoff closes the mic, so a pause
+                      to think doesn't end the sentence without warning. */}
+                  {wrapUp && <span className="wrap-hint">still listening — keep going</span>}
                 </div>
               )}
               {reply && state !== 'listening' && (
@@ -73,6 +97,18 @@ export default function App() {
                     CAVEN
                   </span>
                   {reply}
+                  {/* What CAVEN actually heard, with one click to correct it —
+                      previously a mishearing meant repeating the whole thing. */}
+                  {transcript && state === 'idle' && (
+                    <button
+                      type="button"
+                      className="heard-line"
+                      onClick={() => setTyped(transcript)}
+                      title="Put this in the box to correct and resend"
+                    >
+                      heard: “{transcript}” — edit
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -104,6 +140,19 @@ export default function App() {
         </div>
       )}
 
+      {/* Off the board, a spoken or typed exchange would otherwise leave no trace
+          on screen at all — so the live transcript and reply follow the user. */}
+      {page !== 'main' && (state === 'listening' ? transcript : reply) && (
+        <div className="page-reply metal-surface anim-fade-up" role="status">
+          {state !== 'listening' && (
+            <span className="font-display mr-1 t-micro tracking-[0.25em]" style={{ color: 'var(--caven-steel)' }}>
+              CAVEN
+            </span>
+          )}
+          {state === 'listening' ? transcript : reply}
+        </div>
+      )}
+
       <div className="mx-auto mt-3 flex w-[min(570px,100%)] items-center gap-2">
         <button
           onClick={() => {
@@ -113,7 +162,7 @@ export default function App() {
           }}
           className="metal-surface grid h-9 w-9 shrink-0 place-items-center rounded-full"
           style={{ color: 'var(--caven-cyan-bright)' }}
-          aria-label={muted ? 'Unmute sound effects' : 'Mute sound effects'}
+          aria-label={muted ? 'Unmute CAVEN' : 'Mute CAVEN (voice, music and effects)'}
           type="button"
         >
           <svg

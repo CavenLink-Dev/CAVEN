@@ -3,7 +3,7 @@ import { useCavenStore } from '../../lib/store'
 import { GlassPanel, PanelNote } from './GlassPanel'
 
 function RemindersCardBase({ isVisible = true }: { isVisible?: boolean }) {
-  const { data, ready, status } = useCavenStore()
+  const { data, ready, status, loadFailed, reload } = useCavenStore()
 
   // Soonest first where a due time was captured; anything undated keeps its place at the back.
   const ordered = useMemo(() => {
@@ -25,9 +25,9 @@ function RemindersCardBase({ isVisible = true }: { isVisible?: boolean }) {
       showTitle={false}
       headerRelative
     >
-      <div className="space-y-3">
+      <div className="space-y-3 board-list-scroll">
         {!ready ? (
-          <PanelNote>{status}</PanelNote>
+          <PanelNote onRetry={loadFailed ? reload : undefined}>{status}</PanelNote>
         ) : ordered.length === 0 ? (
           <PanelNote>No reminders armed. I'll hold one for you whenever you like.</PanelNote>
         ) : (

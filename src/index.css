@@ -143,6 +143,30 @@ button { font: inherit; }
 .hud-label { font-family:var(--font-mono); font-size:var(--fs-micro); letter-spacing:var(--track-label); text-transform:uppercase; }
 .hud-label--large { font-size:var(--fs-h2); font-weight:500; letter-spacing:var(--track-label); line-height:1.25; }
 .status-dot { width:6px; height:6px; display:block; border-radius:50%; background:#7ce6bd; box-shadow:0 0 10px #7ce6bd; }
+/* "Here's what I heard" — click to drop it into the box and fix it. */
+.heard-line { display:block; width:100%; margin-top:6px; padding-top:6px; border-top:1px solid rgba(149,212,224,.16); font-size:var(--fs-micro); color:var(--caven-steel); text-align:center; cursor:pointer; background:none; border-left:0; border-right:0; border-bottom:0; }
+.heard-line:hover { color:var(--caven-cyan-bright); }
+
+/* The mic is about to close on silence — warn instead of cutting off. */
+.wrap-hint { display:block; margin-top:4px; font-size:var(--fs-micro); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(255,214,170,.9); }
+.is-wrapping { box-shadow:0 0 0 1px rgba(255,196,140,.35); }
+
+/* Always-on listening, visible from every page. */
+.listening-banner { display:flex; align-items:center; gap:var(--sp-2); margin:var(--sp-2) auto 0; padding:var(--sp-2) var(--sp-4); width:fit-content; max-width:100%; border:1px solid rgba(85,219,228,.3); border-radius:99px; background:rgba(85,219,228,.09); color:var(--caven-cyan-bright); font-size:var(--fs-caption); }
+.listening-dot { width:7px; height:7px; border-radius:50%; background:#6fe7f0; box-shadow:0 0 9px #6fe7f0; animation:listenPulse 1.9s ease-in-out infinite; }
+@keyframes listenPulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }
+.listening-banner button { font:inherit; color:var(--caven-cyan-bright); background:none; border:0; padding:0 0 0 var(--sp-2); cursor:pointer; text-decoration:underline; text-underline-offset:2px; }
+.listening-banner button:hover { color:#fff; }
+
+/* A save or action that failed, surfaced instead of silently swallowed. */
+.save-strip { display:flex; align-items:center; gap:var(--sp-3); margin:var(--sp-2) auto 0; padding:var(--sp-2) var(--sp-4); width:fit-content; max-width:100%; border:1px solid rgba(255,176,120,.32); border-radius:12px; background:rgba(255,150,90,.11); color:#ffd9bd; font-size:var(--fs-caption); }
+.save-strip button { font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer; opacity:.75; text-decoration:underline; text-underline-offset:2px; }
+.save-strip button:hover { opacity:1; }
+
+/* CAVEN's reply while the user is on Finance/Journal/Brain/Settings. */
+.page-reply { margin:var(--sp-3) auto 0; padding:var(--sp-2) var(--sp-4); width:fit-content; max-width:min(520px,92%); border-radius:16px; text-align:center; font-size:var(--fs-body); color:var(--caven-cyan-bright); }
+
+@media (prefers-reduced-motion:reduce) { .listening-dot { animation:none } }
 .board-grid { display:grid; grid-template-columns:minmax(300px,1fr) minmax(400px,1.05fr) minmax(300px,1fr); gap:clamp(16px,2vw,34px); align-items:center; min-height:calc(100vh - 166px); padding:12px 0 4px; }
 .board-left,.board-right { display:grid; gap:var(--sp-4); }
 /* Center column: the message slot reserves height whether or not a line is
@@ -150,6 +174,13 @@ button { font: inherit; }
 .board-center { display:flex; flex-direction:column; align-items:center; justify-content:center; }
 .board-center-msgs { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:var(--sp-3); width:100%; min-height:96px; padding-bottom:var(--sp-3); }
 .glass-panel { position:relative; overflow:hidden; padding:var(--sp-6); background:linear-gradient(160deg, rgba(18,36,44,0) 0%, rgba(85,219,228,.03) 100%), rgba(9,17,22,.55); border:1px solid var(--border); border-radius:var(--radius-panel); box-shadow:0 12px 32px rgba(0,0,0,.3); backdrop-filter:blur(6px); transition:border-color .3s, box-shadow .3s; contain:paint; }
+/* Row lists (tasks/reminders/events/overview) scroll within a bounded height
+   instead of growing the panel forever and pushing the rest of the board out of
+   alignment — the exact case a long task list produces. */
+.board-list-scroll { max-height:min(46vh, 360px); overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; scrollbar-color:rgba(85,219,228,.35) transparent; }
+.board-list-scroll::-webkit-scrollbar { width:6px; }
+.board-list-scroll::-webkit-scrollbar-thumb { background:rgba(85,219,228,.35); border-radius:99px; }
+.board-list-scroll::-webkit-scrollbar-track { background:transparent; }
 .glass-panel::before { content:''; position:absolute; inset:0; pointer-events:none; background:linear-gradient(115deg,rgba(150,245,252,.05) 0%,rgba(150,245,252,0) 40%); }
 .glass-panel:hover { border-color:rgba(123,205,220,.34); box-shadow:0 12px 32px rgba(0,0,0,.34); }
 
@@ -221,6 +252,16 @@ button { font: inherit; }
 .task-item:hover { background:rgba(100,224,232,.055); }
 .task-check { display:grid; place-items:center; flex:0 0 auto; height:18px; width:18px; margin-top:1px; border:1px solid var(--border); border-radius:5px; color:#fff; font-size:var(--fs-meta); }
 .task-check.is-done { background:rgb(124, 166, 230); border-color:rgb(124, 166, 230); }
+/* A finished task can be cleared off the list. The button only appears once the
+   task is ticked, and stays hidden until hover/focus so the resting list is calm. */
+.task-row { position:relative; display:flex; align-items:flex-start; gap:var(--sp-1); }
+.task-row .task-item { flex:1 1 auto; min-width:0; }
+.task-clear { flex:0 0 auto; align-self:center; display:grid; place-items:center; height:24px; width:24px; border-radius:7px; color:rgba(255,255,255,.35); opacity:0; transition:opacity .18s, color .18s, background .18s; }
+.task-clear svg { width:11px; height:11px; }
+.task-row:hover .task-clear,.task-clear:focus-visible { opacity:1; }
+.task-clear:hover { color:#ffd9bd; background:rgba(255,150,90,.13); }
+.task-clear:disabled { opacity:.4; cursor:default; }
+@media (hover:none) { .task-clear { opacity:1; } }
 .event-row { display:grid; grid-template-columns:52px 1fr; gap:var(--sp-3); }
 .event-row time { font-family:var(--font-mono); font-size:var(--fs-meta); padding-top:2px; color:rgba(220,239,241,.5); }
 .event-line { border-left:1px solid rgba(119,210,220,.2); padding-left:10px; }
@@ -306,6 +347,9 @@ button { font: inherit; }
 .pulse-green.ripple { stroke:#63f0a0; } .pulse-green.particle { fill:#a9ffce; }
 .pulse-red.ripple { stroke:#ff6a58; } .pulse-red.particle { fill:#ffb0a6; }
 .pulse-blue.ripple { stroke:#7fdcff; } .pulse-blue.particle { fill:#c4ecff; }
+/* Neutral press acknowledgement: shown the instant the core is clicked, before
+   we know whether this is a single click or the first half of a double. */
+.pulse-armed.ripple { stroke:rgba(149,212,224,.55); } .pulse-armed.particle { fill:rgba(197,236,244,.75); }
 
 /* Roller chain wrapping the outer rig */
 .chain-ring { transform-origin:200px 200px; animation:spin 60s linear infinite; }
@@ -895,6 +939,12 @@ button { font: inherit; }
   background: rgba(85,219,228,.08);
   color: var(--caven-cyan-bright);
 }
+/* Messages default to a warning tint so a failure reads as a failure; .is-ok
+   switches to the calm cyan for confirmations (account created, reset sent). */
+.auth-message { border-color: rgba(255,176,120,.30); background: rgba(255,150,90,.10); color: #ffd9bd; }
+.auth-message.is-ok { border-color: rgba(85,219,228,.24); background: rgba(85,219,228,.08); color: var(--caven-cyan-bright); }
+.auth-switch button { font: inherit; color: var(--caven-cyan-bright); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.auth-switch button:hover { color: #ffffff; }
 .auth-privacy { gap: var(--sp-2); margin-top: var(--sp-7); font-size: var(--fs-caption); line-height: 1.5; }
 
 /* Board panel header rhythm — one gap between heading and content, always. */

@@ -23,7 +23,7 @@ function minutesOf(time: string): number | null {
 }
 
 function CalendarCardBase({ isVisible = true }: { isVisible?: boolean }) {
-  const { data, ready, status } = useCavenStore()
+  const { data, ready, status, loadFailed, reload } = useCavenStore()
   const events = data.calendar
 
   // Highlight whatever is next on the clock today; nothing is highlighted if the
@@ -48,9 +48,9 @@ function CalendarCardBase({ isVisible = true }: { isVisible?: boolean }) {
       showTitle={false}
       headerRelative
     >
-      <div className="space-y-3">
+      <div className="space-y-3 board-list-scroll">
         {!ready ? (
-          <PanelNote>{status}</PanelNote>
+          <PanelNote onRetry={loadFailed ? reload : undefined}>{status}</PanelNote>
         ) : events.length === 0 ? (
           <PanelNote>Nothing in the diary for today.</PanelNote>
         ) : (
