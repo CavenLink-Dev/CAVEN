@@ -100,9 +100,24 @@ export function momentLabel(target: Date, now = new Date()): string {
   return `${dayLabel(target, now)} at ${clockLabel(target)}`;
 }
 
-/** The clock as the board and the voice both render it. */
-export function clockLabel(date: Date): string {
-  return date.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' });
+/**
+ * The clock as the board and the voice both render it.
+ *
+ * `zone` matters only off the user's own machine: the delivery worker runs in
+ * UTC, and without it a reminder rolled forward there would come back to the
+ * board printed in the wrong hour.
+ */
+export function clockLabel(date: Date, zone?: string): string {
+  return date.toLocaleTimeString('en-AU', {
+    hour: 'numeric',
+    minute: '2-digit',
+    ...(zone ? { timeZone: zone } : {}),
+  });
+}
+
+/** The same date, written the way the board writes dates. */
+export function dateLabel(date: Date, zone?: string): string {
+  return date.toLocaleDateString('en-AU', zone ? { timeZone: zone } : undefined);
 }
 
 // ─── Recurrence ──────────────────────────────────────────────────────────────
@@ -182,6 +197,39 @@ export function nextOccurrence(from: Date, repeat: Repeat, after: Date): Date {
     next = stepOccurrence(next, repeat);
   }
   return next;
+}
+
+/**
+ * How far `zone` runs ahead of UTC at that instant, in milliseconds.
+ * Reads the offset at the moment in question, so a DST change is honoured
+ * rather than assumed away.
+ */
+function zoneShift(at: Date, zone: string): number {
+  const asUtc = new Date(at.toLocaleString('en-US', { timeZone: 'UTC' }));
+  const asZone = new Date(at.toLocaleString('en-US', { timeZone: zone }));
+  return asZone.getTime() - asUtc.getTime();
+}
+
+/**
+ * nextOccurrence, but reasoning in the user's own day rather than the server's.
+ *
+ * The delivery worker runs in UTC. "Every weekday at 9am" in Adelaide is
+ * 23:30 the previous day in UTC, so a UTC getDay() would call Monday's
+ * occurrence a Sunday and skip it. The arithmetic is done on the wall clock in
+ * `zone` and converted back at the offset that applies to the *new* moment.
+ */
+export function nextOccurrenceIn(from: Date, repeat: Repeat, after: Date, zone?: string): Date {
+  if (!zone) return nextOccurrence(from, repeat, after);
+  let shift: number;
+  try {
+    shift = zoneShift(from, zone);
+  } catch {
+    // An unknown zone name is not worth failing a delivery over.
+    return nextOccurrence(from, repeat, after);
+  }
+  const wall = nextOccurrence(new Date(from.getTime() + shift), repeat, new Date(after.getTime() + zoneShift(after, zone)));
+  const guess = new Date(wall.getTime() - shift);
+  return new Date(wall.getTime() - zoneShift(guess, zone));
 }
 
 /**

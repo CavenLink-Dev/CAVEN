@@ -1,6 +1,8 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { addressOf, DEFAULT_ADDRESS } from '../../shared/address';
 import { parseActions, REMOVAL } from '../../shared/actions';
+import { dueLine, nextDue, settle } from '../../shared/reminders';
+import { showLocalNotification } from './push';
 import { playSfx } from './sfx';
 import { useCavenStore } from './store';
 import {
@@ -83,8 +85,11 @@ export function route(text: string): Route | null {
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** How often the open tab looks for a reminder that has come due. */
+const DUE_SWEEP_MS = 20_000;
+
 export function useCaven() {
-  const { data, capture, perform } = useCavenStore();
+  const { data, capture, perform, update } = useCavenStore();
   const [state, setState] = useState<CavenState>('idle');
   const [transcript, setTranscript] = useState('');
   const [reply, setReply] = useState(''); // CAVEN's latest spoken line, for the chat box
@@ -278,6 +283,67 @@ export function useCaven() {
     [capture, perform, rearm, resetAmp],
   );
   processRef.current = process;
+
+  // A reminder that comes due while the app is open announces itself.
+  //
+  // Nothing announced one before: it reached its time and carried on sitting
+  // there as an ordinary row. This is the in-app half — push (api/push-dispatch)
+  // is what reaches a closed tab — and both settle the reminder the same way,
+  // through shared/reminders.ts, so a repeating one rolls on exactly once.
+  const announced = useRef(new Set<string>());
+  const announcing = useRef(false);
+  useEffect(() => {
+    let live = true;
+
+    const sweep = async () => {
+      // Never cut across a turn. CAVEN finishes what he is saying first, and the
+      // reminder waits for the next sweep — it is already late, a few seconds
+      // more costs nothing, and talking over himself would cost a great deal.
+      if (!live || announcing.current || stateRef.current !== 'idle') return;
+      const now = new Date();
+      const due = nextDue(data.reminders, now);
+      if (!due) return;
+
+      // Keyed by the occurrence, not the reminder, so a repeating one can come
+      // round again — and so a failed save can't put us in an announcing loop.
+      const key = `${due.id}@${due.dueAt ?? ''}`;
+      if (announced.current.has(key)) return;
+      announced.current.add(key);
+      announcing.current = true;
+
+      try {
+        const settled = settle(due, now);
+        void update((prev) => ({
+          ...prev,
+          reminders: prev.reminders.map((r) => (r.id === due.id ? { ...r, ...settled } : r)),
+        }));
+
+        const line = dueLine(due, now, addressRef.current);
+        setReply(line);
+        playSfx('success');
+        // Only when the tab isn't the thing being looked at; on screen, the
+        // spoken line and the board are the notification.
+        showLocalNotification(due, now);
+
+        set('speaking');
+        await speak(line, pushAmp);
+        if (!live) return;
+        set('idle');
+        resetAmp();
+        // Back to listening only if he was already in a conversation.
+        rearm();
+      } finally {
+        announcing.current = false;
+      }
+    };
+
+    void sweep();
+    const id = window.setInterval(() => void sweep(), DUE_SWEEP_MS);
+    return () => {
+      live = false;
+      window.clearInterval(id);
+    };
+  }, [data.reminders, update, pushAmp, rearm, resetAmp]);
 
   // Typed commands take the same path, and interrupt whatever is in flight.
   const runCommand = useCallback((text: string) => {

@@ -22,7 +22,7 @@ export default function App() {
     useCaven();
   // Save/action failures used to be written to state and never shown. They now
   // surface here, above the board, on whichever page the user is looking at.
-  const { lastError, clearError } = useCavenStore();
+  const { lastError, clearError, conflict, reload } = useCavenStore();
 
   // Enter sends immediately and takes the same path as speaking does.
   // It works mid-turn too, interrupting CAVEN rather than being ignored.
@@ -56,6 +56,12 @@ export default function App() {
       {lastError && (
         <div className="save-strip" role="alert">
           <span>{lastError}</span>
+          {/* A version conflict cannot be retried away — this tab is behind the
+              server and every later save fails the same way. Dismiss alone left
+              the user stuck, so the one action that actually helps goes here. */}
+          {conflict && (
+            <button type="button" onClick={() => void reload()}>Reload board</button>
+          )}
           <button type="button" onClick={clearError} aria-label="Dismiss">Dismiss</button>
         </div>
       )}
