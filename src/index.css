@@ -1183,3 +1183,33 @@ button.day-item:hover { color:#ffffff; }
 }
 .mc-undo button:hover { background:rgba(63,208,255,.1); }
 .mc-undo button:focus-visible { outline:2px solid var(--ring); outline-offset:2px; }
+
+/* Three example phrasings, under the core, for a board with nothing on it.
+   They disappear as soon as anything exists, so they cost a returning user
+   nothing. */
+.stage-hints { display:flex; flex-direction:column; align-items:center; gap:var(--sp-2); margin-top:var(--sp-4); padding:0; list-style:none; }
+.stage-hints button {
+  border:1px solid rgba(149,212,224,.14); background:rgba(149,212,224,.04);
+  color:rgba(255,255,255,.6); font:inherit; font-size:var(--fs-caption);
+  padding:8px 14px; border-radius:999px; cursor:pointer; text-align:center;
+  max-width:min(92vw,34rem); transition:color .12s ease,border-color .12s ease,background .12s ease;
+}
+.stage-hints button:hover { color:#fff; border-color:rgba(149,212,224,.3); background:rgba(149,212,224,.08); }
+.stage-hints button:focus-visible { outline:2px solid var(--ring); outline-offset:2px; }
+
+/* A visible way to send. Enter always worked; nothing said so, and a mouse had
+   no way to do it at all. */
+.command-form { display:flex; align-items:center; gap:var(--sp-2); }
+.command-send {
+  display:inline-flex; align-items:center; justify-content:center;
+  flex:0 0 auto; width:36px; height:36px; border-radius:999px; border:0; cursor:pointer;
+  background:rgba(63,208,255,.14); color:var(--caven-cyan);
+}
+.command-send:hover { background:rgba(63,208,255,.22); }
+.command-send:focus-visible { outline:2px solid var(--ring); outline-offset:2px; }
+
+/* Navigation was 26px tall — under the 44px minimum, on the control tapped most.
+   The text keeps its size; the hit area grows around it. */
+.bottom-nav-item { min-height:44px; display:inline-flex; align-items:center; padding-inline:10px; }
+.bottom-nav-mark { min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center; }
+.bottom-nav-menu-item { min-height:44px; }
