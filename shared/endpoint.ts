@@ -31,9 +31,10 @@ export type EndpointOpts = {
  *
  * Dashes become spaces rather than vanishing, so "um—" still ends on "um", and
  * curly apostrophes are folded to straight ones so one spelling of "that's"
- * matches everywhere.
+ * matches everywhere. Exported because shared/cancel.ts has to agree with this
+ * file on what a word is; two normalisers would drift apart within the week.
  */
-function tidy(said: string): string {
+export function tidySpeech(said: string): string {
   return said
     .toLowerCase()
     .replace(/[\u2018\u2019]/g, "'")
@@ -58,10 +59,17 @@ const FILLERS = new Set([
 /** The same thing said as a phrase. */
 const FILLER_PHRASE = /(?:hold on|hang on|actually|i mean|you know|sort of|kind of)$/;
 
-/** Words a sentence cannot honestly end on. */
+/**
+ * Words a sentence cannot honestly end on.
+ *
+ * "that" is deliberately absent. It is a preposition list, and "that" is usually
+ * the object rather than a dangling link — "save that", "delete that", "do that"
+ * are finished sentences, and holding the mic open two seconds on the commonest
+ * shorthand he has would be its own kind of rude.
+ */
 const DANGLING = new Set([
   'to', 'at', 'for', 'and', 'or', 'but', 'the', 'a', 'an', 'my', 'your', 'of',
-  'with', 'about', 'from', 'into', 'that', 'than', 'is', 'was', 'are', 'were',
+  'with', 'about', 'from', 'into', 'than', 'is', 'was', 'are', 'were',
   'because', 'if', 'when', 'while', 'before', 'after', 'until',
 ]);
 
@@ -79,7 +87,7 @@ const WHOLE_CLOSER = /^(?:done|that'?s it|that is it|that'?s all|that is all|go 
 
 /** True when the last thing heard was a filler — he has not finished. */
 export function hasFillerTail(said: string): boolean {
-  const tidied = tidy(said);
+  const tidied = tidySpeech(said);
   if (!tidied) return false;
   if (FILLER_PHRASE.test(tidied)) return true;
   return FILLERS.has(lastWord(tidied));
@@ -92,7 +100,7 @@ export function hasFillerTail(said: string): boolean {
  * a finished sentence, and the caller's own lead-in decides how long to give it.
  */
 export function isIncomplete(said: string): boolean {
-  const tidied = tidy(said);
+  const tidied = tidySpeech(said);
   if (!tidied) return true;
   if (OPENER_ONLY.test(tidied)) return true;
   return DANGLING.has(lastWord(tidied));
@@ -100,9 +108,32 @@ export function isIncomplete(said: string): boolean {
 
 /** True when he has handed the turn over in so many words. */
 export function isExplicitEnd(said: string): boolean {
-  const tidied = tidy(said);
+  const tidied = tidySpeech(said);
   if (!tidied) return false;
   return WHOLE_CLOSER.test(tidied) || CLOSER_TAIL.test(tidied);
+}
+
+/**
+ * True when there is nothing here worth acting on: fillers, or an opening with
+ * nothing after it.
+ *
+ * Deliberately far stricter than {@link isIncomplete}. The two answer different
+ * questions and the cost of being wrong runs opposite ways. For the silence gap,
+ * guessing "unfinished" only means waiting a moment longer. For throwing an
+ * utterance away it means swallowing a real instruction, so merely ending on a
+ * dangling word is not enough — "save that" and "what's that for" end on one and
+ * both mean something. Only a whole utterance that carries no content at all.
+ */
+export function isFragment(said: string): boolean {
+  const tidied = tidySpeech(said);
+  if (!tidied) return true;
+  if (OPENER_ONLY.test(tidied)) return true;
+  const words = tidied.split(' ');
+  if (words.every((word) => FILLERS.has(word))) return true;
+  // "hold on", "i mean", "actually" — a phrase and nothing else.
+  if (words.length <= 2 && FILLER_PHRASE.test(tidied)) return true;
+  // A lone function word: "to", "and". Never an instruction on its own.
+  return words.length === 1 && DANGLING.has(words[0]!);
 }
 
 /**

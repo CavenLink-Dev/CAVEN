@@ -7,7 +7,7 @@
 // through a thought; none of them may close the mic early.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { hasFillerTail, isExplicitEnd, isIncomplete, silenceMs } from '../shared/endpoint.ts';
+import { hasFillerTail, isExplicitEnd, isFragment, isIncomplete, silenceMs } from '../shared/endpoint.ts';
 
 // Anything at or above this is "he is still talking, wait".
 const PATIENT = 1400;
@@ -88,4 +88,36 @@ test('silence so far is never treated as a finished sentence', () => {
   assert.equal(isIncomplete(''), true);
   assert.ok(silenceMs('') >= PATIENT);
   assert.ok(silenceMs('   ') >= PATIENT);
+});
+
+// isFragment decides whether an utterance is thrown away unheard, so it has to
+// be far stricter than the silence gap. Waiting too long costs a moment; binning
+// a real instruction loses it entirely.
+test('a fragment carries nothing worth acting on', () => {
+  for (const said of ['um', 'um, ah', 'er', 'like', 'hold on', 'actually', 'I mean', 'Remind me to', 'Add', 'to']) {
+    assert.equal(isFragment(said), true, `should be a fragment: ${said}`);
+  }
+});
+
+test('anything with content is never thrown away', () => {
+  for (const said of [
+    'save that',
+    'delete that',
+    "what's that for",
+    'Add milk to the list',
+    'Put it in the diary for',
+    'stop',
+    'done',
+    'yes',
+    'Remind me dinner with Mum tomorrow at five',
+  ]) {
+    assert.equal(isFragment(said), false, `should reach the turn: ${said}`);
+  }
+});
+
+// "save that" is the commonest shorthand he has. Ending on "that" must not hold
+// the mic open, and must not read as unfinished.
+test('a demonstrative is an object, not a dangling link', () => {
+  assert.equal(isIncomplete('save that'), false);
+  assert.ok(silenceMs('save that') <= 1000);
 });

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { addressOf, DEFAULT_ADDRESS } from '../../shared/address';
 import { claimsChange, parseActions, REMOVAL } from '../../shared/actions';
+import { isCancel } from '../../shared/cancel';
+import { isFragment } from '../../shared/endpoint';
 import { dueLine, nextDue, settle } from '../../shared/reminders';
 import { showLocalNotification } from './push';
 import { playSfx } from './sfx';
@@ -39,6 +41,44 @@ const OFFLINE_LINE = (a: string) => `I'm afraid I've lost the thread there, ${a}
  */
 const NOTHING_DONE = (a: string) => `Nothing was saved, ${a}. Say it again plainly and I'll see to it.`;
 const NO_SPEECH_LINE = (a: string) => `This browser won't let me listen, I'm afraid, ${a}. Do type to me instead.`;
+
+/**
+ * Said when he calls a turn off.
+ *
+ * Several of them, and never the same one twice running: the whole difference
+ * between a person and a machine is that a person does not say "Very good" in
+ * precisely the same tone five times in a row. None of these claims anything was
+ * undone, because a cancelled turn never started.
+ */
+const LEFT_IT = ['All right.', 'Left it.', 'Very good.', 'As you were.', 'Right you are.'] as const;
+
+/**
+ * What the current conversation is in the middle of.
+ *
+ * In memory and in this tab only — never persisted, never on caven_boards. The
+ * point is that "done", "skip" and "save that" answer from here rather than the
+ * model inferring the state of play from eight turns of chat history.
+ */
+type VoiceSession = {
+  /** A question he was asked and has not answered yet. */
+  pendingClarification: string | null;
+  /** Something proposed and awaiting a yes before anything is written. */
+  pendingConfirmation: string | null;
+  /** Whether the last turn actually wrote to the board. */
+  lastActionChanged: boolean;
+  /** "Stay with me for twenty minutes" — unused until routines and companion land. */
+  companionUntil: number | null;
+  /** The routine step he is on — unused until routines land. */
+  routine: { id: string; step: number } | null;
+};
+
+const freshSession = (): VoiceSession => ({
+  pendingClarification: null,
+  pendingConfirmation: null,
+  lastActionChanged: false,
+  companionUntil: null,
+  routine: null,
+});
 
 // Plain conversation. If it looks like this, CAVEN just talks; no card, no capture.
 const CHITCHAT =
@@ -120,6 +160,18 @@ export function useCaven() {
   // Refreshed every render, so changing the form of address takes effect at once.
   const addressRef = useRef(DEFAULT_ADDRESS);
   addressRef.current = addressOf(data);
+
+  const session = useRef<VoiceSession>(freshSession());
+
+  // Pick a line, but not the one just used. Cheap, and it is the difference
+  // between a butler and an answering machine.
+  const lastAside = useRef(-1);
+  const aside = useCallback((lines: readonly string[]) => {
+    let i = Math.floor(Math.random() * lines.length);
+    if (i === lastAside.current) i = (i + 1) % lines.length;
+    lastAside.current = i;
+    return lines[i]!;
+  }, []);
 
   // speak()/startListening() stream amplitude every animation frame. Writing
   // those into React state re-rendered the whole board (TopBar, MusicMenu, every
@@ -209,9 +261,42 @@ export function useCaven() {
         return;
       }
 
+      // A fragment: fillers, or an opening with nothing after it. The mic waits
+      // these out now (shared/endpoint.ts), but a recogniser can still hand one
+      // over — an "um" on its own used to go off to the model, which would
+      // helpfully invent something to do with it. Treated exactly like having
+      // heard nothing: no reply, no card, the ear simply opens again.
+      //
+      // Unless he was asked a question. An answer to a question is never a
+      // fragment to be thrown away, however short it is.
+      if (!session.current.pendingClarification && isFragment(said)) {
+        set('idle');
+        resetAmp();
+        rearm();
+        return;
+      }
+
       setTranscript(said);
       setReply('');
       set('thinking');
+
+      // Called off. Nothing is written, nothing is asked of the model and no card
+      // opens — a turn he cancelled should cost him nothing at all. Only the whole
+      // utterance counts: "never mind the dentist reminder" is a deletion, and
+      // shared/cancel.ts is careful about the difference.
+      if (isCancel(said, addressRef.current)) {
+        session.current.pendingClarification = null;
+        session.current.pendingConfirmation = null;
+        const dropped = aside(LEFT_IT);
+        setReply(dropped);
+        set('speaking');
+        await speak(dropped, pushAmp);
+        if (!alive()) return;
+        set('idle');
+        resetAmp();
+        rearm();
+        return;
+      }
 
       const r = route(said);
       let line = '';
@@ -282,6 +367,9 @@ export function useCaven() {
       if (!alive()) return;
 
       setReply(line);
+      // What "that" refers to next turn. Recorded here, where the engine's own
+      // answer is in hand, rather than inferred later from the wording of a line.
+      session.current.lastActionChanged = changed;
       // A board intent counts even when nothing was written: asking what is on
       // today is exactly when you want to see it.
       if (changed || r) setBoardCue((n) => n + 1);
@@ -306,7 +394,7 @@ export function useCaven() {
       resetAmp();
       rearm();
     },
-    [capture, perform, rearm, resetAmp],
+    [aside, capture, perform, rearm, resetAmp],
   );
   processRef.current = process;
 
