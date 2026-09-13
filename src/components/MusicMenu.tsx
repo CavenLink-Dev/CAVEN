@@ -124,41 +124,47 @@ function MusicMenuBase() {
       </button>
 
       {open && (
-        <div
-          className="anim-fade-up absolute right-0 mt-2 w-56 rounded-2xl p-2 metal-surface"
-          style={{ boxShadow: '0 12px 40px rgba(3,5,10,0.6), 0 0 22px rgba(63,208,255,0.15)' }}
-        >
-          <div className="mb-1 flex items-center justify-between px-2 pt-1">
-            <span className="font-display t-micro tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>AMBIENT MUSIC</span>
+        <div className="music-menu anim-fade-up metal-surface">
+          <div className="music-menu-head">
+            <span className="music-menu-title font-display">AMBIENT MUSIC</span>
             {playing && (
-              <button onClick={stop} className="t-micro tracking-[0.2em]" style={{ color: 'var(--caven-steel)' }}>
+              <button onClick={stop} className="music-menu-stop font-display">
                 STOP
               </button>
             )}
           </div>
 
-          <div className="max-h-64 overflow-y-auto">
+          <div className="music-menu-list">
             {TRACKS.map((t, i) => {
               const active = current === i;
+              const nowPlaying = active && playing;
               return (
                 <button
                   key={t.name}
                   onClick={() => select(i)}
-                  className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors"
-                  style={active ? { background: 'rgba(63,208,255,0.16)', color: 'var(--caven-cyan-bright)' } : { color: 'var(--caven-cyan-bright)' }}
+                  className={`music-track${active ? ' is-active' : ''}`}
+                  aria-pressed={active}
                   onMouseEnter={() => playSfx('select', 320)}
                 >
-                  <span className="truncate">{t.name}</span>
-                  <span className="ml-2 t-micro" style={{ color: 'var(--caven-steel)' }}>
-                    {active && playing ? '❚❚' : '▶'}
-                  </span>
+                  <span className="music-track-name">{t.name}</span>
+                  {nowPlaying ? (
+                    <span className="music-track-eq" aria-hidden>
+                      <i className="eq-bar" style={{ animationDelay: '0ms' }} />
+                      <i className="eq-bar" style={{ animationDelay: '160ms' }} />
+                      <i className="eq-bar" style={{ animationDelay: '320ms' }} />
+                    </span>
+                  ) : (
+                    <span className="music-track-glyph" aria-hidden>
+                      {active ? '❚❚' : '▶'}
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
 
-          <div className="mt-2 flex items-center gap-2 px-2 pb-1">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--caven-steel)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <div className="music-menu-volume">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--caven-steel)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M4 9v6h4l5 4V5L8 9H4z" />
               <path d="M16 8.5a4 4 0 0 1 0 7" />
             </svg>
@@ -169,7 +175,7 @@ function MusicMenuBase() {
               step={0.01}
               value={volume}
               onChange={(e) => setVolume(Number(e.target.value))}
-              className="w-full accent-[var(--caven-cyan)]"
+              className="music-menu-slider"
               aria-label="Music volume"
             />
           </div>
