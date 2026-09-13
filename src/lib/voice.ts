@@ -1,5 +1,7 @@
 // Web Speech API + Web Audio wrappers with graceful fallback.
 
+import { silenceMs } from '../../shared/endpoint';
+
 type SR = typeof window & {
   SpeechRecognition?: any;
   webkitSpeechRecognition?: any;
@@ -56,7 +58,13 @@ function stopMeter() {
 // Hands-free listening: the recogniser ends on end-of-utterance (continuous =
 // false) and a silence timer backs that up on browsers that linger. onEnd fires
 // as soon as the user stops talking — no second click required.
-const SILENCE_MS = 1800; // quiet gap that counts as "they've finished"
+//
+// How long that quiet gap runs is not a fixed number. It was 1800ms after any
+// partial and a bare 400ms after the browser's own onspeechend, and a trailing
+// "um—" reads to the recogniser exactly like the end of a sentence: the mic shut
+// mid-thought and the fragment went off to be saved as a command. The gap is now
+// decided per utterance by shared/endpoint.ts, which is patient with a filler or
+// an unfinished clause and closes at once on "that's it".
 const WRAP_WARN_MS = 700; // how long before the cutoff the UI is warned
 const LEAD_IN_MS = 6000; // grace period before any speech has been heard
 const MAX_UTTERANCE_MS = 20000; // hard ceiling so the mic never hangs open
@@ -126,6 +134,28 @@ export function startListening(
     if (ms > WRAP_WARN_MS) warnTimer = setTimeout(() => onWrapUp?.(true), ms - WRAP_WARN_MS);
   };
 
+  /**
+   * Re-arm the quiet gap for whatever has been heard so far.
+   *
+   * Three outcomes: nothing transcribed yet keeps the full lead-in, because
+   * closing the mic on someone who has not managed a word is the rudest thing
+   * this loop can do; an explicit "that's it" closes immediately; everything
+   * else gets the patience shared/endpoint.ts thinks it deserves.
+   */
+  const armForSpeech = () => {
+    if (!finalText) return armSilence(LEAD_IN_MS);
+    const ms = silenceMs(finalText);
+    if (ms > 0) return armSilence(ms);
+    // Closing now. Only the gap timers go — maxTimer stays armed so a recogniser
+    // that declines to stop is still capped rather than left holding the mic.
+    if (silenceTimer) clearTimeout(silenceTimer);
+    if (warnTimer) clearTimeout(warnTimer);
+    silenceTimer = null;
+    warnTimer = null;
+    onWrapUp?.(false);
+    stopRecogniser();
+  };
+
   const finish = () => {
     if (settled) return;
     settled = true;
@@ -142,10 +172,13 @@ export function startListening(
     // Some browsers replay earlier results; keep the longest read we have seen.
     finalText = text.trim() || finalText;
     onPartial(finalText, amp);
-    armSilence(SILENCE_MS);
+    armForSpeech();
   };
 
-  recognition.onspeechend = () => armSilence(400);
+  // The browser thinks the utterance is over. It is often wrong — a pause for
+  // breath looks identical — so this goes through the same judgement as a
+  // partial rather than the old blanket 400ms.
+  recognition.onspeechend = () => armForSpeech();
 
   recognition.onerror = (e: any) => {
     if (settled) return;

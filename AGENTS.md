@@ -88,10 +88,12 @@ This project uses **Tailwind CSS v4** through the `@tailwindcss/vite` plugin con
 ## Learned User Preferences
 
 - Do not restore autoplay ambient or looping background audio; that bed was removed on purpose. Optional MusicMenu tracks are fine unless asked otherwise.
-- Spoken replies should sound human (contractions, occasional fillers). Do not revive the old "no filler, complete sentences only" valet prompt.
+- Spoken replies should sound human (contractions, occasional fillers). This is daily voice chat, not ChatGPT: ums, ahs, and pauses mean he is still talking. When a line is unclear, one short "Sorry?" / "Come again?" then stop — no theatrical misspeak speeches. Do not revive the old "no filler, complete sentences only" valet prompt.
 - When checking the live app, use https://caven-green.vercel.app — preview and Dependabot deployments lack production keys and will fail or sound wrong. In v0 / Figma Make, `/api` should hit that origin too.
 - Do not tell the user a feature is live (push reminders, bookings, saves) in confirmation copy unless the code actually does it.
 - Do not invent HUD, calendar, or widget numbers; an empty board stays empty.
+- Capture speculative product ideas in `ideas.md` and keep that file short enough to scan. Do not implement from it until asked.
+- Do not add third-party calendar or app integrations unless asked — CAVEN keeps his own board; the only outside job is a phone push when a reminder is due.
 
 ## Learned Workspace Facts
 
