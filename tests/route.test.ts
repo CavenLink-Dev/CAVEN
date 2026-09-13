@@ -67,6 +67,21 @@ test('a time of day does not start anything', () => {
   assert.equal(route('bedtime'), null);
 });
 
+// These are answered off the board in speech. They must not also throw a card up
+// — and they only reach that answer at all because route() declines them, so the
+// two have to be checked together.
+test('a board question is spoken, not put on screen', () => {
+  for (const said of [
+    'what am I doing first',
+    "what's first",
+    'read me the day',
+    "how's my day looking",
+    'can I spend $80 on dining',
+  ]) {
+    assert.equal(route(said), null, `should be spoken, not shown: ${said}`);
+  }
+});
+
 test('nothing said opens nothing', () => {
   assert.equal(route(''), null);
   assert.equal(route('   '), null);

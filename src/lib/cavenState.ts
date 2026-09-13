@@ -2,11 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { addressOf, DEFAULT_ADDRESS } from '../../shared/address';
 import { claimsChange, parseActions, REMOVAL } from '../../shared/actions';
 import { isCancel } from '../../shared/cancel';
+import { ASKS_FIRST_TASK, ASKS_FOR_THE_DAY, firstTaskLine, readTheDay } from '../../shared/daySpeak';
 import { isFragment } from '../../shared/endpoint';
 import { dueLine, nextDue, settle } from '../../shared/reminders';
+import { spendCheck } from '../../shared/spendCheck';
 import { showLocalNotification } from './push';
 import { playSfx } from './sfx';
-import { useCavenStore } from './store';
+import { useCavenStore, type CavenData } from './store';
 import {
   abortListening,
   askCaven,
@@ -132,6 +134,22 @@ export function route(text: string): Route | null {
   return null;
 }
 
+/**
+ * Questions the board can answer on its own.
+ *
+ * No round trip, no tokens, and — the point — no chance of a plausible
+ * invention: every figure and every name traces to a row he saved. Null means
+ * this was not one of those questions, or the board had nothing worth saying,
+ * and the model takes the turn as usual.
+ */
+function boardAnswer(said: string, data: CavenData, now: Date): string | null {
+  const spend = spendCheck(data, said);
+  if (spend) return spend;
+  if (ASKS_FOR_THE_DAY.test(said)) return readTheDay(data, now);
+  if (ASKS_FIRST_TASK.test(said)) return firstTaskLine(data);
+  return null;
+}
+
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** How often the open tab looks for a reminder that has come due. */
@@ -160,6 +178,11 @@ export function useCaven() {
   // Refreshed every render, so changing the form of address takes effect at once.
   const addressRef = useRef(DEFAULT_ADDRESS);
   addressRef.current = addressOf(data);
+  // Same reason as addressRef: process() is a useCallback, and a stale closure
+  // here would answer "what am I doing first?" from whatever the board held when
+  // the callback was made rather than what is on it now.
+  const dataRef = useRef(data);
+  dataRef.current = data;
 
   const session = useRef<VoiceSession>(freshSession());
 
@@ -362,7 +385,11 @@ export function useCaven() {
           if (!line) line = refusal || `That did not save, ${addressRef.current}. Please retry.`;
         }
       } else {
-        await converse();
+        // Straight off the board where it can be. Only when route() found no
+        // card, so what opens on screen stays decided by the existing intents.
+        const answer = boardAnswer(said, dataRef.current, new Date());
+        if (answer) line = answer;
+        else await converse();
       }
       if (!alive()) return;
 
