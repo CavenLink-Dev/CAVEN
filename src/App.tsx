@@ -1,10 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CavenCore } from './components/CavenCore/CavenCore';
 import { MusicMenu } from './components/MusicMenu';
-import { CalendarCard } from './components/board/CalendarCard';
-import { DailyOverviewCard } from './components/board/DailyOverviewCard';
-import { RemindersCard } from './components/board/RemindersCard';
-import { TasksCard } from './components/board/TasksCard';
+import { DayBoard } from './components/board/DayBoard';
 import { TopBar, type Page } from './components/board/TopBar';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { BrainPage, FinancePage, JournalPage } from './components/pages/SimplePages';
@@ -12,17 +9,51 @@ import { useCaven } from './lib/cavenState';
 import { useCavenStore } from './lib/store';
 import { isMuted, setMuted } from './lib/sfx';
 
+/** How long the board stays up after something changed, before it stands down. */
+const BOARD_LINGER_MS = 45_000;
+
+/**
+ * The spoken line, cut to a glanceable length. The point of this line is to be
+ * read without being studied — a full reply below the core turned it into a
+ * paragraph you had to stop and parse.
+ */
+function glance(text: string, words = 9): string {
+  const parts = text.trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= words) return parts.join(' ');
+  return `${parts.slice(0, words).join(' ')}…`;
+}
+
 export default function App() {
   const [page, setPage] = useState<Page>('main');
   const [muted, setMutedState] = useState(isMuted());
   const [typed, setTyped] = useState('');
   // Stable element: a fresh <MusicMenu /> each render would defeat memo(TopBar).
   const musicMenu = useMemo(() => <MusicMenu />, []);
-  const { state, amplitudeRef, transcript, reply, locked, conversing, wrapUp, toggle, toggleLock, cancel, runCommand } =
+  const { state, amplitudeRef, transcript, reply, locked, conversing, wrapUp, boardCue, toggle, toggleLock, cancel, runCommand } =
     useCaven();
   // Save/action failures used to be written to state and never shown. They now
-  // surface here, above the board, on whichever page the user is looking at.
+  // surface here, above everything, on whichever page the user is looking at.
   const { lastError, clearError, conflict, reload } = useCavenStore();
+
+  // The board is not furniture. It comes up when a turn wrote something, or when
+  // he asked about the board itself, and stands down again afterwards — so an
+  // idle screen is the core and nothing else. useCaven raises the cue for both
+  // occasions; `complete` alone would miss "what's on today?", which changes
+  // nothing and is precisely when you want to see it.
+  const [boardUp, setBoardUp] = useState(false);
+  const [boardOpen, setBoardOpen] = useState(false);
+  useEffect(() => {
+    if (boardCue > 0) setBoardUp(true);
+  }, [boardCue]);
+  useEffect(() => {
+    // Opened on purpose means it stays until it is closed again; nothing should
+    // vanish from under someone who is reading it. boardCue is a dependency so
+    // that a second command restarts the clock rather than letting the board go
+    // dark partway through a run of them.
+    if (!boardUp || boardOpen) return;
+    const id = window.setTimeout(() => setBoardUp(false), BOARD_LINGER_MS);
+    return () => window.clearTimeout(id);
+  }, [boardUp, boardOpen, boardCue]);
 
   // Enter sends immediately and takes the same path as speaking does.
   // It works mid-turn too, interrupting CAVEN rather than being ignored.
@@ -39,12 +70,15 @@ export default function App() {
     setMutedState(next);
   };
 
+  const listening = state === 'listening';
+  const line = listening ? transcript : reply;
+
   return (
     <main className="app-shell">
       <TopBar page={page} onPageChange={setPage} actions={musicMenu} />
 
-      {/* Always-on listening is visible from every page, not just the board —
-          an always-hot mic the user can't see is a trust problem. */}
+      {/* Always-on listening is visible from every page — an always-hot mic the
+          user can't see is a trust problem. */}
       {locked && (
         <div className="listening-banner" role="status">
           <span className="listening-dot" aria-hidden="true" />
@@ -66,64 +100,22 @@ export default function App() {
         </div>
       )}
 
-      {/* Announce speech capture and CAVEN's replies to assistive tech. */}
+      {/* The full line, for assistive tech — the visible one is cut short. */}
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
-        {state === 'listening' && transcript
-          ? transcript
-          : reply && state !== 'listening'
-            ? `CAVEN said: ${reply}`
-            : ''}
+        {listening && transcript ? transcript : reply && !listening ? `CAVEN said: ${reply}` : ''}
       </div>
 
       {page === 'main' ? (
-        <div className="board-grid">
-          <div className="board-left">
-            <DailyOverviewCard />
-            <TasksCard />
-          </div>
-
-          <div className="board-center">
-            {/* Fixed-height slot so an appearing transcript/reply never shifts
-                the core (or the panels either side of it). */}
-            <div className="board-center-msgs">
-              {state === 'listening' && transcript && (
-                <div
-                  className={`metal-surface anim-fade-up max-w-[280px] rounded-2xl px-4 py-2 text-center text-sm${wrapUp ? ' is-wrapping' : ''}`}
-                  style={{ color: 'var(--caven-cyan-bright)' }}
-                >
-                  {transcript}
-                  {/* Warns before the silence cutoff closes the mic, so a pause
-                      to think doesn't end the sentence without warning. */}
-                  {wrapUp && <span className="wrap-hint">still listening — keep going</span>}
-                </div>
-              )}
-              {reply && state !== 'listening' && (
-                <div
-                  className="metal-surface anim-fade-up max-w-[300px] rounded-2xl px-4 py-2.5 text-center text-sm"
-                  style={{ color: 'var(--caven-cyan-bright)', boxShadow: '0 0 22px rgba(63,208,255,0.22)' }}
-                >
-                  <span
-                    className="font-display mr-1 t-micro tracking-[0.25em]"
-                    style={{ color: 'var(--caven-steel)' }}
-                  >
-                    CAVEN
-                  </span>
-                  {reply}
-                  {/* What CAVEN actually heard, with one click to correct it —
-                      previously a mishearing meant repeating the whole thing. */}
-                  {transcript && state === 'idle' && (
-                    <button
-                      type="button"
-                      className="heard-line"
-                      onClick={() => setTyped(transcript)}
-                      title="Put this in the box to correct and resend"
-                    >
-                      heard: “{transcript}” — edit
-                    </button>
-                  )}
-                </div>
-              )}
+        <div className={`stage${boardUp ? ' has-board' : ''}`}>
+          {/* Nothing at the top at all until there is something to say. When
+              there is, it takes the top and the core settles to the bottom. */}
+          {boardUp && (
+            <div className="stage-board">
+              <DayBoard open={boardOpen} onOpenChange={setBoardOpen} />
             </div>
+          )}
+
+          <div className="stage-core">
             <CavenCore
               state={state}
               amplitudeRef={amplitudeRef}
@@ -131,20 +123,28 @@ export default function App() {
               conversing={conversing}
               onToggle={toggle}
               onLock={toggleLock}
-              muted={muted}
-              onToggleMute={toggleMute}
             />
-          </div>
 
-          <div className="board-right">
-            <CalendarCard />
-            <RemindersCard />
+            {/* One line, kept short. Clicking it drops what CAVEN heard into the
+                box so a mishearing is one edit rather than the whole sentence
+                said again — the affordance is the line itself, not another row. */}
+            <div className={`stage-line${wrapUp ? ' is-wrapping' : ''}`}>
+              {line ? (
+                <button
+                  type="button"
+                  className="stage-line-text"
+                  onClick={() => transcript && setTyped(transcript)}
+                  title={transcript ? `Heard: “${transcript}” — click to correct it` : undefined}
+                >
+                  {glance(line)}
+                </button>
+              ) : (
+                <span className="stage-line-idle">{conversing ? 'Listening…' : ''}</span>
+              )}
+            </div>
           </div>
         </div>
       ) : (
-        // The height of this region depends on how tall the top bar is, and on a
-        // phone the top bar is two rows. Hard-coded pixel offsets could not know
-        // that, so it is a class now and the breakpoints own the arithmetic.
         <div key={page} className="page-scroll anim-fade-up">
           {page === 'finance' && <FinancePage />}
           {page === 'journal' && <JournalPage />}
@@ -153,22 +153,14 @@ export default function App() {
         </div>
       )}
 
-      {/* Off the board, a spoken or typed exchange would otherwise leave no trace
-          on screen at all — so the live transcript and reply follow the user. */}
-      {page !== 'main' && (state === 'listening' ? transcript : reply) && (
+      {/* Off the board, a spoken or typed exchange would otherwise leave no
+          trace on screen at all — so the line follows the user. */}
+      {page !== 'main' && line && (
         <div className="page-reply metal-surface anim-fade-up" role="status">
-          {state !== 'listening' && (
-            <span className="font-display mr-1 t-micro tracking-[0.25em]" style={{ color: 'var(--caven-steel)' }}>
-              CAVEN
-            </span>
-          )}
-          {state === 'listening' ? transcript : reply}
+          {line}
         </div>
       )}
 
-      {/* Typing is the fallback for every time the mic mishears, so it must never
-          be somewhere you have to go looking for. On a phone it docks to the
-          bottom of the viewport rather than sitting below the fold. */}
       <div className="command-bar">
         <form
           className="flex-1"
@@ -188,15 +180,23 @@ export default function App() {
         </form>
 
         {(locked || conversing) && (
-          <button
-            onClick={cancel}
-            className="metal-surface font-display shrink-0 rounded-full px-3 py-1.5 t-micro tracking-[0.2em]"
-            style={{ color: 'var(--caven-steel)' }}
-            type="button"
-          >
+          <button onClick={cancel} className="command-stop" type="button">
             STOP
           </button>
         )}
+
+        <button
+          type="button"
+          onClick={toggleMute}
+          className="command-mute"
+          aria-label={muted ? 'Unmute CAVEN' : 'Mute CAVEN (voice, music and effects)'}
+          aria-pressed={muted}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" fillOpacity="0.15" />
+            {muted ? <path d="M17 9l4 4m0-4l-4 4" /> : <><path d="M16 8.5a4 4 0 0 1 0 7" /><path d="M18.5 6a7 7 0 0 1 0 12" opacity="0.6" /></>}
+          </svg>
+        </button>
       </div>
     </main>
   );

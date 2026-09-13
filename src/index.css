@@ -158,6 +158,15 @@ button { font: inherit; }
 .topbar-avatar { display:flex; align-items:center; justify-content:center; width:47px; height:47px; font-family:var(--font-body); font-size:var(--fs-h2); }
 .topbar-clock { font-family:var(--font-mono); font-size:calc(var(--fs-meta) * 1.6); color:rgba(255,255,255,.9); }
 .topbar-actions { transform:translateY(40px); }
+
+/* The nav's segment control. It used to live down among the core's styles and
+   went with them when the core was stripped; it belongs up here with the rest
+   of the top bar. */
+.topbar-nav { display:flex; align-items:center; gap:2px; padding:4px; border:1px solid rgba(156,247,255,.24); border-radius:12px; background:linear-gradient(180deg,rgba(13,28,36,.72),rgba(6,14,20,.6)); box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 6px 20px rgba(0,0,0,.35); backdrop-filter:blur(8px); scrollbar-width:none; }
+.topbar-nav::-webkit-scrollbar { display:none; }
+.topbar-nav-item { position:relative; display:flex; align-items:center; padding:var(--sp-2) var(--sp-4); border:0; border-radius:9px; background:transparent; color:rgba(255,255,255,.62); font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:var(--track-label); text-transform:uppercase; cursor:pointer; transition:color .25s, background .25s, box-shadow .25s; }
+.topbar-nav-item:hover { color:#ffffff; background:rgba(255,255,255,.06); }
+.topbar-nav-item.is-active { color:#ffffff; background:rgba(3,119,253,.16); box-shadow:inset 0 0 0 1px rgba(3,119,253,.55), 0 0 14px rgba(3,119,253,.3); text-shadow:0 0 10px rgba(120,180,255,.55); }
 .wordmark { font-family:var(--font-display); font-size:17px; font-weight:700; letter-spacing:.27em; color:#d7fbff; text-shadow:0 0 12px rgba(120,235,245,.4); }
 .brand-mark { width:26px; height:26px; color:#8ff5fa; filter:drop-shadow(0 0 6px rgba(120,235,245,.55)); }
 .hud-label { font-family:var(--font-mono); font-size:var(--fs-micro); letter-spacing:var(--track-label); text-transform:uppercase; }
@@ -250,20 +259,6 @@ button { font: inherit; }
 
 .holo-scanlines { display:none; }
 
-/* ── Arc-reactor containment rings ──────────────────────────────────────── */
-.reactor-ring { transform-origin:200px 200px; filter:drop-shadow(0 0 5px rgba(120,235,245,.35)); }
-.reactor-ring-outer { animation:spin 46s linear infinite; }
-.reactor-ring-mid { animation:spinReverse 30s linear infinite; }
-.reactor-ring-inner { animation:spin 20s linear infinite; }
-.core-listening .reactor-ring-inner,.core-speaking .reactor-ring-inner { animation-duration:9s; }
-
-.metal-rivet { fill:#a6f5fb; opacity:.6; filter:drop-shadow(0 0 3px #55dbe4); }
-.core-spokes line { filter:drop-shadow(0 0 4px #55dbe4); }
-
-.core-listening .reactor-ring-outer { animation-duration:24s; }
-.core-speaking .reactor-ring-mid { animation-duration:14s; }
-.core-thinking .reactor-ring { filter:drop-shadow(0 0 8px rgba(245,182,66,.6)); }
-
 /* ── Panel content rows ─────────────────────────────────────────────────── */
 .overview-row { display:grid; grid-template-columns:52px 1fr; gap:var(--sp-3); line-height:1.5; font-size:var(--fs-body); color:rgba(232,246,248,.78); }
 .overview-row b { font-weight:500;color:rgba(207,240,242,.48); }
@@ -302,150 +297,134 @@ button { font: inherit; }
 .glass-panel.is-resizing { transition:none; user-select:none; z-index:60; border-color:rgba(123,205,220,.5); box-shadow:0 24px 60px rgba(0,0,0,.55); }
 .free-time { margin-top:var(--sp-4); padding-top:var(--sp-3); border-top:1px solid rgba(255,255,255,.07); color:rgba(157,220,224,.8); font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:.03em; }
 
-/* ── Core zone & SVG core ───────────────────────────────────────────────── */
-.core-zone { position:relative; display:grid; place-items:center; min-height:clamp(390px,55vw,610px); }
-.core-button { position:relative; width:clamp(340px,40vw,570px); aspect-ratio:1; border:0; border-radius:50%; background:transparent; cursor:pointer; outline-offset:10px; }
-.core-button:focus-visible { outline:1px solid var(--ring); }
-.core-svg { width:100%; height:100%; overflow:visible; }
-.orbit { fill:none; stroke:#64dbe4; stroke-width:.7; opacity:.4; transform-origin:center; }
-.orbit-outer { stroke-dasharray:2 5 48 5; animation:spin 38s linear infinite; }
-.orbit-dash { stroke-dasharray:1 7; opacity:.32; animation:spinReverse 25s linear infinite; }
-.orbit-inner { stroke-dasharray:80 12 4 10; stroke-width:1; opacity:.58; animation:spin 16s linear infinite; }
-.orbit-faint { stroke:#57cdd8; stroke-width:.5; opacity:.16; stroke-dasharray:1 11; animation:spin 72s linear infinite; }
-.tick { stroke:#83e8ed; stroke-width:1; opacity:.35; }
-.microtick { stroke:#7fe6ec; stroke-width:.6; opacity:.14; transform-origin:center; animation:spinReverse 90s linear infinite; }
-.sweep { stroke:#8ff5fa; stroke-width:1.1; opacity:.16; transform-origin:200px 200px; animation:spin 12s linear infinite; }
-.sat-group { transform-origin:200px 200px; }
-.sat-1 { animation:spin 44s linear infinite; }
-.sat-2 { animation:spinReverse 30s linear infinite; }
-.sat-3 { animation:spin 22s linear infinite; }
-.sat { fill:#c6feff; opacity:.7; filter:drop-shadow(0 0 5px #7cebf1); }
-.sat-sm { opacity:.5; }
-.glint { fill:#d3feff; opacity:0; transform-origin:center; animation:glint var(--gs,16s) ease-in-out var(--gdl,0s) infinite; }
-.core-halo { fill:#30cbd7; opacity:.08; filter:blur(9px); animation:breathe 4s ease-in-out infinite; }
-.core-orb { transform-origin:center; animation:breathe 4s ease-in-out infinite, orbGlow 4s ease-in-out infinite; }
-.core-center { fill:#e5ffff; filter:drop-shadow(0 0 9px #96faff); transform-origin:center; animation:coreBlink 6.5s ease-in-out infinite; }
-@keyframes orbGlow { 0%,100% { filter:brightness(1); } 50% { filter:brightness(1.16); } }
-/* A slow, deliberate blink — mostly steady, with one gentle dim-and-relight
-   sweep per cycle so the core reads as alive rather than mechanically pulsing. */
-@keyframes coreBlink {
-  0%, 84%, 100% { opacity:1; transform:scaleY(1); filter:drop-shadow(0 0 9px #96faff) brightness(1); }
-  90% { opacity:.45; transform:scaleY(.86); filter:drop-shadow(0 0 4px #96faff) brightness(.72); }
-  96% { opacity:1; transform:scaleY(1); filter:drop-shadow(0 0 11px #96faff) brightness(1.08); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CORE — one orb, one hairline ring.
+   This replaced 158 lines of counter-rotating reactor rings, a hexagonal
+   crystal, orbiting satellites, sweeps, rivets, particles and glints. None
+   of it told you anything. Colour carries state; size carries your voice.
+   ═══════════════════════════════════════════════════════════════════════ */
+.core-zone {
+  --core-accent:#55dbe4;
+  --core-glow:rgba(85,219,228,.30);
+  position:relative; display:grid; place-items:center;
 }
-.core-state-label { position:absolute; top:58%; left:0; right:0; color:rgba(209,249,251,.58); font-family:var(--font-mono); font-size:9px; letter-spacing:.15em; text-transform:uppercase; }
-.core-hint { position:absolute; bottom:7%; margin:0; color:rgba(204,239,241,.33); font-family:var(--font-mono); font-size:9px; letter-spacing:.06em; }
-.ripple { fill:none; stroke:#75edf2; stroke-width:1.5; opacity:0; transform-origin:center; animation:ripple .85s ease-out; }
-.particle { fill:#b1feff; opacity:0; transform-origin:center; animation:particle .8s ease-out; }
+.core-button {
+  position:relative; display:grid; place-items:center;
+  width:clamp(132px,17vw,208px); aspect-ratio:1;
+  border:0; border-radius:50%; background:transparent; cursor:pointer; outline-offset:8px;
+}
+.core-button:focus-visible { outline:2px solid var(--ring); }
+.core-button:active { transform:scale(.98); }
 
-/* CAVEN wordmark beneath the core (second rule intentionally overrides the
-   absolutely-positioned base, exactly as in the upgraded stylesheet) */
-.core-word { position:absolute; inset:auto 0 4% 0; display:grid; place-content:center center; color:#ffffff; font-family:var(--font-mono); font-size:clamp(28px,3.2vw,40px); font-weight:600; letter-spacing:.3em; padding-left:.3em; text-shadow:0 0 20px rgba(120,230,240,.65),0 0 4px rgba(255,255,255,.5); }
-.core-word { position:relative; inset:auto; margin-top:-12px; align-items:center; justify-content:center; text-align:center; font-family:var(--font-display); font-size:64px; font-weight:400; letter-spacing:12px; padding-left:12px; }
+/* The hairline: one ring, with one brighter arc turning slowly. */
+.core-ring { position:absolute; inset:0; border-radius:50%; border:1px solid rgba(133,229,240,.20); }
+.core-ring::after {
+  content:''; position:absolute; inset:-1px; border-radius:50%;
+  border:1px solid transparent; border-top-color:var(--core-accent); opacity:.75;
+  animation:coreSpin 14s linear infinite;
+}
+@keyframes coreSpin { to { transform:rotate(360deg); } }
 
-.core-listening .orbit,.core-speaking .orbit { stroke:#8ffaff; opacity:.8; }
-.core-thinking .sweep,.core-thinking .sat { stroke:#f5b642; fill:#f7c766; }
-.core-success .sweep,.core-success .sat { stroke:#7ce6bd; fill:#9ff0cf; }
-.core-listening .core-orb { animation:listening 1s ease-in-out infinite; }
-.core-speaking .core-orb { animation:speaking .72s ease-in-out infinite; }
-.core-thinking .orbit { stroke:#f5b642; }
-.core-thinking .core-orb { filter:url(#glow) sepia(1) hue-rotate(330deg); animation:thinking 2.2s ease-in-out infinite; }
-.core-success .orbit,.core-success .tick { stroke:#7ce6bd; }
-.core-success .core-orb { filter:hue-rotate(65deg) brightness(1.3); }
-.core-button:active .core-svg { transform:scale(.975); }
-
-/* ── CAVEN Core V6 — three-color power model (green on / red off / blue locked) ── */
-/* OFF: no color, mechanism at rest */
-.core-off .core-svg { filter:grayscale(1) brightness(.34) contrast(.9); transition:filter .6s ease; }
-.core-off .reactor-ring,.core-off .orbit,.core-off .sweep,.core-off .microtick,.core-off .glint,.core-off .sat-1,.core-off .sat-2,.core-off .sat-3 { animation-play-state:paused; }
-.core-off .core-center { fill:#3a4247; filter:none; animation:none; }
-/* Standing-by "alive" breath — the rig is dormant but never looks dead: a slow,
-   smooth dim-and-lift on the orb/halo, like a resting pulse. */
-.core-off .core-orb,.core-off .core-halo { animation:aliveBreath 6.4s ease-in-out infinite; }
-@keyframes aliveBreath { 0%,100% { transform:scale(.98); filter:brightness(.85); opacity:.82; } 50% { transform:scale(1.015); filter:brightness(1.15); opacity:1; } }
-
-/* ON: true color is light blue; green only flashes via the turn-on pulse */
-.core-on .core-svg { filter:saturate(1.2) brightness(1.08); transition:filter .5s ease; }
-.core-on .reactor-ring-inner { animation-duration:16s; }
-
-/* POWERING-OFF: fades toward dark; red only flashes via the turn-off pulse */
-.core-powering-off .core-svg { filter:grayscale(.55) brightness(.6); transition:filter .5s ease; }
-
-/* LOCKED: calm light-blue standby, listening in the background */
-.core-locked .core-svg { filter:saturate(1.15) brightness(1.08); transition:filter .5s ease; }
-.core-locked .reactor-ring { animation-duration:60s; }
-.core-locked .core-orb { animation:listening 2.6s ease-in-out infinite; }
-
-/* Action-colored pulses */
-.pulse-green.ripple { stroke:#63f0a0; } .pulse-green.particle { fill:#a9ffce; }
-.pulse-red.ripple { stroke:#ff6a58; } .pulse-red.particle { fill:#ffb0a6; }
-.pulse-blue.ripple { stroke:#7fdcff; } .pulse-blue.particle { fill:#c4ecff; }
-/* Neutral press acknowledgement: shown the instant the core is clicked, before
-   we know whether this is a single click or the first half of a double. */
-.pulse-armed.ripple { stroke:rgba(149,212,224,.55); } .pulse-armed.particle { fill:rgba(197,236,244,.75); }
-
-/* Roller chain wrapping the outer rig */
-.chain-ring { transform-origin:200px 200px; animation:spin 60s linear infinite; }
-.chain-track { fill:none; stroke:#3b4a4e; stroke-width:9; opacity:.35; }
-.chain-link { transform-origin:200px 200px; }
-.chain-link-a { fill:#9fb0b4; stroke:#5f7175; stroke-width:.5; }
-.chain-link-b { fill:#6e8085; stroke:#3f4d50; stroke-width:.5; }
-.core-off .chain-ring { animation-play-state:paused; }
-
-/* Inner reactor detail — layered multi-color mechanism */
-.reactor-vio-ring { transform-origin:200px 200px; animation:spinReverse 20s linear infinite; }
-.reactor-vio-ring rect { filter:drop-shadow(0 0 2px rgba(199,155,255,.6)); }
-.reactor-hex { transform-origin:200px 200px; animation:spin 34s linear infinite; }
-.reactor-hex-inner { transform-origin:200px 200px; animation:spinReverse 26s linear infinite; }
-.reactor-led { filter:drop-shadow(0 0 5px var(--led)); animation:ledBlink 2.4s ease-in-out var(--ldl,0s) infinite; }
-@keyframes ledBlink { 0%,100%{opacity:.35} 50%{opacity:1} }
-.core-off .reactor-vio-ring,.core-off .reactor-hex,.core-off .reactor-hex-inner { animation-play-state:paused; }
-.core-off .reactor-led { animation:ledBlinkIdle 5.4s ease-in-out var(--ldl,0s) infinite; }
-@keyframes ledBlinkIdle { 0%,100%{opacity:.14} 50%{opacity:.4} }
-
-/* Floating 3D hexagonal crystal — gentle vertical drift + slow gem rotation */
-.hex-crystal { transform-origin:200px 200px; animation:hexFloat 6s ease-in-out infinite; }
-.hex-crystal-spin { transform-origin:200px 200px; animation:hexSpin 18s linear infinite; }
-.hex-crystal-glint { animation:hexGlint 3.2s ease-in-out infinite; }
-@keyframes hexFloat { 0%,100%{transform:translateY(-4px) scale(1)} 50%{transform:translateY(5px) scale(1.04)} }
-@keyframes hexSpin { to { transform:rotateZ(360deg); } }
-@keyframes hexGlint { 0%,100%{opacity:.4} 50%{opacity:1} }
-.core-locked .hex-crystal-spin { animation-duration:7s; filter:saturate(1.4) drop-shadow(0 0 6px #ffd53d); }
-.core-off .hex-crystal,.core-off .hex-crystal-spin { animation-play-state:paused; }
-.core-off .hex-crystal { opacity:.28; }
-.core-off .hex-crystal-glint { animation:hexGlintIdle 6.4s ease-in-out infinite; }
-@keyframes hexGlintIdle { 0%,100%{opacity:.15} 50%{opacity:.55} }
-
-/* Speaking → the whole core (and its light) jiggles; stops when talking stops */
-.core-speaking .core-svg { transform-origin:center; animation:coreJiggle .16s ease-in-out infinite; }
-@keyframes coreJiggle {
-  0% { transform:translate(0,0) rotate(0deg); }
-  25% { transform:translate(-1.6px,1px) rotate(-.5deg); }
-  50% { transform:translate(1.6px,-1px) rotate(.5deg); }
-  75% { transform:translate(-1px,-1.4px) rotate(.25deg); }
-  100% { transform:translate(0,0) rotate(0deg); }
+/* Amplitude and breathing sit on separate elements on purpose: one transform
+   written per frame from a ref, one slow animation. Put both on the same
+   element and the animation wins — and the voice stops showing at all. */
+.core-amp { display:grid; place-items:center; width:100%; height:100%; transform:scale(var(--core-amp,1)); }
+.core-orb {
+  width:58%; aspect-ratio:1; border-radius:50%;
+  background:radial-gradient(circle at 34% 30%, rgba(255,255,255,.92), var(--core-accent) 44%, rgba(10,22,28,.92) 78%);
+  animation:coreBreathe 5.2s ease-in-out infinite;
+}
+@keyframes coreBreathe {
+  0%,100% { box-shadow:0 0 38px var(--core-glow), inset 0 0 22px rgba(255,255,255,.10); }
+  50%     { box-shadow:0 0 66px var(--core-glow), inset 0 0 26px rgba(255,255,255,.16); }
 }
 
-/* Static machined detail — riveted ring & precision clamps */
-.rivet-ring { transform-origin:200px 200px; opacity:.9; }
-.core-clamps path { filter:drop-shadow(0 0 3px rgba(85,219,228,.35)); }
-.core-off .rivet-ring,.core-off .core-clamps { opacity:.4; filter:grayscale(1); }
+/* State. The only thing the core has to say. */
+.core-listening { --core-accent:#7ff0f8; --core-glow:rgba(127,240,248,.42); }
+.core-listening .core-ring::after { animation-duration:5s; }
+.core-speaking { --core-accent:#8ffaff; --core-glow:rgba(143,250,255,.46); }
+.core-speaking .core-ring::after { animation-duration:3.2s; }
+.core-speaking .core-orb { animation-duration:1.1s; }
+.core-thinking { --core-accent:#f5b642; --core-glow:rgba(245,182,66,.38); }
+.core-thinking .core-ring::after { animation-duration:2.2s; }
+.core-success { --core-accent:#7ce6bd; --core-glow:rgba(124,230,189,.42); }
 
-/* Top navigation bar — riveted HUD segment control */
-.topbar-nav { display:flex; align-items:center; gap:2px; padding:4px; border:1px solid rgba(156,247,255,.24); border-radius:12px; background:linear-gradient(180deg,rgba(13,28,36,.72),rgba(6,14,20,.6)); box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 6px 20px rgba(0,0,0,.35); backdrop-filter:blur(8px); }
-.topbar-nav-item { position:relative; display:flex; align-items:center; padding:var(--sp-2) var(--sp-4); border:0; background:transparent; border-radius:9px; color:rgba(255,255,255,.62); font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:var(--track-label); text-transform:uppercase; cursor:pointer; transition:color .25s, background .25s, box-shadow .25s; }
-.topbar-nav-item:hover { color:#ffffff; background:rgba(255,255,255,.06); }
-.topbar-nav-item.is-active { color:#ffffff; background:rgba(3,119,253,.16); box-shadow:inset 0 0 0 1px rgba(3,119,253,.55), 0 0 14px rgba(3,119,253,.3); text-shadow:0 0 10px rgba(120,180,255,.55); }
-/* The nav is never hidden. It used to be display:none below 680px, which left
-   Finance, Journal, Brain and Settings with no way to reach them on a phone at
-   all. Below that width it wraps to its own full-width row (see RESPONSIVE) and
-   scrolls sideways if the five items don't fit. */
-.topbar-nav { scrollbar-width:none; }
-.topbar-nav::-webkit-scrollbar { display:none; }
+/* Power: whether it is lit at all, which is a separate axis from what it does. */
+/* Standing by is most of the time, so it stays recognisably CAVEN rather than
+   going grey and reading as broken. Dimmer than live, not dead. */
+.core-off .core-orb { filter:saturate(.7) brightness(.8); }
+.core-off .core-ring::after { animation-duration:40s; opacity:.3; }
+.core-powering-off .core-orb { filter:saturate(.4) brightness(.5); transition:filter .5s ease; }
+.core-locked { --core-accent:#ffd53d; --core-glow:rgba(255,213,61,.34); }
 
-/* Double-tap lock beam surge */
-.lock-beam rect { fill:#9fe6ff; transform-origin:200px 200px; filter:drop-shadow(0 0 10px #7fdcff); animation:lockBeam .9s cubic-bezier(.16,1,.3,1) forwards; }
-@keyframes lockBeam { 0%{opacity:0;transform:scale(.2)} 22%{opacity:.95} 100%{opacity:0;transform:scale(1.15)} }
+/* One ring for the press, where there used to be ripples and particle bursts. */
+.core-pulse { position:absolute; inset:0; border-radius:50%; border:1px solid currentColor; pointer-events:none; animation:corePulse .9s ease-out forwards; }
+@keyframes corePulse { 0% { opacity:.85; transform:scale(.86); } 100% { opacity:0; transform:scale(1.3); } }
+.pulse-green { color:#63f0a0; }
+.pulse-red { color:#ff6a58; }
+.pulse-blue { color:#7fdcff; }
+.pulse-armed { color:rgba(149,212,224,.6); }
+
+/* ── The main screen ─────────────────────────────────────────────────────
+   Idle, it is the core, one line, and the box — nothing else. When something
+   has actually changed, the board takes the top and the core settles to the
+   bottom, and then the board stands down again. */
+.stage { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--sp-5); min-height:calc(100dvh - 190px); padding:var(--sp-4) 0; }
+.stage.has-board { justify-content:space-between; }
+.stage-board { width:min(560px,100%); }
+.stage-core { display:flex; flex-direction:column; align-items:center; gap:var(--sp-4); }
+
+/* Fixed height, so a line arriving never shifts the core underneath it. */
+.stage-line { display:grid; place-items:center; min-height:26px; width:min(520px,92vw); }
+.stage-line-text { border:0; background:none; padding:0; cursor:pointer; text-align:center; font-size:var(--fs-body); line-height:1.4; color:var(--caven-cyan-bright); }
+.stage-line-text:hover { color:#ffffff; }
+.stage-line-idle { font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(149,212,224,.45); }
+.stage-line.is-wrapping .stage-line-text { color:rgba(255,214,170,.95); }
+
+/* ── The board: one line you can open ────────────────────────────────────
+   Four glass panels used to sit here at all times, full or empty. Four empty
+   cards is a worse answer than no cards. */
+.day-board { width:100%; border:1px solid var(--border); border-radius:var(--radius-panel); background:rgba(9,17,22,.6); backdrop-filter:blur(6px); overflow:hidden; }
+.day-line { display:flex; align-items:center; gap:var(--sp-3); width:100%; padding:var(--sp-3) var(--sp-4); border:0; background:none; text-align:left; color:inherit; cursor:pointer; }
+.day-line:hover { background:rgba(100,224,232,.05); }
+.day-line:focus-visible { outline:2px solid var(--ring); outline-offset:-2px; }
+.day-line-key { flex:0 0 auto; font-family:var(--font-mono); font-size:var(--fs-micro); letter-spacing:var(--track-label); color:var(--caven-cyan-bright); }
+.day-line-key.is-overdue { color:#ffb078; }
+.day-line-label { flex:1 1 auto; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:var(--fs-body); color:rgba(255,255,255,.9); }
+.day-line-time { flex:0 0 auto; font-family:var(--font-mono); font-size:var(--fs-meta); color:rgba(207,240,242,.6); }
+.day-line-more { flex:0 0 auto; font-family:var(--font-mono); font-size:var(--fs-micro); color:rgba(207,240,242,.45); }
+.day-line-chev { flex:0 0 auto; font-size:10px; color:rgba(207,240,242,.45); }
+
+.day-open { max-height:min(46dvh,380px); overflow-y:auto; padding:0 var(--sp-4) var(--sp-3); border-top:1px solid rgba(149,212,224,.12); scrollbar-width:thin; scrollbar-color:rgba(85,219,228,.35) transparent; }
+.day-hour,.day-anytime { display:grid; grid-template-columns:58px 1fr; gap:var(--sp-3); align-items:start; padding:var(--sp-2) 0; border-bottom:1px solid rgba(149,212,224,.05); }
+.day-anytime { border-bottom:0; margin-top:var(--sp-2); padding-top:var(--sp-3); border-top:1px solid rgba(149,212,224,.12); }
+.day-hour-key { padding-top:3px; font-family:var(--font-mono); font-size:var(--fs-micro); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(218,238,240,.62); }
+/* An empty hour is still a row on purpose — a free afternoon should look like
+   one. Quieter than an hour with something in it, but still legible: an unread
+   clock face is just a grey stripe, which says nothing at all. */
+.day-hour.is-empty { min-height:26px; }
+.day-hour.is-empty .day-hour-key { color:rgba(218,238,240,.3); }
+.day-hour-items { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.day-item { display:flex; align-items:baseline; gap:var(--sp-2); padding:2px 0; border:0; background:none; text-align:left; font-size:var(--fs-body); color:rgba(255,255,255,.88); }
+button.day-item { cursor:pointer; }
+button.day-item:hover { color:#ffffff; }
+.day-item--reminder .day-label { color:rgba(207,240,242,.85); }
+.day-item.is-overdue .day-label { color:#ffd9bd; }
+.day-tick { flex:0 0 auto; display:grid; place-items:center; width:14px; height:14px; border:1px solid rgba(133,229,240,.45); border-radius:4px; font-size:9px; color:var(--caven-cyan-bright); }
+.day-tick.is-done { background:rgba(85,219,228,.18); }
+.day-label { min-width:0; }
+.day-label.is-done { opacity:.4; text-decoration:line-through; }
+
+/* ── The command row ─────────────────────────────────────────────────────
+   Mute lives here now, to the right of the box, rather than on the core. */
+.command-stop,.command-mute { flex:0 0 auto; display:grid; place-items:center; border-radius:999px; }
+.command-stop { padding:6px var(--sp-3); font-family:var(--font-display); font-size:var(--fs-micro); letter-spacing:.2em; color:var(--caven-steel); border:1px solid rgba(149,212,224,.22); background:rgba(13,28,36,.6); }
+.command-stop:hover { color:#ffffff; }
+.command-mute { width:36px; height:36px; color:var(--caven-cyan-bright); border:1px solid rgba(149,212,224,.22); background:rgba(13,28,36,.6); }
+.command-mute:hover { color:#ffffff; }
+.command-stop:focus-visible,.command-mute:focus-visible { outline:2px solid var(--ring); outline-offset:2px; }
+
 
 /* ═══════════════════════════════════════════════════════════════════════
    PRODUCTION / LEGACY — backdrop, metal surfaces, cards, plasma, AccountGate,
@@ -843,11 +822,8 @@ button { font: inherit; }
 /* ═══════════════════════════════════════════════════════════════════════
    RESPONSIVE
    ═══════════════════════════════════════════════════════════════════════ */
-@media (max-width:1000px) {
-  .board-grid { grid-template-columns:minmax(260px,1fr) minmax(340px,1.1fr); gap:20px; }
-  .board-right { grid-column:1; }
-  .core-zone { grid-column:2;grid-row:1 / span 2; }
-}
+/* The old three-column board is gone, so there is nothing here to re-column.
+   The stage is a single centred stack at every width. */
 
 /* ── Phone ──────────────────────────────────────────────────────────────
    Same design, re-flowed. Three things had to change for the app to be
@@ -898,16 +874,17 @@ button { font: inherit; }
   }
   .topbar-nav-item { flex:0 0 auto; padding:var(--sp-2) var(--sp-3); }
 
-  .board-grid { display:flex; flex-direction:column; min-height:0; padding-top:10px; gap:12px; }
-  .core-zone { order:-1; min-height:300px; width:100%; }
-  .board-left,.board-right { width:100%; }
-  .core-button { width:min(86vw,410px); }
-  .core-hint { bottom:2%; }
   .glass-panel { padding:19px; }
 
   /* A phone has one screen's worth of height and a keyboard that eats half of
      it, so the lists give up the 46vh cap and take a fixed, shorter bound. */
   .board-list-scroll { max-height:min(52vh,300px); }
+
+  /* The stage keeps its shape here; only the slack between core and board
+     tightens, and the open board takes less of the screen. */
+  .stage { min-height:calc(100dvh - 210px); gap:var(--sp-4); }
+  .day-open { max-height:min(38dvh,300px); }
+  .day-hour,.day-anytime { grid-template-columns:48px 1fr; }
 
   .page-scroll { min-height:0; max-height:none; overflow-y:visible; padding:var(--sp-5) 0; }
 
@@ -931,7 +908,7 @@ button { font: inherit; }
 /* Anything genuinely small — an SE, or a phone at large text sizes. */
 @media (max-width:380px) {
   .topbar-nav-item { padding:var(--sp-2); font-size:var(--fs-micro); }
-  .core-zone { min-height:260px; }
+  .core-button { width:min(46vw,150px); }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -946,17 +923,11 @@ button { font: inherit; }
     animation-iteration-count:infinite!important;
     transition-duration:.01ms!important;
   }
-  /* Upgraded board */
-  .orbit { animation:none!important; }
-  .particle,.ripple,.glint { display:none; }
-  .sat-group,.sweep,.microtick,.orbit-faint { animation:none!important; }
-  .reactor-ring,.reactor-vio-ring,.reactor-hex,.reactor-hex-inner,.reactor-led,
-  .chain-ring,.rivet-ring,
-  .hex-crystal,.hex-crystal-spin,.hex-crystal-glint,
-  .core-halo,.core-orb,.core-center,.core-svg,
-  .core-listening .core-orb,.core-speaking .core-orb,.core-thinking .core-orb,
-  .core-speaking .core-svg,
-  .lock-beam rect { animation:none!important; }
+  /* The core. Two moving parts left to still, where there were fifteen.
+     The amplitude loop stops itself in CavenCore, so the orb simply holds
+     its size rather than sitting frozen mid-swell. */
+  .core-orb,.core-ring::after,.core-pulse { animation:none!important; }
+  .core-orb { box-shadow:0 0 42px var(--core-glow), inset 0 0 22px rgba(255,255,255,.12); }
   body::before { animation:none!important; }
   /* Legacy production */
   .plasma-core,.plasma-core::before,.plasma-core::after,
