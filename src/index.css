@@ -165,9 +165,9 @@ button { font: inherit; }
    Beneath the command box rather than above the orb: a line of quiet text,
    visible, one click deep, competing with nothing. */
 .bottom-nav { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:var(--sp-2) var(--sp-4); width:min(760px,100%); margin:var(--sp-4) auto 0; padding-bottom:var(--sp-2); }
-.bottom-nav-mark { display:grid; place-items:center; padding:0; border:0; background:none; cursor:pointer; opacity:.7; transition:opacity .25s; }
+.bottom-nav-mark { display:grid; place-items:center; padding:0; border:0; background:none; cursor:pointer; opacity:1; transition:opacity .25s; }
 .bottom-nav-mark:hover { opacity:1; }
-.bottom-nav-mark img { height:22px; width:auto; object-fit:contain; }
+.bottom-nav-mark img { height:22px; width:auto; object-fit:contain; filter:brightness(0) invert(1); }
 .bottom-nav-item { position:relative; padding:6px 2px; border:0; background:none; cursor:pointer; font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(207,240,242,.5); transition:color .25s; }
 .bottom-nav-item:hover { color:rgba(255,255,255,.9); }
 .bottom-nav-item.is-active { color:var(--caven-cyan-bright); }
@@ -316,7 +316,7 @@ button { font: inherit; }
    This replaced 158 lines of counter-rotating reactor rings, a hexagonal
    crystal, orbiting satellites, sweeps, rivets, particles and glints. None
    of it told you anything. Colour carries state; size carries your voice.
-   ═══════════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════���══════════════════════════════════ */
 .core-zone {
   --core-accent:#55dbe4;
   --core-glow:rgba(85,219,228,.30);
