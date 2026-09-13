@@ -47,11 +47,11 @@ const topbar = (title = 'Good morning, Sir') => `
 const navItem = (label, active = false) =>
   `<button type="button" class="bottom-nav-item${active ? ' is-active' : ''}">${label}</button>`
 
-const bottomNav = (active = 'Caven') => `
+const bottomNav = (active = 'Caven', menu = false) => `
 <nav class="bottom-nav" aria-label="Pages">
   <button type="button" class="bottom-nav-mark"><span style="display:block;width:44px;height:22px;background:#1a3b47;border-radius:4px"></span></button>
   ${['Caven', 'Mission Control', 'Journal', 'Brain'].map((l) => navItem(l, l === active)).join('')}
-  <div class="bottom-nav-more">${navItem('More &#733;')}</div>
+  <div class="bottom-nav-more">${navItem('More <span class="bottom-nav-caret">&#9662;</span>')}${!menu ? '' : `<div class="bottom-nav-menu" role="menu">${['Settings','Integration','Account','Help'].map((l) => `<button type="button" class="bottom-nav-menu-item">${l}</button>`).join('')}</div>`}</div>
 </nav>`
 
 const item = (label, kind = 'event', task = false, overdue = false) =>
@@ -69,15 +69,15 @@ const hours = Array.from({ length: 13 }, (_, i) => i + 8)
   })
   .join('')
 
-const board = (open) => `
+const board = (open, line = true) => `
 <section class="day-board${open ? ' is-open' : ''}">
-  <button type="button" class="day-line" aria-expanded="${open}">
+  ${!line ? '' : `<button type="button" class="day-line" aria-expanded="${open}">
     <span class="day-line-key">NEXT</span>
     <span class="day-line-label">Physio</span>
     <span class="day-line-time">2:00 pm</span>
     <span class="day-line-more">+4</span>
     <span class="day-line-chev">${open ? '&#9652;' : '&#9662;'}</span>
-  </button>
+  </button>`}
   ${open ? `<div class="day-open"><div class="day-hours">${hours}</div><div class="day-anytime"><span class="day-hour-key">Anytime</span><span class="day-hour-items">${item('Post the parcel', 'task', true)}${item('Water the plants', 'task', true)}</span></div></div>` : ''}
 </section>`
 
@@ -88,7 +88,7 @@ const mission = `
 <div class="mc">
   <section class="mc-section" id="today">
     <div class="mc-head"><h2 class="mc-title">Today</h2></div>
-    ${board(true)}
+    ${board(true, false)}
   </section>
   <section class="mc-section" id="tasks">
     <div class="mc-head"><h2 class="mc-title">Tasks</h2><span class="mc-note">2 open</span></div>
@@ -118,11 +118,11 @@ const mission = `
   </section>
 </div>`
 
-const page = (title, body, { head = topbar(), active = 'Caven' } = {}) => `<!doctype html>
+const page = (title, body, { head = topbar(), active = 'Caven', menu = false } = {}) => `<!doctype html>
 <html lang="en"><head><meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>${title}</title><link rel="stylesheet" href="/assets/${css}" /></head>
-<body><main class="app-shell">${head}${body}<div class="dock">${commandBar}${bottomNav(active)}</div></main></body></html>`
+<body><main class="app-shell">${head}${body}<div class="dock">${commandBar}${bottomNav(active, menu)}</div></main></body></html>`
 
 writeFileSync(
   'dist/__check.html',
@@ -137,6 +137,7 @@ writeFileSync(
   page('CAVEN — mission control', `<div class="page-scroll">${mission}</div>`, {
     head: topbar('Mission Control'),
     active: 'Mission Control',
+    menu: true,
   }),
 )
 console.log(`dist/__check.html, __check-board.html and __check-mission.html → ${css}`)

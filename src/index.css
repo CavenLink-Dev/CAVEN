@@ -140,7 +140,7 @@ button { font: inherit; }
 /* overflow-x rather than overflow: a plain `hidden` here makes the shell its own
    scroll container, which both clips nothing useful and stops position:sticky
    working inside it — and the command bar is sticky on a phone. */
-.app-shell { min-height:100%; max-width:1860px; margin:auto; padding:0 26px 22px; overflow-x:clip; }
+.app-shell { min-height:100dvh; display:flex; flex-direction:column; max-width:1860px; margin:auto; padding:0 26px 34px; overflow-x:clip; }
 
 /* The typed-command row. Centred under the board on a desktop; docked to the
    bottom of the viewport on a phone, where it was previously below the fold. */
@@ -149,7 +149,7 @@ button { font: inherit; }
 /* Finance / Journal / Brain / Settings. Scrolls within what is left after the
    top bar, which is a different height at each breakpoint — hence a class and
    not a hard-coded pixel offset in the component. */
-.page-scroll { min-height:calc(100dvh - 260px); max-height:calc(100dvh - 240px); overflow-y:auto; padding:var(--sp-6) 0; }
+.page-scroll { flex:1 1 0; min-height:0; overflow-y:auto; padding:var(--sp-6) 0; }
 /* The top of the screen says two things: who you are being greeted as, and what
    time it is. No border and no navigation — a strip of chrome directly above the
    orb was the thing most in the way of the one control that matters. */
@@ -168,10 +168,11 @@ button { font: inherit; }
 .bottom-nav-mark { display:grid; place-items:center; padding:0; border:0; background:none; cursor:pointer; opacity:.7; transition:opacity .25s; }
 .bottom-nav-mark:hover { opacity:1; }
 .bottom-nav-mark img { height:22px; width:auto; object-fit:contain; }
-.bottom-nav-item { position:relative; padding:6px 2px; border:0; background:none; cursor:pointer; font-family:var(--font-mono); font-size:var(--fs-micro); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(207,240,242,.45); transition:color .25s; }
+.bottom-nav-item { position:relative; padding:6px 2px; border:0; background:none; cursor:pointer; font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(207,240,242,.5); transition:color .25s; }
 .bottom-nav-item:hover { color:rgba(255,255,255,.9); }
 .bottom-nav-item.is-active { color:var(--caven-cyan-bright); }
 .bottom-nav-item.is-active::after { content:''; position:absolute; left:0; right:0; bottom:0; height:1px; background:currentColor; box-shadow:0 0 8px currentColor; }
+.bottom-nav-caret { font-size:8px; vertical-align:middle; opacity:.7; }
 .bottom-nav-more { position:relative; }
 /* Upward, because there is nothing below it but the edge of the screen. */
 .bottom-nav-menu { position:absolute; right:0; bottom:calc(100% + var(--sp-2)); z-index:30; display:flex; flex-direction:column; min-width:150px; padding:6px; border:1px solid rgba(149,212,224,.2); border-radius:14px; background:rgba(9,17,22,.96); box-shadow:0 14px 34px rgba(0,0,0,.5); backdrop-filter:blur(8px); }
@@ -323,7 +324,7 @@ button { font: inherit; }
 }
 .core-button {
   position:relative; display:grid; place-items:center;
-  width:clamp(132px,17vw,208px); aspect-ratio:1;
+  width:clamp(150px,21vw,250px); aspect-ratio:1;
   border:0; border-radius:50%; background:transparent; cursor:pointer; outline-offset:8px;
 }
 .core-button:focus-visible { outline:2px solid var(--ring); }
@@ -382,8 +383,11 @@ button { font: inherit; }
    Idle, it is the core, one line, and the box — nothing else. When something
    has actually changed, the board takes the top and the core settles to the
    bottom, and then the board stands down again. */
-.stage { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--sp-5); min-height:calc(100dvh - 268px); padding:var(--sp-4) 0; }
+.stage { flex:1 1 0; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--sp-5); padding:var(--sp-4) 0; }
 .stage.has-board { justify-content:space-between; }
+/* With the board up the orb steps back — it is no longer the only thing on the
+   screen, and at full size the two together overflow a laptop's viewport. */
+.stage.has-board .core-button { width:clamp(104px,13vw,156px); }
 .stage-board { width:min(560px,100%); }
 .stage-core { display:flex; flex-direction:column; align-items:center; gap:var(--sp-4); }
 
@@ -408,7 +412,7 @@ button { font: inherit; }
 .day-line-more { flex:0 0 auto; font-family:var(--font-mono); font-size:var(--fs-micro); color:rgba(207,240,242,.45); }
 .day-line-chev { flex:0 0 auto; font-size:10px; color:rgba(207,240,242,.45); }
 
-.day-open { max-height:min(46dvh,380px); overflow-y:auto; padding:0 var(--sp-4) var(--sp-3); border-top:1px solid rgba(149,212,224,.12); scrollbar-width:thin; scrollbar-color:rgba(85,219,228,.35) transparent; }
+.day-open { max-height:min(32dvh,290px); overflow-y:auto; padding:0 var(--sp-4) var(--sp-3); border-top:1px solid rgba(149,212,224,.12); scrollbar-width:thin; scrollbar-color:rgba(85,219,228,.35) transparent; }
 .day-hour,.day-anytime { display:grid; grid-template-columns:58px 1fr; gap:var(--sp-3); align-items:start; padding:var(--sp-2) 0; border-bottom:1px solid rgba(149,212,224,.05); }
 .day-anytime { border-bottom:0; margin-top:var(--sp-2); padding-top:var(--sp-3); border-top:1px solid rgba(149,212,224,.12); }
 .day-hour-key { padding-top:3px; font-family:var(--font-mono); font-size:var(--fs-micro); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(218,238,240,.62); }
@@ -864,6 +868,9 @@ button.day-item:hover { color:#ffffff; }
 .mc-note { font-family:var(--font-mono); font-size:var(--fs-micro); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(149,212,224,.55); }
 .mc-empty { margin:0; font-size:var(--fs-caption); color:rgba(207,240,242,.5); }
 .mc-rows { display:flex; flex-direction:column; }
+/* The day is the reason you came to this page — let it run its full length
+   and scroll the page, rather than scrolling a box inside a box. */
+.mc .day-open { max-height:none; }
 .mc-row,.mc-task { display:flex; align-items:baseline; gap:var(--sp-3); width:100%; padding:var(--sp-2) 0; border:0; border-bottom:1px solid rgba(149,212,224,.06); background:none; text-align:left; font-size:var(--fs-body); color:rgba(255,255,255,.88); }
 .mc-task { cursor:pointer; }
 .mc-task:hover { color:#ffffff; }
@@ -896,11 +903,11 @@ button.day-item:hover { color:#ffffff; }
 
   /* The stage keeps its shape here; only the slack between core and board
      tightens, and the open board takes less of the screen. */
-  .stage { min-height:calc(100dvh - 270px); gap:var(--sp-4); }
+  .stage { gap:var(--sp-4); }
   .day-open { max-height:min(38dvh,300px); }
   .day-hour,.day-anytime { grid-template-columns:48px 1fr; }
 
-  .page-scroll { min-height:0; max-height:none; overflow-y:visible; padding:var(--sp-5) 0; }
+  .page-scroll { flex:0 0 auto; overflow-y:visible; padding:var(--sp-5) 0; }
 
   /* The command row and the nav dock together as one unit. Sticking them
      separately would mean pinning the row a fixed distance off the bottom —
@@ -916,8 +923,12 @@ button.day-item:hover { color:#ffffff; }
   }
   .command-bar { margin-top:var(--sp-3); }
   .command-bar .caven-text-input { height:44px; font-size:16px; }
-  .bottom-nav { margin-top:var(--sp-3); gap:var(--sp-2) var(--sp-3); }
-  .bottom-nav-mark img { height:18px; }
+  /* One line at this width: the mark goes (Caven is the same destination) and
+     the tracking closes up. It still wraps rather than overflowing if a phone
+     is narrower still or the text size is turned up. */
+  .bottom-nav { margin-top:var(--sp-3); gap:var(--sp-2); }
+  .bottom-nav-mark { display:none; }
+  .bottom-nav-item { font-size:var(--fs-micro); letter-spacing:.08em; padding:6px 1px; }
 
   .page-reply { max-width:100%; }
   /* Wrap rather than squeeze: "Reload board" broke across two lines mid-word

@@ -1,83 +1,12 @@
 import type React from 'react';
-import { useMemo } from 'react';
 import { useCavenStore } from '../../lib/store';
-import { dayLabel, monthKey, parseStamp } from '../../../shared/when';
-import { Bar, Panel, Ring, Row } from '../widgets';
+import { dayLabel, parseStamp } from '../../../shared/when';
+import { Panel, Ring, Row } from '../widgets';
 
 /** Same quiet, in-character note the board cards use, so an empty page reads
  *  as "nothing here yet" rather than as something that failed to load. */
 function EmptyNote({ children }: { children: React.ReactNode }) {
   return <p className="t-caption" style={{ color: 'var(--caven-steel)' }}>{children}</p>;
-}
-
-function money(n: number) {
-  return `${n < 0 ? '-' : '+'}$${Math.abs(n).toFixed(2)}`;
-}
-
-const MONTH_FMT = new Intl.DateTimeFormat('en-AU', { month: 'long', year: 'numeric' });
-
-export function FinancePage() {
-  const { data } = useCavenStore();
-  const { budgets, transactions } = data;
-
-  // The heading said "this month" while the figure summed every transaction ever
-  // recorded. It is the month now. Rows written before transactions carried an
-  // ISO stamp fall back to their printed en-AU date rather than being dropped.
-  const { balance, month, counted } = useMemo(() => {
-    const now = new Date();
-    const key = monthKey(now);
-    const inMonth = transactions.filter((t) => {
-      const at = parseStamp(t.at ?? t.when);
-      return at ? monthKey(at) === key : false;
-    });
-    return {
-      balance: inMonth.reduce((sum, t) => sum + t.amount, 0),
-      month: MONTH_FMT.format(now),
-      counted: inMonth.length,
-    };
-  }, [transactions]);
-
-  return (
-    <div className="w-full max-w-md space-y-3">
-      <Panel>
-        <div className="t-micro tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>BALANCE THIS MONTH</div>
-        <div className="font-display text-4xl" style={{ color: 'var(--caven-cyan-bright)', textShadow: '0 0 18px var(--caven-glow)' }}>
-          ${balance.toFixed(2)}
-        </div>
-        <div className="mt-1 t-caption" style={{ color: 'var(--caven-steel)' }}>
-          {counted === 0
-            ? `Nothing recorded in ${month}.`
-            : `${month} · ${counted} ${counted === 1 ? 'entry' : 'entries'}`}
-        </div>
-      </Panel>
-      <Panel title="Budgets">
-        <div className="space-y-3">
-          {budgets.length === 0 && <EmptyNote>No budgets set. Tell me a category and a limit whenever you like.</EmptyNote>}
-          {budgets.map((b) => (
-            <div key={b.id}>
-              <div className="mb-1 flex justify-between text-sm">
-                <span>{b.category}</span>
-                <span className="opacity-70">${b.spent} / ${b.limit}</span>
-              </div>
-              <Bar value={(b.spent / b.limit) * 100} />
-            </div>
-          ))}
-        </div>
-      </Panel>
-      <Panel title="Recent activity">
-        {transactions.length === 0 && <EmptyNote>Nothing recorded yet. Say what you spent and I'll log it.</EmptyNote>}
-        {transactions.map((x) => (
-          <Row key={x.id}>
-            <span className="flex-1">{x.label}</span>
-            <span className="text-xs opacity-60">{x.when}</span>
-            <span className="font-display text-sm" style={{ color: x.amount > 0 ? 'var(--caven-cyan-bright)' : 'var(--caven-steel-light)' }}>
-              {money(x.amount)}
-            </span>
-          </Row>
-        ))}
-      </Panel>
-    </div>
-  );
 }
 
 export function JournalPage() {
