@@ -144,7 +144,7 @@ button { font: inherit; }
 
 /* The typed-command row. Centred under the board on a desktop; docked to the
    bottom of the viewport on a phone, where it was previously below the fold. */
-.command-bar { display:flex; align-items:center; gap:var(--sp-2); width:min(570px,100%); margin:var(--sp-5) auto 0; }
+.command-bar { display:flex; align-items:center; gap:var(--sp-3); width:min(570px,100%); margin:var(--sp-6) auto 0; padding:var(--sp-2); }
 
 /* Finance / Journal / Brain / Settings. Scrolls within what is left after the
    top bar, which is a different height at each breakpoint — hence a class and
@@ -165,9 +165,9 @@ button { font: inherit; }
    Beneath the command box rather than above the orb: a line of quiet text,
    visible, one click deep, competing with nothing. */
 .bottom-nav { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:var(--sp-2) var(--sp-4); width:min(760px,100%); margin:var(--sp-4) auto 0; padding-bottom:var(--sp-2); }
-.bottom-nav-mark { display:grid; place-items:center; padding:0; border:0; background:none; cursor:pointer; opacity:.7; transition:opacity .25s; }
+.bottom-nav-mark { display:grid; place-items:center; padding:0; border:0; background:none; cursor:pointer; opacity:1; transition:opacity .25s; }
 .bottom-nav-mark:hover { opacity:1; }
-.bottom-nav-mark img { height:22px; width:auto; object-fit:contain; }
+.bottom-nav-mark img { height:22px; width:auto; object-fit:contain; filter:brightness(0) invert(1); }
 .bottom-nav-item { position:relative; padding:6px 2px; border:0; background:none; cursor:pointer; font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(207,240,242,.5); transition:color .25s; }
 .bottom-nav-item:hover { color:rgba(255,255,255,.9); }
 .bottom-nav-item.is-active { color:var(--caven-cyan-bright); }
@@ -316,7 +316,7 @@ button { font: inherit; }
    This replaced 158 lines of counter-rotating reactor rings, a hexagonal
    crystal, orbiting satellites, sweeps, rivets, particles and glints. None
    of it told you anything. Colour carries state; size carries your voice.
-   ═══════════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════���══════════════════════════════════ */
 .core-zone {
   --core-accent:#55dbe4;
   --core-glow:rgba(85,219,228,.30);
@@ -437,8 +437,10 @@ button.day-item:hover { color:#ffffff; }
 .command-stop,.command-mute { flex:0 0 auto; display:grid; place-items:center; border-radius:999px; }
 .command-stop { padding:6px var(--sp-3); font-family:var(--font-display); font-size:var(--fs-micro); letter-spacing:.2em; color:var(--caven-steel); border:1px solid rgba(149,212,224,.22); background:rgba(13,28,36,.6); }
 .command-stop:hover { color:#ffffff; }
-.command-mute { width:36px; height:36px; color:var(--caven-cyan-bright); border:1px solid rgba(149,212,224,.22); background:rgba(13,28,36,.6); }
-.command-mute:hover { color:#ffffff; }
+.command-mute { width:44px; height:44px; color:var(--caven-cyan-bright); border:1px solid rgba(149,212,224,.28); background:rgba(13,28,36,.72); box-shadow:0 0 0 4px rgba(85,219,228,.04); transition:color .2s, border-color .2s, background .2s, transform .2s; }
+.command-mute:hover { color:#ffffff; background:rgba(20,43,52,.9); transform:translateY(-1px); }
+.command-mute.is-muted { color:#ff6969; border-color:rgba(255,105,105,.55); background:rgba(92,25,29,.32); box-shadow:0 0 0 4px rgba(255,82,82,.08), 0 0 16px rgba(255,82,82,.16); }
+.command-mute.is-muted:hover { color:#ff9a9a; }
 .command-stop:focus-visible,.command-mute:focus-visible { outline:2px solid var(--ring); outline-offset:2px; }
 
 
