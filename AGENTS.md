@@ -18,7 +18,7 @@ Never: "Absolutely!", "Amazing!", "Certainly, sir" as a reflex, Victorian flouri
 
 Cards open only on explicit intent (`src/lib/cavenState.ts` `route()`). Greetings like "hey how you going?" are conversation — no Tasks card.
 
-**Token budget matters.** This prompt is resent every turn and free provider tiers meter tokens per minute (Groq's free tier: 8000 TPM). Keep the system prompt lean — verified live that ~850 tokens/turn exhausts the budget in ~4 messages. Current prompt is ~540 tokens.
+**Token budget matters.** This prompt is resent every turn and free provider tiers meter tokens per minute (Groq's free tier: 8000 TPM). Keep the system prompt lean — verified live that ~850 tokens/turn exhausts the budget in ~4 messages. Current prompt is ~600 tokens.
 
 ## Chat providers
 
@@ -119,4 +119,7 @@ This project uses **Tailwind CSS v4** through the `@tailwindcss/vite` plugin con
 - Never hide the nav to make a breakpoint fit. It was `display:none` below 680px, which left four of the five pages unreachable on a phone. It wraps to its own full-width row instead.
 - Sizes that a breakpoint has to change cannot be inline styles — inline beats a media query. The top bar's marks, avatar, clock and music offset are classes in `index.css` for exactly that reason; keep them there.
 - Panel drag and resize are pointer-only (`e.pointerType === 'touch'` returns early). The press-and-hold that arms a drag would otherwise eat the scroll gesture and leave a phone stuck on the first panel.
+- How long the mic may stay quiet is decided per utterance by `shared/endpoint.ts`, not by a fixed timeout. It was 1800ms after any partial and 400ms after the browser's own `onspeechend`, and a trailing "um—" reads to the recogniser exactly like the end of a sentence, so the mic shut mid-thought and the fragment was saved as a command. `voice.ts` owns the timers; `endpoint.ts` owns nothing but the gap.
+- `isFragment()` and `isIncomplete()` are deliberately not the same test, and merging them breaks something. `isIncomplete` sizes the silence gap, where guessing wrong only costs a pause, so it is generous — anything ending on a preposition. `isFragment` decides whether an utterance is thrown away unheard, where guessing wrong loses a real instruction, so it only fires on a whole utterance carrying no content. Ending on a dangling word is not enough: "save that" and "what's that for" both end on one.
+- `isCancel()` in `shared/cancel.ts` matches only the *whole* utterance. "Never mind" drops the turn; "never mind the dentist reminder" is a deletion and must stay on the model path, which owns the delete verbs and asks which row was meant instead of guessing.
 - `node scripts/mobile-harness.mjs` writes `dist/__mobile-check.html` after a build — the real class names against the real compiled stylesheet, with no signed-in session in the way, for checking the phone layout. Throwaway; `pnpm build` clears it.

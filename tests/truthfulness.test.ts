@@ -40,6 +40,9 @@ test('claimsChange catches first-person completions', () => {
     "It's on the board for tomorrow at nine.",
     "That's off the list.",
     'Call the bank is off the board. Say undo if that was wrong.',
+    // The phrasing most natural to him, and the easiest to say when nothing ran.
+    'Consider it done.',
+    'Consider it noted, sir.',
   ]) {
     assert.equal(claimsChange(line), true, `should claim: ${line}`);
   }
@@ -53,6 +56,7 @@ test('claimsChange leaves ordinary conversation alone', () => {
     'A fair point, though what is done is rarely undone so easily.',
     "I'm afraid I've lost the thread there, sir.",
     'Which reminder should go, sir? Nothing has changed.',
+    'Consider it carefully before you commit to it.',
   ]) {
     assert.equal(claimsChange(line), false, `should not claim: ${line}`);
   }

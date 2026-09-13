@@ -68,6 +68,10 @@ const CLAIMS_CHANGE = new RegExp(
     // placement claim has to be anchored to a subject ("it's…", "dinner is…").
     `\\boff the (?:board|list)\\b`,
     `\\bis (?:on the (?:board|list)|in the diary)\\b`,
+    // The butler's own way of saying it, and a completion claim like any other.
+    // It slips past the patterns above because the participle is neither first
+    // person nor the whole sentence.
+    `\\bconsider it (?:${DONE_WORDS})\\b`,
     `(?:^|[.!?]\\s+)(?:${DONE_WORDS})[.!]`,
   ].join('|'),
   'i',
