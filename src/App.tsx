@@ -194,8 +194,9 @@ export default function App() {
           <button
             type="button"
             onClick={toggleMute}
-            className="command-mute"
-            aria-label={muted ? 'Unmute CAVEN' : 'Mute CAVEN (voice, music and effects)'}
+            className={`command-mute${muted ? ' is-muted' : ''}`}
+            aria-label={muted ? 'Unmute microphone' : 'Mute microphone'}
+            title={muted ? 'Unmute microphone' : 'Mute microphone'}
             aria-pressed={muted}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

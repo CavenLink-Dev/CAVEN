@@ -144,7 +144,7 @@ button { font: inherit; }
 
 /* The typed-command row. Centred under the board on a desktop; docked to the
    bottom of the viewport on a phone, where it was previously below the fold. */
-.command-bar { display:flex; align-items:center; gap:var(--sp-2); width:min(570px,100%); margin:var(--sp-5) auto 0; }
+.command-bar { display:flex; align-items:center; gap:var(--sp-3); width:min(570px,100%); margin:var(--sp-6) auto 0; padding:var(--sp-2); }
 
 /* Finance / Journal / Brain / Settings. Scrolls within what is left after the
    top bar, which is a different height at each breakpoint — hence a class and
@@ -437,8 +437,10 @@ button.day-item:hover { color:#ffffff; }
 .command-stop,.command-mute { flex:0 0 auto; display:grid; place-items:center; border-radius:999px; }
 .command-stop { padding:6px var(--sp-3); font-family:var(--font-display); font-size:var(--fs-micro); letter-spacing:.2em; color:var(--caven-steel); border:1px solid rgba(149,212,224,.22); background:rgba(13,28,36,.6); }
 .command-stop:hover { color:#ffffff; }
-.command-mute { width:36px; height:36px; color:var(--caven-cyan-bright); border:1px solid rgba(149,212,224,.22); background:rgba(13,28,36,.6); }
-.command-mute:hover { color:#ffffff; }
+.command-mute { width:44px; height:44px; color:var(--caven-cyan-bright); border:1px solid rgba(149,212,224,.28); background:rgba(13,28,36,.72); box-shadow:0 0 0 4px rgba(85,219,228,.04); transition:color .2s, border-color .2s, background .2s, transform .2s; }
+.command-mute:hover { color:#ffffff; background:rgba(20,43,52,.9); transform:translateY(-1px); }
+.command-mute.is-muted { color:#ff6969; border-color:rgba(255,105,105,.55); background:rgba(92,25,29,.32); box-shadow:0 0 0 4px rgba(255,82,82,.08), 0 0 16px rgba(255,82,82,.16); }
+.command-mute.is-muted:hover { color:#ff9a9a; }
 .command-stop:focus-visible,.command-mute:focus-visible { outline:2px solid var(--ring); outline-offset:2px; }
 
 
