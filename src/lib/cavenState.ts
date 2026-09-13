@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { addressOf, DEFAULT_ADDRESS } from '../../shared/address';
-import { parseActions, REMOVAL } from '../../shared/actions';
+import { claimsChange, parseActions, REMOVAL } from '../../shared/actions';
 import { dueLine, nextDue, settle } from '../../shared/reminders';
 import { showLocalNotification } from './push';
 import { playSfx } from './sfx';
@@ -32,6 +32,12 @@ type Route = { kind: CardKind; title: string };
 // Spoken only when Claude is unreachable. It must never claim to have done
 // something — that was the old "added that to your tasks" bug.
 const OFFLINE_LINE = (a: string) => `I'm afraid I've lost the thread there, ${a}. Do give me a moment and try again.`;
+/**
+ * Spoken when the model announced a change that never happened. It says plainly
+ * that nothing was written rather than papering over it, because the one thing
+ * the board must never do is disagree with what he just said.
+ */
+const NOTHING_DONE = (a: string) => `Nothing was saved, ${a}. Say it again plainly and I'll see to it.`;
 const NO_SPEECH_LINE = (a: string) => `This browser won't let me listen, I'm afraid, ${a}. Do type to me instead.`;
 
 // Plain conversation. If it looks like this, CAVEN just talks; no card, no capture.
@@ -51,7 +57,10 @@ const INTENTS: Array<{ re: RegExp; kind: CardKind; title: string }> = [
     title: 'Tasks',
   },
   {
-    re: /\b(my calendar|my schedule|my agenda|my diary|what'?s on (today|tomorrow|this week)|whats on (today|tomorrow|this week)|what have i got on)\b/i,
+    // "what's on today" raised the board; "what is on today" did not, because the
+    // contraction was required. Same question, and the uncontracted form is the
+    // one speech recognition tends to produce.
+    re: /\b(my calendar|my schedule|my agenda|my diary|what(?:'?s|s| is| was) on (today|tomorrow|this week)|what (?:have i got|do i have|is) on|anything on (today|tomorrow))\b/i,
     kind: 'calendar',
     title: 'Today',
   },
@@ -221,6 +230,11 @@ export function useCaven() {
         const { spoken, actions } = parseActions(raw);
         line = spoken;
         if (!actions.length) {
+          // Nothing was asked of the engine, so nothing changed. If the model
+          // nevertheless announced that it had, that sentence is false and must
+          // not be spoken — this is the path that once said "Removed." while the
+          // reminder stayed exactly where it was.
+          if (claimsChange(line)) line = NOTHING_DONE(addressRef.current);
           if (!line) line = OFFLINE_LINE(addressRef.current);
           return;
         }
@@ -231,6 +245,10 @@ export function useCaven() {
           // Claude's own line is already in character, so speak it when the work
           // actually landed; fall back to the action's own words if it said nothing.
           if (!line) line = result.message;
+          // The engine ran but wrote nothing — a no-op, not an error, so the catch
+          // below never sees it. Its own message says what really happened ("I have
+          // that one already"), and it outranks any claim to the contrary.
+          else if (!changed && claimsChange(line)) line = result.message || NOTHING_DONE(addressRef.current);
         } catch (error) {
           // Nothing was saved. Whatever cheerful thing Claude wrote is now a lie,
           // so it is discarded and the user hears exactly what went wrong instead.

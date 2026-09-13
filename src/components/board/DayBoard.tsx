@@ -45,7 +45,7 @@ const hourLabel = (h: number) => HOUR_FMT.format(new Date(2026, 0, 1, h, 0))
 type Props = { open: boolean; onOpenChange: (open: boolean) => void; alwaysOpen?: boolean }
 
 function DayBoardBase({ open, onOpenChange, alwaysOpen = false }: Props) {
-  const { data, ready, update } = useCavenStore()
+  const { data, ready, update, remove } = useCavenStore()
   const [pending, setPending] = useState<Record<string, boolean>>({})
 
   const { timed, anytime, headline, extra } = useMemo(() => {
@@ -136,6 +136,28 @@ function DayBoardBase({ open, onOpenChange, alwaysOpen = false }: Props) {
     })).then(settle, settle)
   }
 
+  // Which collection a slot came from. The id carries the prefix so the row can
+  // be put back where it belongs without threading the source through Slot.
+  const COLLECTION = { task: 'tasks', event: 'calendar', reminder: 'reminders' } as const
+
+  /** Only on Mission Control: the glanceable board on the Caven screen stays
+   *  uncluttered, but the page you open in order to *look* is also the page you
+   *  need in order to tidy — an event had no other way off the board at all. */
+  const removeControl = (slot: Slot) =>
+    alwaysOpen ? (
+      <button
+        type="button"
+        className="day-remove"
+        aria-label={`Remove ${slot.label}`}
+        title={`Remove ${slot.label}`}
+        onClick={() => void remove(COLLECTION[slot.kind], { id: slot.id.slice(2) })}
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </button>
+    ) : null
+
   const row = (slot: Slot) => {
     const done = slot.task ? (pending[slot.task.id] ?? slot.task.done) : false
     const body = (
@@ -148,19 +170,22 @@ function DayBoardBase({ open, onOpenChange, alwaysOpen = false }: Props) {
       return (
         <span key={slot.id} className={`day-item day-item--${slot.kind}${slot.overdue ? ' is-overdue' : ''}`}>
           {body}
+          {removeControl(slot)}
         </span>
       )
     }
     return (
-      <button
-        key={slot.id}
-        type="button"
-        className={`day-item day-item--task${slot.overdue ? ' is-overdue' : ''}`}
-        onClick={() => toggleTask(slot.task as Task)}
-        aria-pressed={done}
-      >
-        {body}
-      </button>
+      <span key={slot.id} className="day-item-wrap">
+        <button
+          type="button"
+          className={`day-item day-item--task${slot.overdue ? ' is-overdue' : ''}`}
+          onClick={() => toggleTask(slot.task as Task)}
+          aria-pressed={done}
+        >
+          {body}
+        </button>
+        {removeControl(slot)}
+      </span>
     )
   }
 

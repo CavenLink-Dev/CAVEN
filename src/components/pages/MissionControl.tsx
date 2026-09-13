@@ -25,12 +25,24 @@ function Section({ id, title, note, children }: { id: string; title: string; not
   )
 }
 
+/** Takes a row off the board. Paired with the Undo strip below, so a mis-tap is
+ *  one click back rather than a spoken command. */
+function Remove({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <button type="button" className="mc-remove" onClick={onRemove} aria-label={`Remove ${label}`} title={`Remove ${label}`}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" />
+      </svg>
+    </button>
+  )
+}
+
 function Empty({ children }: { children: React.ReactNode }) {
   return <p className="mc-empty">{children}</p>
 }
 
 export function MissionControl() {
-  const { data, update } = useCavenStore()
+  const { data, update, remove, undo } = useCavenStore()
   const [pending, setPending] = useState<Record<string, boolean>>({})
 
   const open = data.tasks.filter((t) => !(pending[t.id] ?? t.done))
@@ -79,8 +91,20 @@ export function MissionControl() {
     }
   }, [data.transactions])
 
+  const undone = data.lastDeleted
+  const undoneLabel =
+    (undone?.row as { title?: string; name?: string } | undefined)?.title ??
+    (undone?.row as { title?: string; name?: string } | undefined)?.name ??
+    'That'
+
   return (
     <div className="mc">
+      {undone && (
+        <div className="mc-undo" role="status">
+          <span>{undoneLabel} removed.</span>
+          <button type="button" onClick={() => void undo()}>Undo</button>
+        </div>
+      )}
       <Section id="today" title="Today">
         {/* Always open here. On the Caven screen the same board is a single line
             that stands down; this is the page you came to in order to look. */}
@@ -93,17 +117,23 @@ export function MissionControl() {
         ) : (
           <div className="mc-rows">
             {open.map((task) => (
-              <button key={task.id} type="button" className="mc-task" onClick={() => toggle(task)} aria-pressed={false}>
-                <span className="day-tick" />
-                <span className="day-label">{task.title}</span>
-                {task.time && <span className="mc-when">{task.time}</span>}
-              </button>
+              <div className="mc-line" key={task.id}>
+                <button type="button" className="mc-task" onClick={() => toggle(task)} aria-pressed={false}>
+                  <span className="day-tick" />
+                  <span className="day-label">{task.title}</span>
+                  {task.time && <span className="mc-when">{task.time}</span>}
+                </button>
+                <Remove label={task.title} onRemove={() => void remove('tasks', task)} />
+              </div>
             ))}
             {done.map((task) => (
-              <button key={task.id} type="button" className="mc-task" onClick={() => toggle(task)} aria-pressed>
-                <span className="day-tick is-done">✓</span>
-                <span className="day-label is-done">{task.title}</span>
-              </button>
+              <div className="mc-line" key={task.id}>
+                <button type="button" className="mc-task" onClick={() => toggle(task)} aria-pressed>
+                  <span className="day-tick is-done">✓</span>
+                  <span className="day-label is-done">{task.title}</span>
+                </button>
+                <Remove label={task.title} onRemove={() => void remove('tasks', task)} />
+              </div>
             ))}
           </div>
         )}
@@ -121,6 +151,7 @@ export function MissionControl() {
                   {r.when}
                   {r.repeat ? ` · repeats ${r.repeat}` : ''}
                 </span>
+                <Remove label={r.title} onRemove={() => void remove('reminders', r)} />
               </div>
             ))}
           </div>

@@ -24,7 +24,7 @@ type Patch=Partial<CavenData>|((prev:CavenData)=>CavenData);
 // could not work and nothing on screen offered the one thing that would.
 export const CONFLICT_LINE =
  'Your board changed in another tab. Reload to catch up — this change was not saved.';
-type Store={data:CavenData;ready:boolean;status:string;loadFailed:boolean;lastError:string|null;conflict:boolean;reload:()=>Promise<void>;clearError:()=>void;update:(patch:Patch)=>Promise<void>;capture:(kind:ActionKind,text:string)=>Promise<{message:string;changed:boolean}>;perform:(actions:CavenAction[])=>Promise<{message:string;changed:boolean}>};
+type Store={data:CavenData;ready:boolean;status:string;loadFailed:boolean;lastError:string|null;conflict:boolean;reload:()=>Promise<void>;clearError:()=>void;update:(patch:Patch)=>Promise<void>;remove:(kind:DeletedRow['kind'],row:{id:string})=>Promise<void>;undo:()=>Promise<void>;capture:(kind:ActionKind,text:string)=>Promise<{message:string;changed:boolean}>;perform:(actions:CavenAction[])=>Promise<{message:string;changed:boolean}>};
 const Context=createContext<Store|null>(null);
 export function CavenStoreProvider({children}:{children:ReactNode}) {
  const [data,setData]=useState(seedData),[ready,setReady]=useState(false),[status,setStatus]=useState('Loading your board…'),[loadFailed,setLoadFailed]=useState(false),[lastError,setLastError]=useState<string|null>(null),[conflict,setConflict]=useState(false);
@@ -48,6 +48,23 @@ export function CavenStoreProvider({children}:{children:ReactNode}) {
   if(mounted.current){setData(next);setStatus('Saved to your private account')}
  },[]);
  const update=useCallback((patch:Patch)=>enqueue(async()=>{try{await save(typeof patch==='function'?patch(current.current):{...current.current,...patch});setLastError(null)}catch(e){const msg=e instanceof Error?e.message:'Save failed. Please retry.';setStatus(msg);setLastError(msg)}}),[enqueue,save]);
+ // Deleting a row by hand, not by voice. Until now the only way to take anything
+ // off the board was to say so, which meant a mis-captured row could only be
+ // removed through the one path that had been observed claiming success without
+ // doing anything. These write the same `lastDeleted` stash the spoken `undo`
+ // verb reads, so a hand delete and a spoken undo still understand each other.
+ const remove=useCallback((kind:DeletedRow['kind'],row:{id:string})=>update((prev)=>{
+  const rows=prev[kind] as {id:string}[];
+  const target=rows.find((r)=>r.id===row.id);
+  if(!target) return prev;
+  return {...prev,[kind]:rows.filter((r)=>r.id!==row.id),lastDeleted:{kind,row:target}} as CavenData;
+ }),[update]);
+ const undo=useCallback(()=>update((prev)=>{
+  const stash=prev.lastDeleted;
+  if(!stash) return prev;
+  const rows=prev[stash.kind] as unknown[];
+  return {...prev,[stash.kind]:[stash.row,...rows],lastDeleted:undefined} as CavenData;
+ }),[update]);
  const capture=useCallback((kind:ActionKind,text:string)=>enqueue(async()=>{try{const result=applyCommand(kind,text,current.current);if(result.changed)await save(result.data);setLastError(null);return{message:result.message,changed:result.changed}}catch(e){const msg=e instanceof Error?e.message:'Save failed';setStatus(msg);setLastError(msg);throw e}}),[enqueue,save]);
  // Model-proposed actions. Same serialised queue and same optimistic `version`
  // handling as capture: the whole batch runs against current.current inside the
@@ -56,6 +73,6 @@ export function CavenStoreProvider({children}:{children:ReactNode}) {
  // untouched so the caller can say that instead of pretending it worked.
  const perform=useCallback((actions:CavenAction[])=>enqueue(async()=>{try{let next=current.current,changed=false;const said:string[]=[];for(const action of actions){const result=runAction(action,next);next=result.data;if(result.message)said.push(result.message);if(result.changed)changed=true}if(changed)await save(next);setLastError(null);return{message:said.join(' '),changed}}catch(e){const msg=e instanceof Error?e.message:'Save failed';setStatus(msg);setLastError(msg);throw e}}),[enqueue,save]);
  const clearError=useCallback(()=>setLastError(null),[]);
- return <Context.Provider value={{data,ready,status,loadFailed,lastError,conflict,reload,clearError,update,capture,perform}}>{children}</Context.Provider>
+ return <Context.Provider value={{data,ready,status,loadFailed,lastError,conflict,reload,clearError,update,remove,undo,capture,perform}}>{children}</Context.Provider>
 }
 export function useCavenStore(){const s=useContext(Context);if(!s)throw new Error('Missing CAVEN store');return s}

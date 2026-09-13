@@ -14,6 +14,14 @@ import { isMuted, setMuted } from './lib/sfx';
 /** How long the board stays up after something changed, before it stands down. */
 const BOARD_LINGER_MS = 45_000;
 
+/** Three of the examples from Settings → Help, surfaced where they are needed.
+ *  Tapping one runs it, so the first turn costs no typing and no guesswork. */
+const STARTERS = [
+  'Remind me to take the tablets every weekday at nine',
+  'Add ring the dentist to my list',
+  "What have I got on today?",
+] as const;
+
 /**
  * The spoken line, cut to a glanceable length. The point of this line is to be
  * read without being studied — a full reply below the core turned it into a
@@ -35,7 +43,7 @@ export default function App() {
     useCaven();
   // Save/action failures used to be written to state and never shown. They now
   // surface here, above everything, on whichever page the user is looking at.
-  const { lastError, clearError, conflict, reload } = useCavenStore();
+  const { data, lastError, clearError, conflict, reload } = useCavenStore();
 
   // The board is not furniture. It comes up when a turn wrote something, or when
   // he asked about the board itself, and stands down again afterwards — so an
@@ -71,6 +79,20 @@ export default function App() {
     setMuted(next);
     setMutedState(next);
   };
+
+  // What to say, for someone who has never said anything.
+  //
+  // The signed-in screen was a greeting, an unlabelled orb and an empty box. The
+  // examples that make it obvious existed all along — buried at More → Help,
+  // which is the last place a first-time user looks. These are the same lines,
+  // shown where the question is actually being asked, and gone the moment the
+  // board has anything on it.
+  const boardEmpty =
+    data.tasks.length === 0 &&
+    data.reminders.length === 0 &&
+    data.calendar.length === 0 &&
+    data.voiceNotes.length === 0 &&
+    data.journal.length === 0;
 
   const listening = state === 'listening';
   const line = listening ? transcript : reply;
@@ -144,6 +166,18 @@ export default function App() {
                 <span className="stage-line-idle">{conversing ? 'Listening…' : ''}</span>
               )}
             </div>
+
+            {boardEmpty && !line && !conversing && (
+              <ul className="stage-hints">
+                {STARTERS.map((hint) => (
+                  <li key={hint}>
+                    <button type="button" onClick={() => runCommand(hint)}>
+                      &ldquo;{hint}&rdquo;
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       ) : (
@@ -169,7 +203,7 @@ export default function App() {
       <div className="dock">
         <div className="command-bar">
           <form
-            className="flex-1"
+            className="command-form flex-1"
             onSubmit={(e) => {
               e.preventDefault();
               submitTyped();
@@ -183,6 +217,15 @@ export default function App() {
               style={{ color: 'var(--caven-steel-light)' }}
               aria-label="Type a message to CAVEN"
             />
+            {/* Enter has always sent. Nothing on screen said so, and there was no
+                way at all to send with a mouse — the form had no submit control. */}
+            {typed.trim() && (
+              <button type="submit" className="command-send" aria-label="Send">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M5 12h13M12 5l7 7-7 7" />
+                </svg>
+              </button>
+            )}
           </form>
 
           {(locked || conversing) && (

@@ -41,6 +41,43 @@ export { addressOf, checkAddress, DEFAULT_ADDRESS, ADDRESS_LIMIT } from './addre
 export const REMOVAL =
   /\b(delete|remove|cancel|clear|scrap|erase|wipe|bin (?:off|it)|get rid of|take (?:it |that |the )?.{0,40}?\boff\b|no longer (?:need|want))\b/i;
 
+/**
+ * A reply that claims a record was created, changed or removed.
+ *
+ * The model writes CAVEN's spoken line, and it will happily narrate an outcome
+ * it never asked for: a plain "Removed." with no [[ACT]] block at all, which the
+ * app then said aloud while the row sat exactly where it was. Prompting cannot
+ * prevent that — AGENTS.md has said "never claims something is done/saved unless
+ * it actually is" throughout — so the claim is detected here and the caller
+ * refuses to speak it unless the action engine reports `changed`.
+ *
+ * Deliberately narrow: it must match a first-person completion ("I've added…"),
+ * a definite state ("it's on the board"), or a bare past participle used as a
+ * whole sentence ("Removed."). Ordinary conversation that merely contains the
+ * word "done" is left alone.
+ */
+const DONE_WORDS =
+  'added|saved|logged|noted|filed|booked|set|put|removed|deleted|cancelled|canceled|cleared|crossed|ticked|taken|scheduled|sorted|done|gone';
+const CLAIMS_CHANGE = new RegExp(
+  [
+    `\\bi(?:'ve| have)\\s+(?:already\\s+|just\\s+)?(?:${DONE_WORDS})\\b`,
+    `\\bit'?s\\s+(?:on the (?:board|list)|in the diary|down|done|off)\\b`,
+    `\\bthat'?s\\s+(?:done|gone|off|sorted|logged|saved|noted|in)\\b`,
+    // "off the board" is only ever a removal claim. Bare "on the list" is not:
+    // "Nothing on the list at all" is a truthful report of an empty board, so a
+    // placement claim has to be anchored to a subject ("it's…", "dinner is…").
+    `\\boff the (?:board|list)\\b`,
+    `\\bis (?:on the (?:board|list)|in the diary)\\b`,
+    `(?:^|[.!?]\\s+)(?:${DONE_WORDS})[.!]`,
+  ].join('|'),
+  'i',
+);
+
+/** True when `text` tells the user something was created, changed or removed. */
+export function claimsChange(text: string): boolean {
+  return typeof text === 'string' && CLAIMS_CHANGE.test(text);
+}
+
 /** Queries and negations. Viewing and writing are separate operations. */
 const READ_ONLY =
   /^(show|what|how|when|where|do i|did i|have i|can you show|tell me|open|check|don'?t (add|save|create|log|delete)|do not)\b/i;
@@ -177,6 +214,45 @@ function required(value: unknown, complaint: string): string {
   return out;
 }
 
+/** Command words a person says *around* the thing, never as the thing itself. */
+const COMMAND_PREFIX =
+  /^(?:(?:hey|hi|hello|ok|okay|yo|caven)[,! ]+)*(?:can |could |would |will |please |i need (?:you )?to |i want (?:you )?to )+/i;
+const INTENT_PREFIX =
+  /^(?:caven[, ]*)?(?:you\s+)?(?:please\s+)?(?:remind me(?: to)?|set(?: me)? a reminder(?: for| to)?|nudge me(?: to)?|wake me|don'?t let me forget(?: to)?|add|put|book|schedule|make)\s+/i;
+
+/**
+ * The title of a record, or a question if what arrived was the sentence itself.
+ *
+ * The regex fast path refuses an utterance it cannot read a time out of, and
+ * then hands the turn to the model — which has been observed to "recover" by
+ * calling reminder.add with the whole utterance as the title and a time nobody
+ * supplied. Two rows in production came from exactly that: a reminder titled
+ * "Hey there can you please set a reminder", and another titled "Delete the
+ * reminder titled check the UX audit…" — a *removal* stored as a new record.
+ *
+ * A title is a thing ("call the bank"), not a request for one. So the command
+ * wrapping is stripped, and if what remains is still a command, still empty, or
+ * far too long to be a subject, nothing is written and the user is asked.
+ */
+function subject(value: unknown, noun: string, term: string): string {
+  const raw = required(value, `What should I call it, ${term}? Nothing has been saved.`);
+  const trimmed = raw.replace(COMMAND_PREFIX, '').replace(INTENT_PREFIX, '').replace(/^(?:to|that|about)\s+/i, '').trim();
+
+  // A removal never becomes a creation, however it is phrased.
+  if (REMOVAL.test(trimmed)) {
+    throw new Error(`Which ${noun} should go, ${term}? Nothing has been added.`);
+  }
+  // Still a request rather than a subject: the model handed over the sentence.
+  if (!trimmed || REMINDER_INTENT.test(trimmed) || COMMAND_PREFIX.test(trimmed)) {
+    throw new Error(`What should the ${noun} say, ${term}? Nothing has been saved.`);
+  }
+  // A subject is short. A sentence this long is the utterance, not its point.
+  if (trimmed.length > 80) {
+    throw new Error(`Give me the short version and I'll put it down, ${term}. Nothing has been saved.`);
+  }
+  return trimmed;
+}
+
 /** "12.50", "$12.50", 12.5 all read as 12.5. Anything unreadable reads as null. */
 function amountOf(value: unknown): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
@@ -291,7 +367,7 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     }
 
     case 'task.add': {
-      const title = required(action.title, `What should the task be, ${term}? Nothing has been added.`);
+      const title = subject(action.title, 'task', term);
       const task: Task = { id, title, done: false };
       const tag = text(action.tag);
       if (tag) task.tag = tag;
@@ -323,7 +399,7 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     }
 
     case 'reminder.add': {
-      const title = required(action.title, `What should I remind you about, ${term}? Nothing has been saved.`);
+      const title = subject(action.title, 'reminder', term);
       const asked = required(action.when, `What date and time should I remind you, ${term}? Nothing has been saved yet.`);
       const { rule, when } = repeatOf(action, asked);
       const due = whenDate(when, now, 'reminder', term, rule);
@@ -345,7 +421,7 @@ export function runAction(action: CavenAction, prev: CavenData, now = new Date()
     }
 
     case 'event.add': {
-      const title = required(action.title, `What shall I call it, ${term}? Nothing has gone in the diary.`);
+      const title = subject(action.title, 'entry', term);
       const when = required(action.when, `What date and time is that, ${term}? Nothing has gone in the diary.`);
       const moment = whenDate(when, now, 'event', term);
       const asked = text(action.kind).toLowerCase();

@@ -81,6 +81,15 @@ function isGone(error: unknown): boolean {
   return status === 404 || status === 410;
 }
 
+/**
+ * How late a reminder may be and still be worth sending.
+ *
+ * Fifteen minutes: long enough to survive a slow cron tick, a cold start or a
+ * phone that was off for a moment; short enough that nothing arrives after the
+ * occasion it was meant for.
+ */
+const STALE_AFTER_MS = 15 * 60 * 1000;
+
 async function handle(req: Request): Promise<Response> {
   try {
     if (req.method !== 'POST' && req.method !== 'GET') return json({ error: 'method_not_allowed' }, 405);
@@ -126,8 +135,22 @@ async function handle(req: Request): Promise<Response> {
     const now = new Date();
     let sent = 0;
     let pruned = 0;
+    let skipped = 0;
 
     for (const row of claimed) {
+      // How late is this one?
+      //
+      // The claim takes anything past due and undelivered, so the first run after
+      // a device is armed flushes the whole backlog at once. In production that
+      // meant "Go to the gym", due 6:30pm Friday, arriving 8:21am Saturday — and a
+      // QA row arriving 44 hours late. A reminder that turns up long after the
+      // moment has passed is not a reminder, it is noise, and noise is what
+      // teaches someone to swipe the whole channel away. Anything staler than the
+      // window is settled silently instead: a repeating one still rolls on to its
+      // next occurrence, a one-off is simply marked fired and never claimed again.
+      const lateBy = now.getTime() - Date.parse(row.due_at);
+      const stale = Number.isFinite(lateBy) && lateBy > STALE_AFTER_MS;
+
       const reminder: DueReminder = {
         id: row.id,
         title: row.title,
@@ -138,10 +161,10 @@ async function handle(req: Request): Promise<Response> {
         timezone: row.timezone ?? undefined,
       };
 
-      const { data: devices } = await db
-        .from('caven_push')
-        .select('endpoint,subscription')
-        .eq('user_id', row.user_id);
+      const { data: devices } = stale
+        ? { data: [] as { endpoint: string; subscription: unknown }[] }
+        : await db.from('caven_push').select('endpoint,subscription').eq('user_id', row.user_id);
+      if (stale) skipped++;
 
       const payload = JSON.stringify({
         title: row.title,
@@ -176,7 +199,7 @@ async function handle(req: Request): Promise<Response> {
       });
     }
 
-    return json({ ok: true, claimed: claimed.length, sent, pruned });
+    return json({ ok: true, claimed: claimed.length, sent, skipped, pruned });
   } catch (err) {
     return apiError(err);
   }

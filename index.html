@@ -11,6 +11,12 @@
          and only when it has a manifest declaring a standalone display. -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="apple-mobile-web-app-title" content="CAVEN" />
+    <!-- iOS reads only this tag for the Home Screen tile, and the Home Screen is
+         the only place Safari will grant web push at all — so a missing icon here
+         was quietly blocking the reminders feature, not just looking untidy. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <title><!-- figma:title --></title>
     <!-- figma:head-end -->
   </head>

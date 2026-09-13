@@ -1147,3 +1147,39 @@ button.day-item:hover { color:#ffffff; }
 .glass-panel .hud-label { color: rgba(127, 223, 232, .82); }
 .glass-panel .hud-label--large { color: #8fe6ee; }
 .t-micro   { font-size: var(--fs-micro);   line-height: 1.4; }
+
+/* Removing a row by hand.
+   Until 13 Sep the only way to take anything off the board was to say so, and a
+   mis-captured row therefore could not be removed at all. The control is quiet
+   until the row is hovered or focused, and always present on touch, where there
+   is no hover to reveal it. */
+.mc-line { display:flex; align-items:center; width:100%; }
+.mc-line .mc-task { flex:1 1 auto; min-width:0; }
+.mc-line .mc-remove { border-bottom:1px solid rgba(149,212,224,.06); }
+.mc-remove,.day-remove {
+  display:inline-flex; align-items:center; justify-content:center;
+  flex:0 0 auto; width:32px; height:32px; margin-left:var(--sp-2);
+  border:0; background:none; border-radius:999px; cursor:pointer;
+  color:rgba(255,255,255,.35); opacity:0; transition:opacity .12s ease,color .12s ease;
+}
+.mc-row:hover .mc-remove,.mc-line:hover .mc-remove,.day-item:hover .day-remove,
+.day-item-wrap:hover .day-remove { opacity:1; }
+.mc-remove:hover,.day-remove:hover { color:#ffb078; background:rgba(255,176,120,.08); }
+.mc-remove:focus-visible,.day-remove:focus-visible { opacity:1; outline:2px solid var(--ring); outline-offset:2px; }
+@media (hover:none) { .mc-remove,.day-remove { opacity:.55; } }
+
+.day-item-wrap { display:inline-flex; align-items:center; }
+
+/* One step back from a mis-tap, without having to say "undo" out loud. */
+.mc-undo {
+  display:flex; align-items:center; gap:var(--sp-3);
+  margin-bottom:var(--sp-3); padding:var(--sp-2) var(--sp-3);
+  border:1px solid rgba(149,212,224,.16); border-radius:12px;
+  background:rgba(149,212,224,.05); font-size:var(--fs-caption); color:rgba(255,255,255,.75);
+}
+.mc-undo button {
+  margin-left:auto; border:0; background:none; cursor:pointer; padding:6px 10px;
+  border-radius:8px; color:var(--caven-cyan); font:inherit; text-decoration:underline;
+}
+.mc-undo button:hover { background:rgba(63,208,255,.1); }
+.mc-undo button:focus-visible { outline:2px solid var(--ring); outline-offset:2px; }

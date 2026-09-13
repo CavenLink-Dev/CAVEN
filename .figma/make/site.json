@@ -4,5 +4,11 @@
   "language": "en",
   "robots": {
     "index": false
+  },
+  "icons": {
+    "icon": "/favicon-32.png"
+  },
+  "openGraph": {
+    "image": "https://caven-green.vercel.app/og-image.png"
   }
 }
