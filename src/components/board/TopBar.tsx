@@ -1,125 +1,78 @@
 import type { ReactNode } from 'react'
 import { memo, useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
-import logoImg from '../../imports/image-6.png'
-import wordmarkImg from '../../imports/image-5.png'
+import { useCavenStore } from '../../lib/store'
+import { addressOf } from '../../../shared/address'
 
-export type Page = 'main' | 'finance' | 'journal' | 'brain' | 'settings'
+// The top of the screen says two things and no more: who you are being greeted
+// as, and what time it is. Navigation used to live here and is now at the very
+// bottom (BottomNav) — a row of chrome directly above the orb was the thing most
+// in the way of the one control that matters.
 
-const NAV_PAGES: { id: Page; label: string }[] = [
-  { id: 'main', label: 'CAVEN' },
-  { id: 'finance', label: 'FINANCE' },
-  { id: 'journal', label: 'JOURNAL' },
-  { id: 'brain', label: 'BRAIN' },
-  { id: 'settings', label: 'SETTING' },
-]
+export type Page = 'main' | 'mission' | 'journal' | 'brain' | 'settings'
 
-const TIME_FMT = new Intl.DateTimeFormat(undefined, {
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-})
-const DATE_FMT = new Intl.DateTimeFormat(undefined, {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'short',
-})
-
-function stamp(now: Date): string {
-  // "09:42 · Thu 11 Sep" — locale order kept, separators normalised.
-  return `${TIME_FMT.format(now)} · ${DATE_FMT.format(now).replace(/,/g, '')}`
+/** What each page calls itself, where the greeting would otherwise be. */
+export const PAGE_TITLE: Record<Exclude<Page, 'main'>, string> = {
+  mission: 'Mission Control',
+  journal: 'Journal',
+  brain: 'Brain',
+  settings: 'Settings',
 }
 
-function useClock(): string {
-  const [now, setNow] = useState(() => stamp(new Date()))
+const TIME_FMT = new Intl.DateTimeFormat('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true })
+const DATE_FMT = new Intl.DateTimeFormat('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })
+
+/** "10:35am" — the space before the meridiem is noise at this size. */
+function clockOf(now: Date): string {
+  return TIME_FMT.format(now).replace(/\s+/g, '').toLowerCase()
+}
+
+function useNow(): Date {
+  const [now, setNow] = useState(() => new Date())
   useEffect(() => {
-    const id = window.setInterval(() => setNow(stamp(new Date())), 15_000)
-    return () => window.clearInterval(id)
+    // Land on the minute rather than drifting a few seconds past it.
+    let timer: number
+    const tick = () => {
+      setNow(new Date())
+      timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000))
+    }
+    timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000))
+    return () => window.clearTimeout(timer)
   }, [])
   return now
 }
 
-function useAccountInitial(): string {
-  const [initial, setInitial] = useState('·')
-  useEffect(() => {
-    let live = true
-    const read = (email: string | null | undefined) => {
-      const letter = email?.trim().charAt(0)
-      setInitial(letter ? letter.toUpperCase() : '·')
-    }
-    supabase.auth.getSession().then(({ data }) => {
-      if (live) read(data.session?.user.email)
-    })
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (live) read(session?.user.email)
-    })
-    return () => {
-      live = false
-      data.subscription.unsubscribe()
-    }
-  }, [])
-  return initial
+/** Morning until noon, afternoon until six, evening after that. */
+function greetingFor(now: Date): string {
+  const h = now.getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 18) return 'Good afternoon'
+  return 'Good evening'
 }
 
-function TopBarBase({ page, onPageChange, actions }: { page: Page; onPageChange: (p: Page) => void; actions?: ReactNode }) {
-  const clock = useClock()
-  const initial = useAccountInitial()
+function TopBarBase({ page, actions }: { page: Page; actions?: ReactNode }) {
+  const now = useNow()
+  // Addressed however he has told CAVEN to address him, so the greeting and the
+  // voice agree. Capitalised here because it opens the sentence.
+  const { data } = useCavenStore()
+  const term = addressOf(data)
+  const title = page === 'main' ? `${greetingFor(now)}, ${term.charAt(0).toUpperCase()}${term.slice(1)}` : PAGE_TITLE[page]
 
   return (
-    // Padding and nav width live in index.css now. They were inline, which meant
-    // the phone breakpoint could not move the nav onto its own row — an inline
-    // style beats a media query, so the nav stayed hidden with nowhere to go.
     <header className="topbar">
-      <div className="relative flex items-center gap-3 group select-none" style={{ rowGap: '12px' }}>
-        <div className="absolute inset-0 bg-cyan-500/20 opacity-0 group-hover:opacity-100 blur-xl rounded-full transition-opacity duration-700"></div>
-        {/* Sizes moved to index.css so the phone breakpoint can shrink them and
-            keep the brand and the account on one row. Same marks, same filters. */}
-        <img
-          src={logoImg}
-          alt="CAVEN Logo"
-          className="topbar-logo relative drop-shadow-[0_0_8px_rgba(34,211,238,0.4)] [filter:invert(1)_hue-rotate(180deg)_drop-shadow(0_0_8px_rgba(34,211,238,0.4))]"
-        />
-        <img
-          src={wordmarkImg}
-          alt="CAVEN"
-          className="topbar-wordmark relative [filter:invert(1)_hue-rotate(180deg)_drop-shadow(0_0_6px_rgba(34,211,238,0.45))]"
-        />
+      <div className="topbar-lead">
+        <h1 className="topbar-greeting">{title}</h1>
+        <p className="topbar-date">{DATE_FMT.format(now)}</p>
       </div>
-      <nav className="topbar-nav" aria-label="Pages">
-        {NAV_PAGES.map(({ id, label }) => {
-          const active = page === id
-          return (
-            <button
-              key={id}
-              onClick={() => onPageChange(id)}
-              className={`topbar-nav-item ${active ? 'is-active' : ''}`}
-              style={
-                active
-                  ? { color: 'rgb(255, 255, 255)', fontWeight: 700 }
-                  : { color: 'rgb(171, 171, 171)' }
-              }
-              type="button"
-              aria-current={active ? 'page' : undefined}
-            >
-              {label}
-            </button>
-          )
-        })}
-      </nav>
-      {/* The offset that drops the music control below the bar, and the clock's
-          size, are classes rather than inline styles — inline beats a media
-          query, and on a phone that offset lands the control on top of the nav. */}
-      <div className="topbar-side flex items-center gap-4">
-        <div className="topbar-actions">{actions}</div>
-        <time className="hud-label topbar-clock">{clock}</time>
-        <span className="topbar-avatar rounded-full border border-cyan-200/15 bg-cyan-100/5 font-bold text-cyan-100">
-          {initial}
-        </span>
+      <div className="topbar-side">
+        <time className="topbar-clock" dateTime={now.toISOString()}>
+          {clockOf(now)}
+        </time>
+        {actions}
       </div>
     </header>
   )
 }
 
-// Memoised: useCaven() streams amplitude from App, and without this every
-// frame of CAVEN speaking re-rendered this component for no reason.
+// Memoised: useCaven() streams amplitude from App, and without this every frame
+// of CAVEN speaking would re-render this for no reason.
 export const TopBar = memo(TopBarBase)

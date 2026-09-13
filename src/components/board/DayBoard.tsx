@@ -40,9 +40,11 @@ const hourLabel = (h: number) => HOUR_FMT.format(new Date(2026, 0, 1, h, 0))
 
 // `open` is owned by App, which needs to know: an expanded board must not be
 // taken away by the stand-down timer while someone is reading it.
-type Props = { open: boolean; onOpenChange: (open: boolean) => void }
+// `alwaysOpen` is Mission Control, where the board is the point of the page —
+// no summary line to press, because you are already looking at it.
+type Props = { open: boolean; onOpenChange: (open: boolean) => void; alwaysOpen?: boolean }
 
-function DayBoardBase({ open, onOpenChange }: Props) {
+function DayBoardBase({ open, onOpenChange, alwaysOpen = false }: Props) {
   const { data, ready, update } = useCavenStore()
   const [pending, setPending] = useState<Record<string, boolean>>({})
 
@@ -114,7 +116,10 @@ function DayBoardBase({ open, onOpenChange }: Props) {
     return { timed, anytime, headline, extra }
   }, [data.calendar, data.reminders, data.tasks])
 
-  if (!ready || !headline) return null
+  // On the Caven screen there is nothing to show when nothing is owed. On
+  // Mission Control the page still has to render — an empty day is an answer.
+  if (!ready) return null
+  if (!headline && !alwaysOpen) return null
 
   const toggleTask = (task: Task) => {
     const next = !(pending[task.id] ?? task.done)
@@ -161,8 +166,9 @@ function DayBoardBase({ open, onOpenChange }: Props) {
 
   // The hours to draw. Bounded by what is actually on the day, widened to a
   // recognisable working span so the shape of an empty afternoon is visible.
+  const showing = open || alwaysOpen
   const hours: number[] = []
-  if (open) {
+  if (showing) {
     const marks = timed.map((s) => Math.floor(s.at / 60))
     const from = Math.min(8, ...marks)
     const to = Math.max(20, ...marks)
@@ -170,25 +176,27 @@ function DayBoardBase({ open, onOpenChange }: Props) {
   }
 
   return (
-    <section className={`day-board${open ? ' is-open' : ''}`} aria-label="Your board">
-      <button
-        type="button"
-        className="day-line"
-        onClick={() => onOpenChange(!open)}
-        aria-expanded={open}
-      >
-        <span className={`day-line-key${headline.overdue ? ' is-overdue' : ''}`}>
-          {headline.overdue ? 'DUE' : headline.time ? 'NEXT' : 'NOW'}
-        </span>
-        <span className="day-line-label">{headline.label}</span>
-        {headline.time && <span className="day-line-time">{headline.time}</span>}
-        {extra > 0 && <span className="day-line-more">+{extra}</span>}
-        <span className="day-line-chev" aria-hidden="true">
-          {open ? '▴' : '▾'}
-        </span>
-      </button>
+    <section className={`day-board${showing ? ' is-open' : ''}${alwaysOpen ? ' is-plain' : ''}`} aria-label="Your board">
+      {!alwaysOpen && headline && (
+        <button
+          type="button"
+          className="day-line"
+          onClick={() => onOpenChange(!open)}
+          aria-expanded={open}
+        >
+          <span className={`day-line-key${headline.overdue ? ' is-overdue' : ''}`}>
+            {headline.overdue ? 'DUE' : headline.time ? 'NEXT' : 'NOW'}
+          </span>
+          <span className="day-line-label">{headline.label}</span>
+          {headline.time && <span className="day-line-time">{headline.time}</span>}
+          {extra > 0 && <span className="day-line-more">+{extra}</span>}
+          <span className="day-line-chev" aria-hidden="true">
+            {open ? '▴' : '▾'}
+          </span>
+        </button>
+      )}
 
-      {open && (
+      {showing && (
         <div className="day-open">
           <div className="day-hours">
             {hours.map((h) => {

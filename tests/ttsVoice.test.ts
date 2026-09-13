@@ -1,16 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { GEORGE_VOICE, JAMES_VOICE, fallbackVoice, preferredVoice } from '../shared/ttsVoice.ts';
+import { GEORGE_VOICE, HAYES_VOICE, JAMES_VOICE, fallbackVoice, preferredVoice } from '../shared/ttsVoice.ts';
 
 test('preferred voice uses the env id when set', () => {
   assert.equal(preferredVoice('goT3UYdM9bhm0n2lmKQx'), 'goT3UYdM9bhm0n2lmKQx');
   assert.equal(preferredVoice('  xru6qZB94sJdkyqP12qN  '), JAMES_VOICE);
 });
 
-test('preferred voice defaults to George when env is empty', () => {
-  assert.equal(preferredVoice(undefined), GEORGE_VOICE);
-  assert.equal(preferredVoice(''), GEORGE_VOICE);
-  assert.equal(preferredVoice('   '), GEORGE_VOICE);
+test('preferred voice defaults to Hayes when env is empty', () => {
+  assert.equal(preferredVoice(undefined), HAYES_VOICE);
+  assert.equal(preferredVoice(''), HAYES_VOICE);
+  assert.equal(preferredVoice('   '), HAYES_VOICE);
 });
 
 test('402 on a library voice falls back to premade George', () => {

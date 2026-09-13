@@ -4,7 +4,7 @@ import { logger } from "npm:hono/logger";
 
 const app = new Hono();
 const PREFIXES = ["", "/make-server-3159d1b2"];
-const EDWARD_VOICE = Deno.env.get("ELEVENLABS_VOICE_ID") ?? "xru6qZB94sJdkyqP12qN";
+const EDWARD_VOICE = Deno.env.get("ELEVENLABS_VOICE_ID") ?? "sIivXWc5MTlPIP3kJXhg";
 
 import { CAVEN_SYSTEM } from "./caven_system.ts";
 

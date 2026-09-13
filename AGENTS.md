@@ -33,7 +33,7 @@ Keep `temperature: 0.9` on the OpenAI path. Lower and the fillers and varied sen
 - One click starts listening. Speech ends on end-of-utterance / ~1.4s silence, then the chat provider replies automatically. Never “CLICK TO SEND”.
 - After speaking, the mic re-arms. A second click stops the conversation. Double-click locks background listen.
 - Typed input is always live and interrupts.
-- ElevenLabs voice is George — British premade (`JBFqnCBsd6RMkjVDRZzb`). Library voices such as Edward (`goT3UYdM9bhm0n2lmKQx`) and James (`xru6qZB94sJdkyqP12qN`) return 402 on a free ElevenLabs plan. `api/tts.ts` retries George if the env id is still a library voice. TTS settings stay looser (stability ~0.30, style ~0.45) so fillers sound spoken.
+- ElevenLabs voice is Hayes M — Calm British AI Customer Care (`sIivXWc5MTlPIP3kJXhg`). Library voices (Hayes, Edward, James) return 402 on a free ElevenLabs plan. `api/tts.ts` retries premade George (`JBFqnCBsd6RMkjVDRZzb`) if so. TTS settings stay looser (stability ~0.30, style ~0.45) so fillers sound spoken.
 
 ## Secrets (Vercel Production — never in the browser or git)
 
@@ -41,7 +41,7 @@ Chat is provider-agnostic (`api/chat.ts`). Prefer a free OpenAI-compatible key, 
 
 - `GROQ_API_KEY` (preferred for voice — free, low latency)
 - Optional fallbacks: `CEREBRAS_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`
-- `ELEVENLABS_API_KEY` (George’s voice)
+- `ELEVENLABS_API_KEY` (Hayes’s voice; George is the free-plan fallback)
 
 Already set: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `ELEVENLABS_VOICE_ID`, `ELEVENLABS_API_KEY`.
 

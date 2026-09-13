@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CavenCore } from './components/CavenCore/CavenCore';
 import { MusicMenu } from './components/MusicMenu';
+import { BottomNav } from './components/board/BottomNav';
 import { DayBoard } from './components/board/DayBoard';
 import { TopBar, type Page } from './components/board/TopBar';
+import { MissionControl } from './components/pages/MissionControl';
 import { SettingsPage } from './components/pages/SettingsPage';
-import { BrainPage, FinancePage, JournalPage } from './components/pages/SimplePages';
+import { BrainPage, JournalPage } from './components/pages/SimplePages';
 import { useCaven } from './lib/cavenState';
 import { useCavenStore } from './lib/store';
 import { isMuted, setMuted } from './lib/sfx';
@@ -75,7 +77,7 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <TopBar page={page} onPageChange={setPage} actions={musicMenu} />
+      <TopBar page={page} actions={musicMenu} />
 
       {/* Always-on listening is visible from every page — an always-hot mic the
           user can't see is a trust problem. */}
@@ -146,7 +148,7 @@ export default function App() {
         </div>
       ) : (
         <div key={page} className="page-scroll anim-fade-up">
-          {page === 'finance' && <FinancePage />}
+          {page === 'mission' && <MissionControl />}
           {page === 'journal' && <JournalPage />}
           {page === 'brain' && <BrainPage />}
           {page === 'settings' && <SettingsPage />}
@@ -161,42 +163,61 @@ export default function App() {
         </div>
       )}
 
-      <div className="command-bar">
-        <form
-          className="flex-1"
-          onSubmit={(e) => {
-            e.preventDefault();
-            submitTyped();
-          }}
-        >
-          <input
-            value={typed}
-            onChange={(e) => setTyped(e.target.value)}
-            placeholder="Say something to CAVEN…"
-            className="caven-text-input metal-surface h-9 w-full rounded-full px-3 text-sm placeholder:opacity-40"
-            style={{ color: 'var(--caven-steel-light)' }}
-            aria-label="Type a message to CAVEN"
-          />
-        </form>
+      {/* The box, the mute and the nav travel together: on a phone they dock to
+          the bottom as one unit, so the row never has to be pinned a fixed
+          distance above a nav whose height changes when it wraps. */}
+      <div className="dock">
+        <div className="command-bar">
+          <form
+            className="flex-1"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitTyped();
+            }}
+          >
+            <input
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              placeholder="Say something to CAVEN…"
+              className="caven-text-input metal-surface h-9 w-full rounded-full px-3 text-sm placeholder:opacity-40"
+              style={{ color: 'var(--caven-steel-light)' }}
+              aria-label="Type a message to CAVEN"
+            />
+          </form>
 
-        {(locked || conversing) && (
-          <button onClick={cancel} className="command-stop" type="button">
-            STOP
+          {(locked || conversing) && (
+            <button onClick={cancel} className="command-stop" type="button">
+              STOP
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={toggleMute}
+            className="command-mute"
+            aria-label={muted ? 'Unmute CAVEN' : 'Mute CAVEN (voice, music and effects)'}
+            aria-pressed={muted}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" fillOpacity="0.15" />
+              {muted ? <path d="M17 9l4 4m0-4l-4 4" /> : <><path d="M16 8.5a4 4 0 0 1 0 7" /><path d="M18.5 6a7 7 0 0 1 0 12" opacity="0.6" /></>}
+            </svg>
           </button>
-        )}
+        </div>
 
-        <button
-          type="button"
-          onClick={toggleMute}
-          className="command-mute"
-          aria-label={muted ? 'Unmute CAVEN' : 'Mute CAVEN (voice, music and effects)'}
-          aria-pressed={muted}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" fillOpacity="0.15" />
-            {muted ? <path d="M17 9l4 4m0-4l-4 4" /> : <><path d="M16 8.5a4 4 0 0 1 0 7" /><path d="M18.5 6a7 7 0 0 1 0 12" opacity="0.6" /></>}
-          </svg>
-        </button>
+        {/* Navigation, beneath the box and out of the way of the orb. More opens
+            the Settings page at the section it names. */}
+        <BottomNav
+          page={page}
+          onPageChange={setPage}
+          onSection={(id) => {
+            setPage('settings');
+            // After the page has painted, not before, or there is nothing to find.
+            window.requestAnimationFrame(() =>
+              document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'smooth' }),
+            );
+          }}
+        />
       </div>
     </main>
   );

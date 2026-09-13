@@ -130,7 +130,8 @@ button { font: inherit; }
 
 /* Keyboard focus indicators — visible ring on every interactive board control. */
 .task-item:focus-visible,
-.topbar-nav-item:focus-visible,
+.bottom-nav-item:focus-visible,
+.bottom-nav-mark:focus-visible,
 .caven-text-input:focus-visible { outline:2px solid var(--ring); outline-offset:2px; }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -143,30 +144,41 @@ button { font: inherit; }
 
 /* The typed-command row. Centred under the board on a desktop; docked to the
    bottom of the viewport on a phone, where it was previously below the fold. */
-.command-bar { display:flex; align-items:center; gap:var(--sp-2); width:min(570px,100%); margin:var(--sp-3) auto 0; }
+.command-bar { display:flex; align-items:center; gap:var(--sp-2); width:min(570px,100%); margin:var(--sp-5) auto 0; }
 
 /* Finance / Journal / Brain / Settings. Scrolls within what is left after the
    top bar, which is a different height at each breakpoint — hence a class and
    not a hard-coded pixel offset in the component. */
-.page-scroll { min-height:calc(100dvh - 190px); max-height:calc(100dvh - 150px); overflow-y:auto; padding:var(--sp-6) 0; }
-.topbar { height:72px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(149,212,224,.13); }
-/* Brand and account sizes. These were inline on the elements, where no media
-   query could reach them — which is why the bar could not be made to fit a
-   phone without editing the component. Desktop values are unchanged. */
-.topbar-logo { width:52px; height:52px; object-fit:contain; }
-.topbar-wordmark { height:24px; width:auto; object-fit:contain; }
-.topbar-avatar { display:flex; align-items:center; justify-content:center; width:47px; height:47px; font-family:var(--font-body); font-size:var(--fs-h2); }
-.topbar-clock { font-family:var(--font-mono); font-size:calc(var(--fs-meta) * 1.6); color:rgba(255,255,255,.9); }
-.topbar-actions { transform:translateY(40px); }
+.page-scroll { min-height:calc(100dvh - 260px); max-height:calc(100dvh - 240px); overflow-y:auto; padding:var(--sp-6) 0; }
+/* The top of the screen says two things: who you are being greeted as, and what
+   time it is. No border and no navigation — a strip of chrome directly above the
+   orb was the thing most in the way of the one control that matters. */
+.topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:var(--sp-4); padding:var(--sp-5) 0 var(--sp-4); }
+.topbar-lead { min-width:0; display:flex; flex-direction:column; gap:5px; }
+.topbar-greeting { margin:0; font-family:var(--font-display); font-size:clamp(21px,2.1vw,28px); font-weight:600; letter-spacing:.04em; line-height:1.1; color:#eaffff; text-shadow:0 0 18px rgba(120,235,245,.28); }
+.topbar-date { margin:0; font-family:var(--font-mono); font-size:var(--fs-micro); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(149,212,224,.62); }
+.topbar-side { display:flex; flex-direction:column; align-items:flex-end; gap:var(--sp-2); }
+/* Tabular figures, or the minute ticking over shifts the whole line. */
+.topbar-clock { font-family:var(--font-mono); font-size:clamp(19px,1.9vw,25px); line-height:1.1; color:rgba(255,255,255,.92); font-variant-numeric:tabular-nums; }
 
-/* The nav's segment control. It used to live down among the core's styles and
-   went with them when the core was stripped; it belongs up here with the rest
-   of the top bar. */
-.topbar-nav { display:flex; align-items:center; gap:2px; padding:4px; border:1px solid rgba(156,247,255,.24); border-radius:12px; background:linear-gradient(180deg,rgba(13,28,36,.72),rgba(6,14,20,.6)); box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 6px 20px rgba(0,0,0,.35); backdrop-filter:blur(8px); scrollbar-width:none; }
-.topbar-nav::-webkit-scrollbar { display:none; }
-.topbar-nav-item { position:relative; display:flex; align-items:center; padding:var(--sp-2) var(--sp-4); border:0; border-radius:9px; background:transparent; color:rgba(255,255,255,.62); font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:var(--track-label); text-transform:uppercase; cursor:pointer; transition:color .25s, background .25s, box-shadow .25s; }
-.topbar-nav-item:hover { color:#ffffff; background:rgba(255,255,255,.06); }
-.topbar-nav-item.is-active { color:#ffffff; background:rgba(3,119,253,.16); box-shadow:inset 0 0 0 1px rgba(3,119,253,.55), 0 0 14px rgba(3,119,253,.3); text-shadow:0 0 10px rgba(120,180,255,.55); }
+/* ── Navigation ─────────────────────────────────────────────────────────
+   Beneath the command box rather than above the orb: a line of quiet text,
+   visible, one click deep, competing with nothing. */
+.bottom-nav { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:var(--sp-2) var(--sp-4); width:min(760px,100%); margin:var(--sp-4) auto 0; padding-bottom:var(--sp-2); }
+.bottom-nav-mark { display:grid; place-items:center; padding:0; border:0; background:none; cursor:pointer; opacity:.7; transition:opacity .25s; }
+.bottom-nav-mark:hover { opacity:1; }
+.bottom-nav-mark img { height:22px; width:auto; object-fit:contain; }
+.bottom-nav-item { position:relative; padding:6px 2px; border:0; background:none; cursor:pointer; font-family:var(--font-mono); font-size:var(--fs-micro); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(207,240,242,.45); transition:color .25s; }
+.bottom-nav-item:hover { color:rgba(255,255,255,.9); }
+.bottom-nav-item.is-active { color:var(--caven-cyan-bright); }
+.bottom-nav-item.is-active::after { content:''; position:absolute; left:0; right:0; bottom:0; height:1px; background:currentColor; box-shadow:0 0 8px currentColor; }
+.bottom-nav-more { position:relative; }
+/* Upward, because there is nothing below it but the edge of the screen. */
+.bottom-nav-menu { position:absolute; right:0; bottom:calc(100% + var(--sp-2)); z-index:30; display:flex; flex-direction:column; min-width:150px; padding:6px; border:1px solid rgba(149,212,224,.2); border-radius:14px; background:rgba(9,17,22,.96); box-shadow:0 14px 34px rgba(0,0,0,.5); backdrop-filter:blur(8px); }
+.bottom-nav-menu-item { padding:8px 10px; border:0; border-radius:9px; background:none; cursor:pointer; text-align:left; font-size:var(--fs-caption); color:rgba(255,255,255,.8); }
+.bottom-nav-menu-item:hover { background:rgba(100,224,232,.1); color:#ffffff; }
+.bottom-nav-menu-item:focus-visible { outline:2px solid var(--ring); outline-offset:-2px; }
+
 .wordmark { font-family:var(--font-display); font-size:17px; font-weight:700; letter-spacing:.27em; color:#d7fbff; text-shadow:0 0 12px rgba(120,235,245,.4); }
 .brand-mark { width:26px; height:26px; color:#8ff5fa; filter:drop-shadow(0 0 6px rgba(120,235,245,.55)); }
 .hud-label { font-family:var(--font-mono); font-size:var(--fs-micro); letter-spacing:var(--track-label); text-transform:uppercase; }
@@ -370,7 +382,7 @@ button { font: inherit; }
    Idle, it is the core, one line, and the box — nothing else. When something
    has actually changed, the board takes the top and the core settles to the
    bottom, and then the board stands down again. */
-.stage { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--sp-5); min-height:calc(100dvh - 190px); padding:var(--sp-4) 0; }
+.stage { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--sp-5); min-height:calc(100dvh - 268px); padding:var(--sp-4) 0; }
 .stage.has-board { justify-content:space-between; }
 .stage-board { width:min(560px,100%); }
 .stage-core { display:flex; flex-direction:column; align-items:center; gap:var(--sp-4); }
@@ -839,40 +851,42 @@ button.day-item:hover { color:#ffffff; }
    dvh throughout, because a phone's address bar makes vh lie by about 60px
    and the difference is exactly the row that goes missing.
    ───────────────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   MISSION CONTROL — the looking page: today, tasks, reminders, money.
+   Sections down a column rather than panels across a grid; it scrolls, so
+   nothing has to fight for a fixed slot the way the old board did.
+   ═══════════════════════════════════════════════════════════════════════ */
+.mc { display:flex; flex-direction:column; gap:var(--sp-7); width:min(760px,100%); margin:0 auto; }
+/* More opens this page at a section — leave room above it when it scrolls in. */
+.mc-section { display:flex; flex-direction:column; gap:var(--sp-3); scroll-margin-top:var(--sp-5); }
+.mc-head { display:flex; align-items:baseline; justify-content:space-between; gap:var(--sp-3); padding-bottom:var(--sp-2); border-bottom:1px solid rgba(149,212,224,.12); }
+.mc-title { margin:0; font-family:var(--font-display); font-size:var(--fs-title); font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#dffbff; }
+.mc-note { font-family:var(--font-mono); font-size:var(--fs-micro); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(149,212,224,.55); }
+.mc-empty { margin:0; font-size:var(--fs-caption); color:rgba(207,240,242,.5); }
+.mc-rows { display:flex; flex-direction:column; }
+.mc-row,.mc-task { display:flex; align-items:baseline; gap:var(--sp-3); width:100%; padding:var(--sp-2) 0; border:0; border-bottom:1px solid rgba(149,212,224,.06); background:none; text-align:left; font-size:var(--fs-body); color:rgba(255,255,255,.88); }
+.mc-task { cursor:pointer; }
+.mc-task:hover { color:#ffffff; }
+.mc-task:focus-visible { outline:2px solid var(--ring); outline-offset:2px; }
+.mc-row .day-label,.mc-task .day-label { flex:1 1 auto; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.mc-when { flex:0 0 auto; font-family:var(--font-mono); font-size:var(--fs-micro); letter-spacing:var(--track-label); color:rgba(207,240,242,.52); }
+.mc-row.is-overdue .day-label { color:#ffd9bd; }
+.mc-row.is-overdue .mc-when { color:#ffb078; }
+.mc-amount { flex:0 0 auto; font-family:var(--font-mono); font-size:var(--fs-meta); color:rgba(255,214,170,.9); }
+.mc-amount.is-in { color:#7ce6bd; }
+.mc-balance { font-family:var(--font-mono); font-size:clamp(26px,3vw,34px); line-height:1.1; color:#eaffff; }
+.mc-budgets { gap:var(--sp-2); }
+.mc-bar { display:block; height:3px; margin-top:6px; border-radius:99px; background:rgba(149,212,224,.14); overflow:hidden; }
+.mc-bar > span { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,rgba(85,219,228,.85),rgba(120,180,255,.85)); }
+
 @media (max-width:680px) {
   .app-shell { padding:0 16px 0; }
 
-  /* The bar wraps to two rows: brand and account on the first, nav on the
-     second. No new component — the same segment control, given its own line. */
-  .topbar { height:auto; flex-wrap:wrap; row-gap:var(--sp-2); padding:var(--sp-2) 0; }
-  /* Small enough that the brand and the account share one row; a third row of
-     chrome is a third of the screen gone before any of the board shows. */
-  .topbar-logo { width:38px; height:38px; }
-  .topbar-wordmark { height:18px; }
-  .topbar-avatar { width:34px; height:34px; font-size:var(--fs-caption); }
-  /* The one thing that goes. A phone shows the time in its own status bar an
-     inch above this, and every board panel is titled with the date — keeping it
-     here costs a third row of chrome to say what is already said twice. */
-  .topbar-clock { display:none; }
-  .topbar-side { gap:var(--sp-3); }
-  /* The desktop offset drops this below the bar, which on a phone means on top
-     of the nav row. It sits in line here instead. */
-  .topbar-actions { transform:none; }
-  .topbar-nav {
-    order:3;
-    justify-content:flex-start;
-    overflow-x:auto;
-    /* Bleed to both screen edges — width has to grow by the shell's padding as
-       well as shift, or the row moves left and leaves a gap on the right. Its
-       own padding keeps the pills off the edge while it scrolls. */
-    width:calc(100% + 32px);
-    margin:0 -16px;
-    padding:4px 16px;
-    border-radius:0;
-    border-left:0;
-    border-right:0;
-  }
-  .topbar-nav-item { flex:0 0 auto; padding:var(--sp-2) var(--sp-3); }
+  /* Two short stacks, one row: greeting and date left, time and Music right.
+     Nothing wraps here now that navigation has left the top of the screen. */
+  .topbar { padding:var(--sp-4) 0 var(--sp-3); gap:var(--sp-3); }
+  .topbar-greeting { font-size:19px; }
+  .topbar-clock { font-size:17px; }
 
   .glass-panel { padding:19px; }
 
@@ -882,21 +896,28 @@ button.day-item:hover { color:#ffffff; }
 
   /* The stage keeps its shape here; only the slack between core and board
      tightens, and the open board takes less of the screen. */
-  .stage { min-height:calc(100dvh - 210px); gap:var(--sp-4); }
+  .stage { min-height:calc(100dvh - 270px); gap:var(--sp-4); }
   .day-open { max-height:min(38dvh,300px); }
   .day-hour,.day-anytime { grid-template-columns:48px 1fr; }
 
   .page-scroll { min-height:0; max-height:none; overflow-y:visible; padding:var(--sp-5) 0; }
 
-  .command-bar {
+  /* The command row and the nav dock together as one unit. Sticking them
+     separately would mean pinning the row a fixed distance off the bottom —
+     a number that is wrong the moment the nav wraps to two lines. */
+  .dock {
     position:sticky;
     bottom:0;
     z-index:20;
+    padding-top:var(--sp-2);
     /* Clears the home indicator on an iPhone; zero everywhere else. */
-    padding:var(--sp-3) 0 calc(var(--sp-3) + env(safe-area-inset-bottom));
-    background:linear-gradient(to top, var(--background) 62%, transparent);
+    padding-bottom:env(safe-area-inset-bottom);
+    background:linear-gradient(to top, var(--background) 72%, transparent);
   }
+  .command-bar { margin-top:var(--sp-3); }
   .command-bar .caven-text-input { height:44px; font-size:16px; }
+  .bottom-nav { margin-top:var(--sp-3); gap:var(--sp-2) var(--sp-3); }
+  .bottom-nav-mark img { height:18px; }
 
   .page-reply { max-width:100%; }
   /* Wrap rather than squeeze: "Reload board" broke across two lines mid-word
@@ -907,7 +928,7 @@ button.day-item:hover { color:#ffffff; }
 
 /* Anything genuinely small — an SE, or a phone at large text sizes. */
 @media (max-width:380px) {
-  .topbar-nav-item { padding:var(--sp-2); font-size:var(--fs-micro); }
+  .bottom-nav { gap:var(--sp-1) var(--sp-3); }
   .core-button { width:min(46vw,150px); }
 }
 

@@ -28,25 +28,31 @@ const commandBar = `
   </button>
 </div>`
 
-const topbar = `
+const topbar = (title = 'Good morning, Sir') => `
 <header class="topbar">
-  <div class="relative flex items-center gap-3 group select-none">
-    <div class="topbar-logo" style="background:#123;border-radius:8px"></div>
-    <div class="topbar-wordmark" style="width:96px;background:#134;border-radius:4px"></div>
+  <div class="topbar-lead">
+    <h1 class="topbar-greeting">${title}</h1>
+    <p class="topbar-date">Sunday 13 September</p>
   </div>
-  <nav class="topbar-nav" aria-label="Pages">
-    <button class="topbar-nav-item is-active" type="button">CAVEN</button>
-    <button class="topbar-nav-item" type="button">FINANCE</button>
-    <button class="topbar-nav-item" type="button">JOURNAL</button>
-    <button class="topbar-nav-item" type="button">BRAIN</button>
-    <button class="topbar-nav-item" type="button">SETTING</button>
-  </nav>
-  <div class="topbar-side flex items-center gap-4">
-    <div class="topbar-actions"><span style="display:block;width:28px;height:28px;border-radius:50%;background:#1a3b47"></span></div>
-    <time class="hud-label topbar-clock">19:42 &middot; Sat 12 Sep</time>
-    <span class="topbar-avatar rounded-full border border-cyan-200/15 bg-cyan-100/5 font-bold text-cyan-100">K</span>
+  <div class="topbar-side">
+    <time class="topbar-clock">10:35am</time>
+    <div class="relative">
+      <button type="button" class="flex items-center gap-2 rounded-full px-3 py-1.5 metal-surface">
+        <span class="font-display t-micro tracking-[0.2em]">MUSIC</span>
+      </button>
+    </div>
   </div>
 </header>`
+
+const navItem = (label, active = false) =>
+  `<button type="button" class="bottom-nav-item${active ? ' is-active' : ''}">${label}</button>`
+
+const bottomNav = (active = 'Caven') => `
+<nav class="bottom-nav" aria-label="Pages">
+  <button type="button" class="bottom-nav-mark"><span style="display:block;width:44px;height:22px;background:#1a3b47;border-radius:4px"></span></button>
+  ${['Caven', 'Mission Control', 'Journal', 'Brain'].map((l) => navItem(l, l === active)).join('')}
+  <div class="bottom-nav-more">${navItem('More &#733;')}</div>
+</nav>`
 
 const item = (label, kind = 'event', task = false, overdue = false) =>
   task
@@ -75,11 +81,48 @@ const board = (open) => `
   ${open ? `<div class="day-open"><div class="day-hours">${hours}</div><div class="day-anytime"><span class="day-hour-key">Anytime</span><span class="day-hour-items">${item('Post the parcel', 'task', true)}${item('Water the plants', 'task', true)}</span></div></div>` : ''}
 </section>`
 
-const page = (title, body) => `<!doctype html>
+const row = (label, when, extra = '') => `<div class="mc-row"><span class="day-label">${label}</span><span class="mc-when">${when}</span>${extra}</div>`
+
+// Mission Control: the same sections the page renders, in the same order.
+const mission = `
+<div class="mc">
+  <section class="mc-section" id="today">
+    <div class="mc-head"><h2 class="mc-title">Today</h2></div>
+    ${board(true)}
+  </section>
+  <section class="mc-section" id="tasks">
+    <div class="mc-head"><h2 class="mc-title">Tasks</h2><span class="mc-note">2 open</span></div>
+    <div class="mc-rows">
+      <button type="button" class="mc-task"><span class="day-tick"></span><span class="day-label">Ring the dentist</span><span class="mc-when">9:00 am</span></button>
+      <button type="button" class="mc-task"><span class="day-tick"></span><span class="day-label">Post the parcel</span></button>
+      <button type="button" class="mc-task"><span class="day-tick is-done">&#10003;</span><span class="day-label is-done">Water the plants</span></button>
+    </div>
+  </section>
+  <section class="mc-section" id="reminders">
+    <div class="mc-head"><h2 class="mc-title">Reminders</h2><span class="mc-note">2</span></div>
+    <div class="mc-rows">
+      <div class="mc-row is-overdue"><span class="day-label">Tablets</span><span class="mc-when">Yesterday &middot; 6:00 pm</span></div>
+      ${row('Dinner with Mum', 'Tomorrow &middot; 6:00 pm &middot; repeats weekly')}
+    </div>
+  </section>
+  <section class="mc-section" id="money">
+    <div class="mc-head"><h2 class="mc-title">Money</h2><span class="mc-note">September 2026 &middot; 3</span></div>
+    <div class="mc-balance">$-84.20</div>
+    <div class="mc-rows mc-budgets">
+      <div><div class="mc-row"><span class="day-label">Groceries</span><span class="mc-when">$180 / $400</span></div><span class="mc-bar"><span style="width:45%"></span></span></div>
+    </div>
+    <div class="mc-rows">
+      ${row('Coffee', 'Today', '<span class="mc-amount">-$5.20</span>')}
+      ${row('Pay', 'Fri', '<span class="mc-amount is-in">+$420.00</span>')}
+    </div>
+  </section>
+</div>`
+
+const page = (title, body, { head = topbar(), active = 'Caven' } = {}) => `<!doctype html>
 <html lang="en"><head><meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>${title}</title><link rel="stylesheet" href="/assets/${css}" /></head>
-<body><main class="app-shell">${topbar}${body}${commandBar}</main></body></html>`
+<body><main class="app-shell">${head}${body}<div class="dock">${commandBar}${bottomNav(active)}</div></main></body></html>`
 
 writeFileSync(
   'dist/__check.html',
@@ -89,4 +132,11 @@ writeFileSync(
   'dist/__check-board.html',
   page('CAVEN — board open', `<div class="stage has-board"><div class="stage-board">${board(true)}</div><div class="stage-core">${core('on', 'listening')}${line('Listening&hellip;')}</div></div>`),
 )
-console.log(`dist/__check.html and dist/__check-board.html → ${css}`)
+writeFileSync(
+  'dist/__check-mission.html',
+  page('CAVEN — mission control', `<div class="page-scroll">${mission}</div>`, {
+    head: topbar('Mission Control'),
+    active: 'Mission Control',
+  }),
+)
+console.log(`dist/__check.html, __check-board.html and __check-mission.html → ${css}`)

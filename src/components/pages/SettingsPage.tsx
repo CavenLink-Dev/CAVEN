@@ -92,7 +92,7 @@ export function SettingsPage() {
 
   return (
     <div className="grid w-full max-w-md gap-4">
-      <section className="glass-panel holo-board holo-in">
+      <section id="settings" className="glass-panel holo-board holo-in">
         <div className="holo-frame-top" />
         <div className="relative z-10">
           <p className="hud-label text-cyan-300/80">FORM OF ADDRESS</p>
@@ -144,7 +144,7 @@ export function SettingsPage() {
 
       {/* Reminders had no way of reaching anyone: the tables were there, nothing
           delivered. This arms the browser; api/push-dispatch does the sending. */}
-      <section className="glass-panel holo-board holo-in">
+      <section id="reminders-setting" className="glass-panel holo-board holo-in">
         <div className="holo-frame-top" />
         <div className="holo-frame-bottom" />
         <div className="holo-scanlines" />
@@ -174,7 +174,7 @@ export function SettingsPage() {
         </div>
       </section>
 
-      <section className="glass-panel holo-board holo-in">
+      <section id="account" className="glass-panel holo-board holo-in">
         <div className="holo-frame-top" />
         <div className="holo-frame-bottom" />
         <div className="holo-scanlines" />
@@ -202,17 +202,59 @@ export function SettingsPage() {
         </div>
       </section>
 
-      <section className="glass-panel holo-board holo-in">
+      <section id="voice" className="glass-panel holo-board holo-in">
         <div className="holo-frame-top" />
         <div className="holo-frame-bottom" />
         <div className="holo-scanlines" />
         <div className="relative z-10">
           <p className="hud-label text-cyan-300/80">VOICE</p>
-          <div className="mt-3 text-sm text-white/90">Edward, an English valet voice</div>
+          <div className="mt-3 text-sm text-white/90">Hayes, a calm British voice</div>
           <div className="mt-1 text-xs opacity-60">
             Speech is synthesised by ElevenLabs on the server. The voice and its credentials are
             configured there and are never sent to this browser. Should speech be unavailable, the
             browser's own voice stands in.
+          </div>
+        </div>
+      </section>
+
+      {/* Integration and Help are sections rather than pages, so the More menu
+          names four things that all exist. Integration says plainly that nothing
+          is connected — a screen of greyed-out logos would imply otherwise. */}
+      <section id="integration" className="glass-panel holo-board holo-in">
+        <div className="holo-frame-top" />
+        <div className="holo-frame-bottom" />
+        <div className="holo-scanlines" />
+        <div className="relative z-10">
+          <p className="hud-label text-cyan-300/80">INTEGRATION</p>
+          <div className="mt-3 text-sm text-white/90">Nothing is connected.</div>
+          <div className="mt-1 text-xs opacity-60">
+            CAVEN keeps his own board and does not read or write anywhere else yet. Your calendar,
+            your tasks and your notes elsewhere are untouched, and nothing here is sent to them.
+            When that changes it will be listed here, and it will ask before the first sync.
+          </div>
+        </div>
+      </section>
+
+      <section id="help" className="glass-panel holo-board holo-in">
+        <div className="holo-frame-top" />
+        <div className="holo-frame-bottom" />
+        <div className="holo-scanlines" />
+        <div className="relative z-10">
+          <p className="hud-label text-cyan-300/80">HELP</p>
+          <div className="mt-3 text-sm text-white/90">Say it the way you'd say it to a person.</div>
+          <ul className="mt-3 space-y-1.5 text-xs opacity-70">
+            <li>“Remind me to take the tablets every weekday at nine.”</li>
+            <li>“Add ring the dentist to my list.” — “Tick ring the dentist off.”</li>
+            <li>“Put physio in the diary tomorrow at two.”</li>
+            <li>“I spent twelve pounds on lunch.”</li>
+            <li>“Make a note: the spare key is in the drawer.”</li>
+            <li>“What have I got on today?”</li>
+            <li>“Undo.” — puts back whatever was last deleted.</li>
+          </ul>
+          <div className="mt-3 text-xs opacity-60">
+            Click the core once to talk, again to stop, twice to leave it listening. Typing does the
+            same thing and interrupts him mid-sentence. He will say plainly when something has not
+            been saved, and will not claim to have done anything he hasn't.
           </div>
         </div>
       </section>
