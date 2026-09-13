@@ -316,10 +316,11 @@ button { font: inherit; }
    This replaced 158 lines of counter-rotating reactor rings, a hexagonal
    crystal, orbiting satellites, sweeps, rivets, particles and glints. None
    of it told you anything. Colour carries state; size carries your voice.
-   ════════════════════════════════════���══════════════════════════════════ */
+   ═══════════════════════���════════════���══════════════════════════════════ */
 .core-zone {
   --core-accent:#55dbe4;
   --core-glow:rgba(85,219,228,.30);
+  --ring-speed:12s;
   position:relative; display:grid; place-items:center;
 }
 .core-button {
@@ -328,14 +329,33 @@ button { font: inherit; }
   border:0; border-radius:50%; background:transparent; cursor:pointer; outline-offset:8px;
 }
 .core-button:focus-visible { outline:2px solid var(--ring); }
-.core-button:active { transform:scale(.98); }
+.core-button:active { transform:scale(.985); }
 
-/* The hairline: one ring, with one brighter arc turning slowly. */
-.core-ring { position:absolute; inset:0; border-radius:50%; border:1px solid rgba(133,229,240,.20); }
+/* The frame: a faint full ring that always states the circle, with a soft
+   inner wash so the disc reads as a lit lens rather than a bare outline. */
+.core-ring {
+  position:absolute; inset:0; border-radius:50%;
+  border:1px solid rgba(133,229,240,.14);
+  box-shadow: inset 0 0 34px rgba(85,219,228,.06);
+}
+/* Two conic arcs, thin-masked to a ring, sweeping at different speeds and in
+   opposite directions. A soft, specular glowing trace — where a single
+   border-top segment read as a cheap loader, this reads as a lit field. */
+.core-ring::before,
 .core-ring::after {
-  content:''; position:absolute; inset:-1px; border-radius:50%;
-  border:1px solid transparent; border-top-color:var(--core-accent); opacity:.75;
-  animation:coreSpin 14s linear infinite;
+  content:''; position:absolute; border-radius:50%; pointer-events:none;
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+}
+.core-ring::after {
+  inset:-1px; opacity:.9;
+  background: conic-gradient(from 90deg, transparent 0deg, var(--core-accent) 66deg, transparent 150deg);
+  animation: coreSpin var(--ring-speed) linear infinite;
+}
+.core-ring::before {
+  inset:8%; opacity:.42;
+  background: conic-gradient(from 250deg, transparent 0deg, var(--core-accent) 46deg, transparent 120deg);
+  animation: coreSpin calc(var(--ring-speed) * 1.7) linear infinite reverse;
 }
 @keyframes coreSpin { to { transform:rotate(360deg); } }
 
@@ -344,30 +364,42 @@ button { font: inherit; }
    element and the animation wins — and the voice stops showing at all. */
 .core-amp { display:grid; place-items:center; width:100%; height:100%; transform:scale(var(--core-amp,1)); }
 .core-orb {
-  width:58%; aspect-ratio:1; border-radius:50%;
-  background:radial-gradient(circle at 34% 30%, rgba(255,255,255,.92), var(--core-accent) 44%, rgba(10,22,28,.92) 78%);
+  position:relative;
+  width:56%; aspect-ratio:1; border-radius:50%;
+  background:radial-gradient(circle at 36% 30%,
+    rgba(255,255,255,.98) 0%, rgba(255,255,255,.55) 9%,
+    var(--core-accent) 46%, rgba(7,18,24,.96) 84%);
+  box-shadow:
+    0 0 42px var(--core-glow),
+    inset 0 -7px 22px rgba(4,12,16,.55),
+    inset 0 7px 18px rgba(255,255,255,.14);
   animation:coreBreathe 5.2s ease-in-out infinite;
 }
+/* Soft halo bloom behind the orb, scaling with voice, so the glow has depth
+   beyond the box-shadow alone. */
+.core-orb::after {
+  content:''; position:absolute; inset:-26%; border-radius:50%; z-index:-1;
+  background:radial-gradient(circle, var(--core-glow) 0%, transparent 66%);
+}
 @keyframes coreBreathe {
-  0%,100% { box-shadow:0 0 38px var(--core-glow), inset 0 0 22px rgba(255,255,255,.10); }
-  50%     { box-shadow:0 0 66px var(--core-glow), inset 0 0 26px rgba(255,255,255,.16); }
+  0%,100% { box-shadow:0 0 36px var(--core-glow), inset 0 -7px 22px rgba(4,12,16,.55), inset 0 8px 18px rgba(255,255,255,.14); }
+  50%     { box-shadow:0 0 68px var(--core-glow), inset 0 -7px 22px rgba(4,12,16,.5),  inset 0 8px 22px rgba(255,255,255,.2); }
 }
 
-/* State. The only thing the core has to say. */
-.core-listening { --core-accent:#7ff0f8; --core-glow:rgba(127,240,248,.42); }
-.core-listening .core-ring::after { animation-duration:5s; }
-.core-speaking { --core-accent:#8ffaff; --core-glow:rgba(143,250,255,.46); }
-.core-speaking .core-ring::after { animation-duration:3.2s; }
+/* State — colour and pace, the only thing the core has to say. */
+.core-listening { --core-accent:#7ff0f8; --core-glow:rgba(127,240,248,.42); --ring-speed:6s; }
+.core-speaking { --core-accent:#8ffaff; --core-glow:rgba(143,250,255,.46); --ring-speed:3.6s; }
 .core-speaking .core-orb { animation-duration:1.1s; }
-.core-thinking { --core-accent:#f5b642; --core-glow:rgba(245,182,66,.38); }
-.core-thinking .core-ring::after { animation-duration:2.2s; }
-.core-success { --core-accent:#7ce6bd; --core-glow:rgba(124,230,189,.42); }
+.core-thinking { --core-accent:#f5b642; --core-glow:rgba(245,182,66,.38); --ring-speed:2.4s; }
+.core-success { --core-accent:#7ce6bd; --core-glow:rgba(124,230,189,.42); --ring-speed:5s; }
 
 /* Power: whether it is lit at all, which is a separate axis from what it does. */
 /* Standing by is most of the time, so it stays recognisably CAVEN rather than
    going grey and reading as broken. Dimmer than live, not dead. */
-.core-off .core-orb { filter:saturate(.7) brightness(.8); }
-.core-off .core-ring::after { animation-duration:40s; opacity:.3; }
+.core-off { --ring-speed:26s; }
+.core-off .core-orb { filter:saturate(.72) brightness(.82); }
+.core-off .core-ring::after { opacity:.35; }
+.core-off .core-ring::before { opacity:.16; }
 .core-powering-off .core-orb { filter:saturate(.4) brightness(.5); transition:filter .5s ease; }
 .core-locked { --core-accent:#ffd53d; --core-glow:rgba(255,213,61,.34); }
 
@@ -655,6 +687,42 @@ button.day-item:hover { color:#ffffff; }
   0%, 100% { transform: scaleY(0.3); }
   50% { transform: scaleY(1); }
 }
+
+/* ── Music dropdown ───────────────────────────────────────────────────────
+   The ambient-track picker opened from the top bar. One rhythm of padding,
+   one type family per job: mono for the label, body for track names. */
+.music-menu {
+  position:absolute; right:0; top:calc(100% + var(--sp-2)); z-index:40;
+  width:248px; padding:var(--sp-2);
+  border-radius:16px;
+  box-shadow:0 16px 44px rgba(3,5,10,.62), 0 0 24px rgba(63,208,255,.14);
+}
+.music-menu-head { display:flex; align-items:center; justify-content:space-between; gap:var(--sp-3); padding:var(--sp-2) var(--sp-3) var(--sp-3); }
+.music-menu-title { font-size:var(--fs-micro); letter-spacing:.26em; color:var(--caven-steel); }
+.music-menu-stop { font-size:var(--fs-micro); letter-spacing:.2em; color:var(--caven-steel); transition:color .2s; }
+.music-menu-stop:hover { color:#ffd9bd; }
+
+.music-menu-list { display:flex; flex-direction:column; gap:2px; max-height:264px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(85,219,228,.35) transparent; }
+.music-menu-list::-webkit-scrollbar { width:6px; }
+.music-menu-list::-webkit-scrollbar-thumb { background:rgba(85,219,228,.3); border-radius:99px; }
+
+.music-track {
+  display:flex; align-items:center; justify-content:space-between; gap:var(--sp-3);
+  width:100%; padding:var(--sp-2) var(--sp-3); border-radius:10px;
+  text-align:left; font-size:var(--fs-body); color:rgba(215,251,255,.82);
+  transition:background .18s, color .18s;
+}
+.music-track:hover { background:rgba(100,224,232,.08); color:var(--caven-cyan-bright); }
+.music-track:focus-visible { outline:2px solid var(--ring); outline-offset:-2px; }
+.music-track.is-active { background:rgba(63,208,255,.14); color:var(--caven-cyan-bright); }
+.music-track-name { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.music-track-glyph { flex:0 0 auto; font-size:9px; opacity:0; color:var(--caven-steel); transition:opacity .18s; }
+.music-track:hover .music-track-glyph,
+.music-track.is-active .music-track-glyph { opacity:1; }
+.music-track-eq { flex:0 0 auto; display:flex; align-items:flex-end; gap:2px; height:12px; }
+
+.music-menu-volume { display:flex; align-items:center; gap:var(--sp-2); margin-top:var(--sp-2); padding:var(--sp-2) var(--sp-3) var(--sp-1); border-top:1px solid var(--border); }
+.music-menu-slider { width:100%; accent-color:var(--caven-cyan); }
 
 /* Plasma bolt — a bright electric line leaping from the core out to a tile.
    Anchored at the core (stage origin) and rotated toward the target. */
@@ -960,8 +1028,8 @@ button.day-item:hover { color:#ffffff; }
   /* The core. Two moving parts left to still, where there were fifteen.
      The amplitude loop stops itself in CavenCore, so the orb simply holds
      its size rather than sitting frozen mid-swell. */
-  .core-orb,.core-ring::after,.core-pulse { animation:none!important; }
-  .core-orb { box-shadow:0 0 42px var(--core-glow), inset 0 0 22px rgba(255,255,255,.12); }
+  .core-orb,.core-ring::after,.core-ring::before,.core-pulse { animation:none!important; }
+  .core-orb { box-shadow:0 0 42px var(--core-glow), inset 0 -7px 22px rgba(4,12,16,.5), inset 0 7px 18px rgba(255,255,255,.14); }
   body::before { animation:none!important; }
   /* Legacy production */
   .plasma-core,.plasma-core::before,.plasma-core::after,
