@@ -85,7 +85,7 @@ function BottomNavBase({
           aria-expanded={open}
           aria-haspopup="menu"
         >
-          More <span className="bottom-nav-caret" aria-hidden="true">▾</span>
+          More <span className="bottom-nav-caret" aria-hidden="true">⌃</span>
         </button>
         {open && (
           <div className="bottom-nav-menu" role="menu">
