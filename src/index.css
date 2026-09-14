@@ -13,7 +13,7 @@
      Orbitron  — production display font       (.font-display, .auth-*)
      Rajdhani  — production body/auth font     (.auth-input, .auth-intro h1)
    ───────────────────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Tomorrow:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=Tomorrow:wght@400;600;700&display=swap');
 @import 'tailwindcss';
 
 /* ── Tokens ───────────────────────────────────────────────────────────────
@@ -144,7 +144,7 @@ button { font: inherit; }
 
 /* The typed-command row. Centred under the board on a desktop; docked to the
    bottom of the viewport on a phone, where it was previously below the fold. */
-.command-bar { display:flex; align-items:center; gap:var(--sp-3); width:min(570px,100%); margin:7px auto 83px; padding:var(--sp-2); }
+.command-bar { display:flex; align-items:center; justify-content:center; gap:16px; width:min(570px,100%); height:100px; margin:7px auto 21px; padding:var(--sp-2); font-size:60px; }
 
 /* Finance / Journal / Brain / Settings. Scrolls within what is left after the
    top bar, which is a different height at each breakpoint — hence a class and
@@ -153,24 +153,28 @@ button { font: inherit; }
 /* The top of the screen says two things: who you are being greeted as, and what
    time it is. No border and no navigation — a strip of chrome directly above the
    orb was the thing most in the way of the one control that matters. */
-.topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:var(--sp-4); padding:var(--sp-5) 0 var(--sp-4); }
-.topbar-lead { min-width:0; display:flex; flex-direction:column; gap:5px; }
-.topbar-greeting { margin:0; font-family:var(--font-display); font-size:clamp(21px,2.1vw,28px); font-weight:600; letter-spacing:.04em; line-height:1.1; color:#eaffff; text-shadow:0 0 18px rgba(120,235,245,.28); }
-.topbar-date { margin:0; font-family:var(--font-mono); font-size:var(--fs-micro); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(149,212,224,.62); }
-.topbar-side { display:flex; flex-direction:column; align-items:flex-end; gap:var(--sp-2); }
-/* Tabular figures, or the minute ticking over shifts the whole line. */
-.topbar-clock { font-family:var(--font-mono); font-size:clamp(19px,1.9vw,25px); line-height:1.1; color:rgba(255,255,255,.92); font-variant-numeric:tabular-nums; }
+.topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:var(--sp-4); padding:var(--sp-5) 32px var(--sp-4); text-align:justify; }
+ .topbar-lead { min-width:0; display:flex; flex-direction:column; gap:8px; font-size:36px; }
+ .topbar-greeting { margin:0; font-family:var(--font-display); font-size:36px; font-weight:600; letter-spacing:.04em; line-height:1.1; color:#eaffff; text-shadow:0 0 18px rgba(120,235,245,.28); }
+ .topbar-date { margin:0; font-family:var(--font-mono); font-size:18px; letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(149,212,224,.62); }
+ .topbar-side { display:flex; flex-direction:column; align-items:flex-end; gap:var(--sp-2); }
+ .topbar-clock { font-family:var(--font-mono); font-size:36px; line-height:1.1; color:rgba(255,255,255,.92); font-variant-numeric:tabular-nums; }
+.topbar-side > .relative > button { font-size:36px; }
 
 /* ── Navigation ─────────────────────────────────────────────────────────
    Beneath the command box rather than above the orb: a line of quiet text,
    visible, one click deep, competing with nothing. */
-.bottom-nav { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:var(--sp-2) var(--sp-4); width:min(760px,100%); margin:var(--sp-4) auto 0; padding-bottom:var(--sp-2); }
+.bottom-nav { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-evenly; gap:var(--sp-2) var(--sp-4); width:min(760px,100%); margin:var(--sp-4) auto 0; margin-left:557px; margin-bottom:0; padding-bottom:0; }
 .bottom-nav-mark { display:grid; place-items:center; padding:0; border:0; background:none; cursor:pointer; opacity:1; transition:opacity .25s; }
 .bottom-nav-mark:hover { opacity:1; }
 .bottom-nav-mark img { height:22px; width:auto; object-fit:contain; filter:brightness(0) invert(1); }
 .bottom-nav-item { position:relative; padding:6px 2px; border:0; background:none; cursor:pointer; font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(207,240,242,.5); transition:color .25s; }
 .bottom-nav-item:hover { color:rgba(255,255,255,.9); }
-.bottom-nav-item.is-active { color:var(--caven-cyan-bright); }
+.bottom-nav > .bottom-nav-item:nth-of-type(3),
+.bottom-nav > .bottom-nav-item:nth-of-type(4),
+.bottom-nav > .bottom-nav-item:nth-of-type(5),
+.bottom-nav-more > .bottom-nav-item { color:rgba(196,196,196,.9); }
+ .bottom-nav-item.is-active { color:var(--caven-cyan-bright); }
 .bottom-nav-item.is-active::after { content:''; position:absolute; left:0; right:0; bottom:0; height:1px; background:currentColor; box-shadow:0 0 8px currentColor; }
 .bottom-nav-caret { font-size:8px; vertical-align:middle; opacity:.7; }
 .bottom-nav-more { position:relative; }
@@ -421,11 +425,11 @@ button { font: inherit; }
    screen, and at full size the two together overflow a laptop's viewport. */
 .stage.has-board .core-button { width:clamp(104px,13vw,156px); }
 .stage-board { width:min(560px,100%); }
-.stage-core { display:flex; flex-direction:column; align-items:center; gap:var(--sp-4); }
-
-/* Fixed height, so a line arriving never shifts the core underneath it. */
+.stage-core { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:43px; text-align:center; font-size:32px; }
+  
+  /* Fixed height, so a line arriving never shifts the core underneath it. */
 .stage-line { display:grid; place-items:center; min-height:26px; width:min(520px,92vw); }
-.stage-line-text { border:0; background:none; padding:0; cursor:pointer; text-align:center; font-size:var(--fs-body); line-height:1.4; color:var(--caven-cyan-bright); }
+.stage-line-text { border:0; background:none; padding:0; cursor:pointer; text-align:center; font-size:24px; font-family:"Nunito", sans-serif; line-height:1.4; color:var(--caven-cyan-bright); }
 .stage-line-text:hover { color:#ffffff; }
 .stage-line-idle { font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(149,212,224,.45); }
 .stage-line.is-wrapping .stage-line-text { color:rgba(255,214,170,.95); }
