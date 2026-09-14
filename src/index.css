@@ -13,7 +13,7 @@
      Orbitron  — production display font       (.font-display, .auth-*)
      Rajdhani  — production body/auth font     (.auth-input, .auth-intro h1)
    ───────────────────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=Tomorrow:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Karla:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Merriweather:wght@400;700&family=Nunito:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Tomorrow:wght@400;600;700&display=swap');
 @import 'tailwindcss';
 
 /* ── Tokens ───────────────────────────────────────────────────────────────
@@ -144,7 +144,11 @@ button { font: inherit; }
 
 /* The typed-command row. Centred under the board on a desktop; docked to the
    bottom of the viewport on a phone, where it was previously below the fold. */
-.command-bar { display:flex; align-items:center; justify-content:center; gap:16px; width:min(570px,100%); height:100px; margin:7px auto 21px; padding:var(--sp-2); font-size:60px; }
+.command-bar { display:flex; align-items:center; justify-content:center; gap:var(--sp-3); width:min(640px,100%); margin:7px auto 21px; padding:var(--sp-2); }
+/* Input scaled ~1.6x, with the send + mute cluster docked inside the pill. */
+.command-input-wrap { position:relative; flex:1 1 0; display:flex; align-items:center; }
+.command-bar .caven-text-input { height:58px; font-size:22px; border-radius:999px; padding:0 100px 0 24px; }
+.command-input-actions { position:absolute; right:9px; top:50%; transform:translateY(-50%); display:flex; align-items:center; gap:4px; }
 
 /* Finance / Journal / Brain / Settings. Scrolls within what is left after the
    top bar, which is a different height at each breakpoint — hence a class and
@@ -154,21 +158,27 @@ button { font: inherit; }
    time it is. No border and no navigation — a strip of chrome directly above the
    orb was the thing most in the way of the one control that matters. */
 .topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:var(--sp-4); padding:var(--sp-5) 32px var(--sp-4); text-align:justify; }
- .topbar-lead { min-width:0; display:flex; flex-direction:column; gap:8px; font-size:36px; }
+ .topbar-lead { min-width:0; display:flex; flex-direction:column; gap:32px; font-size:36px; }
  .topbar-greeting { margin:0; font-family:var(--font-display); font-size:36px; font-weight:600; letter-spacing:.04em; line-height:1.1; color:#eaffff; text-shadow:0 0 18px rgba(120,235,245,.28); }
  .topbar-date { margin:0; font-family:var(--font-mono); font-size:18px; letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(149,212,224,.62); }
- .topbar-side { display:flex; flex-direction:column; align-items:flex-end; gap:var(--sp-2); }
+ .topbar-side { display:flex; flex-direction:column; align-items:flex-end; gap:16px; }
  .topbar-clock { font-family:var(--font-mono); font-size:36px; line-height:1.1; color:rgba(255,255,255,.92); font-variant-numeric:tabular-nums; }
-.topbar-side > .relative > button { font-size:36px; }
+/* The volume / music control, scaled ~1.6x for a comfortable target. */
+.topbar-side > .relative > button { gap:10px; padding:11px 20px; font-size:15px; }
+.topbar-side > .relative > button svg { width:26px; height:26px; }
+.topbar-side > .relative > button .t-micro { font-size:13px; }
 
 /* ── Navigation ─────────────────────────────────────────────────────────
    Beneath the command box rather than above the orb: a line of quiet text,
    visible, one click deep, competing with nothing. */
-.bottom-nav { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-evenly; gap:var(--sp-2) var(--sp-4); width:min(760px,100%); margin:var(--sp-4) auto 0; margin-left:557px; margin-bottom:0; padding-bottom:0; }
-.bottom-nav-mark { display:grid; place-items:center; padding:0; border:0; background:none; cursor:pointer; opacity:1; transition:opacity .25s; }
+.bottom-nav { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:var(--sp-2) 0; width:min(820px,100%); margin:var(--sp-5) auto 0; }
+.bottom-nav-mark { display:grid; place-items:center; padding:0 var(--sp-5) 0 0; border:0; background:none; cursor:pointer; opacity:.92; transition:opacity .25s; }
 .bottom-nav-mark:hover { opacity:1; }
-.bottom-nav-mark img { height:22px; width:auto; object-fit:contain; filter:brightness(0) invert(1); }
-.bottom-nav-item { position:relative; padding:6px 2px; border:0; background:none; cursor:pointer; font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(207,240,242,.5); transition:color .25s; }
+.bottom-nav-mark img { height:60px; width:auto; object-fit:contain; filter:brightness(0) invert(1) drop-shadow(0 0 10px rgba(120,235,245,.35)); }
+/* Very subtle hairline between every tab (and before "More"). */
+.bottom-nav-item::before,
+.bottom-nav-more::before { content:''; position:absolute; left:0; top:50%; width:1px; height:18px; transform:translateY(-50%); background:rgba(207,240,242,.14); }
+.bottom-nav-item { position:relative; padding:8px var(--sp-4); border:0; background:none; cursor:pointer; font-family:var(--font-mono); font-size:16px; letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(207,240,242,.5); transition:color .25s; }
 .bottom-nav-item:hover { color:rgba(255,255,255,.9); }
 .bottom-nav > .bottom-nav-item:nth-of-type(3),
 .bottom-nav > .bottom-nav-item:nth-of-type(4),
@@ -177,7 +187,7 @@ button { font: inherit; }
  .bottom-nav-item.is-active { color:var(--caven-cyan-bright); }
 .bottom-nav-item.is-active::after { content:''; position:absolute; left:0; right:0; bottom:0; height:1px; background:currentColor; box-shadow:0 0 8px currentColor; }
 .bottom-nav-caret { font-size:8px; vertical-align:middle; opacity:.7; }
-.bottom-nav-more { position:relative; }
+.bottom-nav-more { position:relative; padding-left:var(--sp-4); }
 /* Upward, because there is nothing below it but the edge of the screen. */
 .bottom-nav-menu { position:absolute; right:0; bottom:calc(100% + var(--sp-2)); z-index:30; display:flex; flex-direction:column; min-width:150px; padding:6px; border:1px solid rgba(149,212,224,.2); border-radius:14px; background:rgba(9,17,22,.96); box-shadow:0 14px 34px rgba(0,0,0,.5); backdrop-filter:blur(8px); }
 .bottom-nav-menu-item { padding:8px 10px; border:0; border-radius:9px; background:none; cursor:pointer; text-align:left; font-size:var(--fs-caption); color:rgba(255,255,255,.8); }
@@ -429,7 +439,7 @@ button { font: inherit; }
   
   /* Fixed height, so a line arriving never shifts the core underneath it. */
 .stage-line { display:grid; place-items:center; min-height:26px; width:min(520px,92vw); }
-.stage-line-text { border:0; background:none; padding:0; cursor:pointer; text-align:center; font-size:24px; font-family:"Nunito", sans-serif; line-height:1.4; color:var(--caven-cyan-bright); }
+.stage-line-text { border:0; background:none; padding:0; cursor:pointer; text-align:center; font-size:36px; font-family:"Karla", sans-serif; font-weight:600; line-height:1.4; color:var(--caven-cyan-bright); }
 .stage-line-text:hover { color:#ffffff; }
 .stage-line-idle { font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(149,212,224,.45); }
 .stage-line.is-wrapping .stage-line-text { color:rgba(255,214,170,.95); }
@@ -473,10 +483,10 @@ button.day-item:hover { color:#ffffff; }
 .command-stop,.command-mute { flex:0 0 auto; display:grid; place-items:center; border-radius:999px; }
 .command-stop { padding:6px var(--sp-3); font-family:var(--font-display); font-size:var(--fs-micro); letter-spacing:.2em; color:var(--caven-steel); border:1px solid rgba(149,212,224,.22); background:rgba(13,28,36,.6); }
 .command-stop:hover { color:#ffffff; }
-.command-mute { width:44px; height:44px; color:var(--caven-cyan-bright); border:1px solid rgba(149,212,224,.28); background:rgba(13,28,36,.72); box-shadow:0 0 0 4px rgba(85,219,228,.04); transition:color .2s, border-color .2s, background .2s, transform .2s; }
-.command-mute:hover { color:#ffffff; background:rgba(20,43,52,.9); transform:translateY(-1px); }
-.command-mute.is-muted { color:#ff6969; border-color:rgba(255,105,105,.55); background:rgba(92,25,29,.32); box-shadow:0 0 0 4px rgba(255,82,82,.08), 0 0 16px rgba(255,82,82,.16); }
-.command-mute.is-muted:hover { color:#ff9a9a; }
+  .command-mute { width:40px; height:40px; color:var(--caven-steel-light); border:0; background:transparent; box-shadow:none; transition:color .2s, background .2s; }
+ .command-mute:hover { color:#ffffff; background:rgba(255,255,255,.07); }
+ .command-mute.is-muted { color:#ff6969; border:0; background:transparent; box-shadow:none; }
+ .command-mute.is-muted:hover { color:#ff9a9a; background:rgba(255,105,105,.08); }
 .command-stop:focus-visible,.command-mute:focus-visible { outline:2px solid var(--ring); outline-offset:2px; }
 
 
@@ -911,11 +921,11 @@ button.day-item:hover { color:#ffffff; }
 
 /* ═══════════════════════════════════════════════════════════════════════
    RESPONSIVE
-   ═══════════════════════════════════════════════════════════════════════ */
+   ═════════════════════════���═════════════════════════════════════════════ */
 /* The old three-column board is gone, so there is nothing here to re-column.
    The stage is a single centred stack at every width. */
 
-/* ── Phone ──────────────────────────────────────────────────────────────
+/* ── Phone ────────────────���─────────────────────────────────────────────
    Same design, re-flowed. Three things had to change for the app to be
    usable at this width at all:
 
@@ -930,7 +940,7 @@ button.day-item:hover { color:#ffffff; }
    dvh throughout, because a phone's address bar makes vh lie by about 60px
    and the difference is exactly the row that goes missing.
    ───────────────────────────────────────────────────────────────────── */
-/* ═══════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════���═══════════════════
    MISSION CONTROL — the looking page: today, tasks, reminders, money.
    Sections down a column rather than panels across a grid; it scrolls, so
    nothing has to fight for a fixed slot the way the old board did.
@@ -1207,7 +1217,7 @@ button.day-item:hover { color:#ffffff; }
 .command-form { display:flex; align-items:center; gap:var(--sp-2); }
 .command-send {
   display:inline-flex; align-items:center; justify-content:center;
-  flex:0 0 auto; width:36px; height:36px; border-radius:999px; border:0; cursor:pointer;
+  flex:0 0 auto; width:40px; height:40px; border-radius:999px; border:0; cursor:pointer;
   background:rgba(63,208,255,.14); color:var(--caven-cyan);
 }
 .command-send:hover { background:rgba(63,208,255,.22); }

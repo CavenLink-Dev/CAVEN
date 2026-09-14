@@ -211,23 +211,47 @@ export default function App() {
               submitTyped();
             }}
           >
-            <input
-              value={typed}
-              onChange={(e) => setTyped(e.target.value)}
-              placeholder="Say something to CAVEN…"
-              className="caven-text-input metal-surface h-9 w-full rounded-full px-3 text-sm placeholder:opacity-40"
-              style={{ color: 'var(--caven-steel-light)' }}
-              aria-label="Type a message to CAVEN"
-            />
-            {/* Enter has always sent. Nothing on screen said so, and there was no
-                way at all to send with a mouse — the form had no submit control. */}
-            {typed.trim() && (
-              <button type="submit" className="command-send" aria-label="Send">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M5 12h13M12 5l7 7-7 7" />
-                </svg>
-              </button>
-            )}
+            <div className="command-input-wrap">
+              <input
+                value={typed}
+                onChange={(e) => setTyped(e.target.value)}
+                placeholder="Say something to CAVEN…"
+                className="caven-text-input metal-surface w-full rounded-full placeholder:opacity-40"
+                style={{ color: 'var(--caven-steel-light)' }}
+                aria-label="Type a message to CAVEN"
+              />
+              {/* Send and mute live inside the pill on the right — one control
+                  cluster, so the row stays a single clean bar. */}
+              <div className="command-input-actions">
+                {typed.trim() && (
+                  <button type="submit" className="command-send" aria-label="Send">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M5 12h13M12 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={toggleMute}
+                  className={`command-mute${muted ? ' is-muted' : ''}`}
+                  aria-label={muted ? 'Unmute' : 'Mute'}
+                  title={muted ? 'Unmute' : 'Mute'}
+                  aria-pressed={muted}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor" fillOpacity="0.18" />
+                    {muted ? (
+                      <>
+                        <line x1="16" y1="9" x2="21" y2="14" />
+                        <line x1="21" y1="9" x2="16" y2="14" />
+                      </>
+                    ) : (
+                      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+                    )}
+                  </svg>
+                </button>
+              </div>
+            </div>
           </form>
 
           {(locked || conversing) && (
@@ -235,20 +259,6 @@ export default function App() {
               STOP
             </button>
           )}
-
-          <button
-            type="button"
-            onClick={toggleMute}
-            className={`command-mute${muted ? ' is-muted' : ''}`}
-            aria-label={muted ? 'Unmute microphone' : 'Mute microphone'}
-            title={muted ? 'Unmute microphone' : 'Mute microphone'}
-            aria-pressed={muted}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" fillOpacity="0.15" />
-              {muted ? <path d="M17 9l4 4m0-4l-4 4" /> : <><path d="M16 8.5a4 4 0 0 1 0 7" /><path d="M18.5 6a7 7 0 0 1 0 12" opacity="0.6" /></>}
-            </svg>
-          </button>
         </div>
 
         {/* Navigation, beneath the box and out of the way of the orb. More opens
