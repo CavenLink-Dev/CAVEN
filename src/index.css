@@ -144,7 +144,7 @@ button { font: inherit; }
 
 /* The typed-command row. Centred under the board on a desktop; docked to the
    bottom of the viewport on a phone, where it was previously below the fold. */
-.command-bar { display:flex; align-items:center; gap:var(--sp-3); width:min(570px,100%); margin:var(--sp-6) auto 0; padding:var(--sp-2); }
+.command-bar { display:flex; align-items:center; gap:var(--sp-3); width:min(570px,100%); margin:7px auto 83px; padding:var(--sp-2); }
 
 /* Finance / Journal / Brain / Settings. Scrolls within what is left after the
    top bar, which is a different height at each breakpoint — hence a class and
