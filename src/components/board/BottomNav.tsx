@@ -1,5 +1,4 @@
 import { memo, useEffect, useRef, useState } from 'react'
-import mark from '../../imports/caven-mark.png'
 import type { Page } from './TopBar'
 
 // Navigation, at the bottom and out of the way.
@@ -62,7 +61,7 @@ function BottomNavBase({
         onClick={() => onPageChange('main')}
         aria-label="CAVEN — back to the core"
       >
-        <img src={mark} alt="" />
+        <img src="/ca_icon.png" alt="" />
       </button>
 
       {PAGES.map(({ id, label }) => (
