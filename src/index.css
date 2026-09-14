@@ -919,8 +919,9 @@ button.day-item:hover { color:#ffffff; }
       reached. It now takes a full-width row of its own beneath the brand.
    2. The command input sat below the first viewport. It docks to the bottom
       instead — it is the fallback for every mishearing and has to be to hand.
-   3. Panels are no longer draggable or resizable by touch (GlassPanel.tsx),
-      so a finger on the board scrolls the board.
+   3. Panels are no longer draggable or resizable by touch — the glass-panel
+      components that did that were deleted on 14 Sep once nothing rendered
+      them — so a finger on the board scrolls the board.
 
    dvh throughout, because a phone's address bar makes vh lie by about 60px
    and the difference is exactly the row that goes missing.
@@ -1213,3 +1214,6 @@ button.day-item:hover { color:#ffffff; }
 .bottom-nav-item { min-height:44px; display:inline-flex; align-items:center; padding-inline:10px; }
 .bottom-nav-mark { min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center; }
 .bottom-nav-menu-item { min-height:44px; }
+
+/* The 8-character rule, said before it is tripped rather than after. */
+.auth-hint { opacity:.55; font-weight:400; }

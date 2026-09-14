@@ -1,0 +1,16 @@
+-- Drop the pre-auth global board.
+--
+-- `kv_store_3159d1b2` held a single row, key 'caven:state' — the board as it was
+-- before 11 Sep, when every user shared one. Private per-user boards now live in
+-- public.caven_boards, and nothing in the app has read this table since.
+--
+-- It is not merely unused. It is the museum of the old fall-through-to-Tasks
+-- bug: its tasks are named "Hmm", "etst", "Hello there", "Can you hear me",
+-- "Hello how are you" — conversational filler that the router turned into
+-- records. Keeping it around invites someone to "restore" it one day.
+--
+-- The security linter also flags it (rls_enabled_no_policy): RLS is on with no
+-- policies, which is safe only for as long as nobody adds one by mistake.
+--
+-- Reversible only from a backup. The data is junk; that is the point.
+drop table if exists public.kv_store_3159d1b2;

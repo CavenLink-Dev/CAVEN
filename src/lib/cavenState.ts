@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { addressOf, DEFAULT_ADDRESS } from '../../shared/address';
-import { claimsChange, parseActions, REMOVAL } from '../../shared/actions';
+import { claimsChange, parseActions, REMOVAL, type CavenAction } from '../../shared/actions';
 import { isCancel } from '../../shared/cancel';
+import { asksToStay, elapsedLine, stayingLine } from '../../shared/companion';
 import { ASKS_FIRST_TASK, ASKS_FOR_THE_DAY, firstTaskLine, readTheDay } from '../../shared/daySpeak';
+import { confirmLine, countWord, isAffirmative, isNegative, readDump } from '../../shared/dump';
 import { isFragment } from '../../shared/endpoint';
 import { dueLine, nextDue, settle } from '../../shared/reminders';
 import { spendCheck } from '../../shared/spendCheck';
@@ -64,12 +66,13 @@ const LEFT_IT = ['All right.', 'Left it.', 'Very good.', 'As you were.', 'Right 
 type VoiceSession = {
   /** A question he was asked and has not answered yet. */
   pendingClarification: string | null;
-  /** Something proposed and awaiting a yes before anything is written. */
-  pendingConfirmation: string | null;
+  /** Errands read back and waiting on a yes. Nothing is written until one comes. */
+  pendingConfirmation: string[] | null;
   /** Whether the last turn actually wrote to the board. */
   lastActionChanged: boolean;
-  /** "Stay with me for twenty minutes" — unused until routines and companion land. */
+  /** When he stops being sat with, and the length he asked for so it can be said back. */
   companionUntil: number | null;
+  companionMinutes: number | null;
   /** The routine step he is on — unused until routines land. */
   routine: { id: string; step: number } | null;
 };
@@ -79,6 +82,7 @@ const freshSession = (): VoiceSession => ({
   pendingConfirmation: null,
   lastActionChanged: false,
   companionUntil: null,
+  companionMinutes: null,
   routine: null,
 });
 
@@ -154,6 +158,9 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** How often the open tab looks for a reminder that has come due. */
 const DUE_SWEEP_MS = 20_000;
+
+/** How often the companion deadline is checked. Coarse on purpose — it is company, not a stopwatch. */
+const COMPANION_TICK_MS = 15_000;
 
 export function useCaven() {
   const { data, capture, perform, update } = useCavenStore();
@@ -310,6 +317,8 @@ export function useCaven() {
       if (isCancel(said, addressRef.current)) {
         session.current.pendingClarification = null;
         session.current.pendingConfirmation = null;
+        session.current.companionUntil = null;
+        session.current.companionMinutes = null;
         const dropped = aside(LEFT_IT);
         setReply(dropped);
         set('speaking');
@@ -365,7 +374,28 @@ export function useCaven() {
         }
       };
 
-      if (r) {
+      // What he was asked to confirm last turn. Taken now whatever happens next,
+      // because a yes, a no and a change of subject all end the question — being
+      // stuck in it is worse than losing it.
+      const queued = session.current.pendingConfirmation;
+      session.current.pendingConfirmation = null;
+
+      if (queued && isNegative(said)) {
+        line = aside(LEFT_IT);
+      } else if (queued && isAffirmative(said)) {
+        // Only here, on an explicit yes, does thinking aloud become rows.
+        try {
+          const result = await perform(queued.map((title): CavenAction => ({ do: 'task.add', title })));
+          if (!alive()) return;
+          changed = result.changed;
+          line = changed
+            ? `That's ${countWord(queued.length)} on your list.`
+            : result.message || NOTHING_DONE(addressRef.current);
+        } catch (error) {
+          changed = false;
+          line = error instanceof Error ? error.message : `That did not save, ${addressRef.current}. Please retry.`;
+        }
+      } else if (r) {
         // Regex fast path: a plain "remind me…" costs no tokens and still works.
         try {
           const result = await capture(r.kind, said);
@@ -388,8 +418,24 @@ export function useCaven() {
         // Straight off the board where it can be. Only when route() found no
         // card, so what opens on screen stays decided by the existing intents.
         const answer = boardAnswer(said, dataRef.current, new Date());
-        if (answer) line = answer;
-        else await converse();
+        const minutes = asksToStay(said);
+        // Thinking aloud. Read back and held, not saved — the confirmation is
+        // enforced here rather than asked of the model, because a prompt is a
+        // request and this needs to be a rule.
+        const dump = answer || minutes ? null : readDump(said);
+
+        if (answer) {
+          line = answer;
+        } else if (minutes) {
+          session.current.companionUntil = Date.now() + minutes * 60_000;
+          session.current.companionMinutes = minutes;
+          line = stayingLine(minutes);
+        } else if (dump) {
+          session.current.pendingConfirmation = dump;
+          line = confirmLine(dump);
+        } else {
+          await converse();
+        }
       }
       if (!alive()) return;
 
@@ -485,6 +531,55 @@ export function useCaven() {
       window.clearInterval(id);
     };
   }, [data.reminders, update, pushAmp, rearm, resetAmp]);
+
+  // Sitting with him for a stretch he asked for.
+  //
+  // Mostly this does nothing, which is the point: a companion that pipes up
+  // every few minutes is an egg timer with opinions. It says one line when the
+  // time is up and then forgets itself. No push and no reminder row — a closed
+  // tab is not someone to sit with, and this is not something to be woken for.
+  const companionSpeaking = useRef(false);
+  useEffect(() => {
+    let live = true;
+
+    const check = async () => {
+      if (!live || companionSpeaking.current) return;
+      const until = session.current.companionUntil;
+      if (!until || Date.now() < until) return;
+
+      const clear = () => {
+        session.current.companionUntil = null;
+        session.current.companionMinutes = null;
+      };
+
+      // He has gone. Nothing to say, and nobody to say it to.
+      if (!conversingRef.current && !lockedRef.current) return clear();
+      // Mid-turn. It keeps until the next tick; talking over himself would not.
+      if (stateRef.current !== 'idle') return;
+
+      const minutes = session.current.companionMinutes ?? 0;
+      clear();
+      companionSpeaking.current = true;
+      try {
+        const line = elapsedLine(minutes);
+        setReply(line);
+        set('speaking');
+        await speak(line, pushAmp);
+        if (!live) return;
+        set('idle');
+        resetAmp();
+        rearm();
+      } finally {
+        companionSpeaking.current = false;
+      }
+    };
+
+    const id = window.setInterval(() => void check(), COMPANION_TICK_MS);
+    return () => {
+      live = false;
+      window.clearInterval(id);
+    };
+  }, [pushAmp, rearm, resetAmp]);
 
   // Typed commands take the same path, and interrupt whatever is in flight.
   const runCommand = useCallback((text: string) => {

@@ -126,6 +126,8 @@ function AuthPanel() {
       if (raw.includes('confirm')) setMessage('Please confirm your email before signing in.');
       else if (raw.includes('already') || raw.includes('registered')) setMessage('That email already has an account — try signing in instead.');
       else if (raw.includes('password') || raw.includes('credential') || raw.includes('user')) setMessage('Invalid email or password.');
+      else if (raw.includes('rate') && signup)
+        setMessage("Sign-ups are temporarily unavailable — this site's confirmation-email quota is spent. Do try again later.");
       else if (raw.includes('rate')) setMessage('Too many attempts. Please try again shortly.');
       else setMessage('Something went wrong. Please try again.');
     } finally { setBusy(false); }
@@ -161,7 +163,9 @@ function AuthPanel() {
           <input id="auth-email" required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="auth-input" placeholder="you@example.com" />
           {!reset && (
             <>
-              <label className="auth-label" htmlFor="auth-password">Password</label>
+              <label className="auth-label" htmlFor="auth-password">
+                Password{signup && <span className="auth-hint"> — at least 8 characters</span>}
+              </label>
               <div className="auth-password-wrap"><input id="auth-password" required minLength={8} type={showPassword ? 'text' : 'password'} autoComplete={signup ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} className="auth-input" placeholder="••••••••" /><button type="button" className="auth-eye" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'}><EyeIcon visible={showPassword} /></button></div>
             </>
           )}
@@ -176,7 +180,7 @@ function AuthPanel() {
           <p className="auth-switch">
             {reset ? (
               <button type="button" onClick={() => switchMode('signin')}>Back to sign in</button>
-            ) : (
+            ) : signup ? null : (
               <button type="button" onClick={() => switchMode('reset')}>Forgot your password?</button>
             )}
           </p>

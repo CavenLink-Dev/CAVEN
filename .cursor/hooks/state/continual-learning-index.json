@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-11T23:27:07Z",
+  "updatedAt": "2026-09-13T10:02:58Z",
   "transcripts": {
     "319235c9-79ad-4fb6-80eb-557364f6fa56/319235c9-79ad-4fb6-80eb-557364f6fa56.jsonl": {
       "mtimeMs": 1789108080273
@@ -21,10 +21,10 @@
       "mtimeMs": 1789109352758
     },
     "56075fde-e5b6-4528-8991-1786638414e8/56075fde-e5b6-4528-8991-1786638414e8.jsonl": {
-      "mtimeMs": 1789169070771
+      "mtimeMs": 1789169240991
     },
     "56075fde-e5b6-4528-8991-1786638414e8/subagents/8b3dbaff-7242-47d6-9896-40136acd709c.jsonl": {
-      "mtimeMs": 1789169085730
+      "mtimeMs": 1789169234788
     },
     "612db2e3-2b97-40f4-8f72-62ee00cb148e/612db2e3-2b97-40f4-8f72-62ee00cb148e.jsonl": {
       "mtimeMs": 1789132838572
@@ -37,6 +37,12 @@
     },
     "742dac65-84ff-48fd-b30f-fa9a05e1987a/742dac65-84ff-48fd-b30f-fa9a05e1987a.jsonl": {
       "mtimeMs": 1789124315919
+    },
+    "8a01e0a1-55ad-451c-a896-79adc2c90dd5/8a01e0a1-55ad-451c-a896-79adc2c90dd5.jsonl": {
+      "mtimeMs": 1789293386724
+    },
+    "8a01e0a1-55ad-451c-a896-79adc2c90dd5/subagents/d554cd68-58ca-4c38-a7c0-799e52127a66.jsonl": {
+      "mtimeMs": 1789293520428
     },
     "94b85753-4eed-406a-b838-e11f9db45dc5/94b85753-4eed-406a-b838-e11f9db45dc5.jsonl": {
       "mtimeMs": 1789108254467
@@ -62,11 +68,20 @@
     "bd4e0688-3598-4c50-a66d-cd326ea1e4fb/subagents/84a845e3-4aa7-4356-92bf-d87c81b8dba7.jsonl": {
       "mtimeMs": 1789113747200
     },
+    "c067b0eb-d26e-411a-a2ca-814d834650e1/c067b0eb-d26e-411a-a2ca-814d834650e1.jsonl": {
+      "mtimeMs": 1789293679421
+    },
+    "d2cfa3dc-8cdc-4a2d-9d17-388ed54860fd/d2cfa3dc-8cdc-4a2d-9d17-388ed54860fd.jsonl": {
+      "mtimeMs": 1789291897334
+    },
     "d2ff5797-fde2-49c0-a37d-5296d4f15efd/d2ff5797-fde2-49c0-a37d-5296d4f15efd.jsonl": {
       "mtimeMs": 1789109181606
     },
     "e938d5c1-73c9-4c4f-8b6a-11fa24450b19/e938d5c1-73c9-4c4f-8b6a-11fa24450b19.jsonl": {
       "mtimeMs": 1789102442737
+    },
+    "e98fb7a8-be0e-4c2d-8a5c-6aedcd6d9cad/e98fb7a8-be0e-4c2d-8a5c-6aedcd6d9cad.jsonl": {
+      "mtimeMs": 1789292098140
     },
     "f1f47a61-7fa5-434d-a0fe-9ccc6b009560/f1f47a61-7fa5-434d-a0fe-9ccc6b009560.jsonl": {
       "mtimeMs": 1789169002564

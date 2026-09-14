@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useCavenStore } from '../../lib/store';
 import { dayLabel, parseStamp } from '../../../shared/when';
-import { Panel, Ring, Row } from '../widgets';
+import { Panel, Row } from '../widgets';
 
 /** Same quiet, in-character note the board cards use, so an empty page reads
  *  as "nothing here yet" rather than as something that failed to load. */
@@ -39,26 +39,12 @@ export function JournalPage() {
 
 export function BrainPage() {
   const { data } = useCavenStore();
-  const { brainMetrics, brainNotes, interests, voiceNotes } = data;
+  const { brainNotes, interests, voiceNotes } = data;
   return (
     <div className="w-full max-w-md space-y-3">
       <Panel>
         <div className="t-micro tracking-[0.28em]" style={{ color: 'var(--caven-steel)' }}>CAVEN BRAIN</div>
         <div className="mt-1 text-sm opacity-80">What I've learned about you to answer better and support your goals.</div>
-      </Panel>
-      <Panel title="Wellbeing">
-        <div className="grid grid-cols-2 gap-3">
-          {brainMetrics.length === 0 && <EmptyNote>Nothing tracked yet.</EmptyNote>}
-          {brainMetrics.map((m) => (
-            <div key={m.label} className="flex items-center gap-2">
-              <Ring value={m.value} label={`${m.value}`} />
-              <div>
-                <div className="text-sm">{m.label}</div>
-                <div className="t-micro opacity-60">{m.hint}</div>
-              </div>
-            </div>
-          ))}
-        </div>
       </Panel>
       <Panel title="Interests & hobbies">
         <div className="flex flex-wrap gap-1.5">

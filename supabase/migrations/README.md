@@ -43,3 +43,12 @@ Also note the base migration's timestamp differs: this folder has
   keeps `PT409` and leaves `claim_caven_reminders()` alone for exactly that reason.
 - Never write a secret into a migration file. Reference it by vault name.
 - When you apply a migration by hand, add the file here in the same sitting.
+
+## 20260914000000_drop_legacy_kv_store.sql — not yet applied
+
+Drops `public.kv_store_3159d1b2`, the pre-auth single-row global board. Nothing
+has read it since private boards landed on 11 Sep, and it is the last thing
+holding the security linter's `rls_enabled_no_policy` finding open.
+
+Apply it by hand in the SQL editor (or `supabase db push`) — it was written
+locally on 14 Sep and deliberately not run against production from here.

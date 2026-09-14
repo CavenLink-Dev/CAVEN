@@ -124,9 +124,11 @@ export default function App() {
         </div>
       )}
 
-      {/* The full line, for assistive tech — the visible one is cut short. */}
+      {/* The full line, for assistive tech — the visible one is cut short.
+          Only on the main screen: elsewhere .page-reply is itself a live region
+          showing the line in full, and both firing announced it twice. */}
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
-        {listening && transcript ? transcript : reply && !listening ? `CAVEN said: ${reply}` : ''}
+        {page !== 'main' ? '' : listening && transcript ? transcript : reply && !listening ? `CAVEN said: ${reply}` : ''}
       </div>
 
       {page === 'main' ? (

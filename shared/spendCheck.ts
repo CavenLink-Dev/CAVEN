@@ -8,6 +8,7 @@
 // Returns null when the question wasn't asked, or when no amount could be made
 // out — the caller then takes its ordinary path rather than guessing.
 
+import { numberIn } from './numbers.ts';
 import type { CavenData } from '../src/lib/store';
 
 type Budget = CavenData['budgets'][number];
@@ -16,68 +17,8 @@ type Budget = CavenData['budgets'][number];
 const ASKS_TO_SPEND =
   /\b(?:can i (?:spend|afford|justify)|could i (?:spend|afford)|am i (?:ok|okay|alright|right) to spend|have i got room for|is there room for|do i have room for|can i drop)\b/i;
 
-/** Written as digits: "$80", "80.50", "1,200". */
-const DIGITS = /\$?\s?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?\b/;
-
-const UNITS: Record<string, number> = {
-  zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9,
-  ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16,
-  seventeen: 17, eighteen: 18, nineteen: 19,
-};
-const TENS: Record<string, number> = {
-  twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90,
-};
-
-/**
- * An amount spoken as words: "eighty", "a hundred and fifty", "two thousand".
- *
- * Speech recognition gives back whichever of the two forms he happened to say,
- * so both have to be read or the feature only works when he talks like a
- * keyboard. Scanning stops at the first run of number words, so "spend eighty on
- * dinner for two" is eighty, not eighty-two.
- */
-function spokenNumber(said: string): number | null {
-  let total = 0;
-  let group = 0;
-  let seen = false;
-
-  for (const word of said.toLowerCase().split(/[^a-z]+/)) {
-    if (!word) continue;
-    if (word in UNITS) {
-      group += UNITS[word]!;
-      seen = true;
-    } else if (word in TENS) {
-      group += TENS[word]!;
-      seen = true;
-      // "a hundred" carries no digit word of its own, so these have to be able
-      // to open a group rather than only multiply one.
-    } else if (word === 'hundred') {
-      group = (group || 1) * 100;
-      seen = true;
-    } else if (word === 'thousand') {
-      total += (group || 1) * 1000;
-      group = 0;
-      seen = true;
-    } else if (seen && (word === 'and' || word === 'dollars' || word === 'dollar' || word === 'bucks')) {
-      continue;
-    } else if (seen) {
-      break;
-    }
-  }
-
-  return seen ? total + group : null;
-}
-
-/** The amount in the utterance, or null when there isn't one to be had. */
-export function amountIn(said: string): number | null {
-  const digits = DIGITS.exec(said);
-  if (digits) {
-    const whole = Number(digits[1]!.replace(/,/g, ''));
-    const cents = digits[2] ? Number(`0.${digits[2]}`) : 0;
-    if (Number.isFinite(whole)) return whole + cents;
-  }
-  return spokenNumber(said);
-}
+/** The amount in the utterance, in whichever form he said it. */
+export { numberIn as amountIn } from './numbers.ts';
 
 /** Whole dollars stay whole; cents are only spoken when there are any. */
 function money(amount: number): string {
@@ -118,7 +59,7 @@ export function spendCheck(
   said: string,
   ): string | null {
   if (!ASKS_TO_SPEND.test(said)) return null;
-  const amount = amountIn(said);
+  const amount = numberIn(said);
   if (amount === null) return null;
 
   const rows = budgetsOf(data);
