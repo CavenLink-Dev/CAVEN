@@ -144,11 +144,11 @@ button { font: inherit; }
 
 /* The typed-command row. Centred under the board on a desktop; docked to the
    bottom of the viewport on a phone, where it was previously below the fold. */
-.command-bar { display:flex; align-items:center; justify-content:center; gap:var(--sp-3); width:min(480px,100%); margin:7px auto 21px; padding:var(--sp-2); }
+.command-bar { display:flex; align-items:center; justify-content:center; gap:10px; width:min(384px,100%); margin:6px auto 17px; padding:6px; }
 /* Sized just a touch larger than the nav bar beneath it, with the send +
    mute cluster docked inside the pill. */
 .command-input-wrap { position:relative; flex:1 1 0; display:flex; align-items:center; }
-.command-bar .caven-text-input { height:44px; font-size:15px; border-radius:999px; padding:0 76px 0 18px; }
+.command-bar .caven-text-input { height:35px; font-size:12px; border-radius:999px; padding:0 61px 0 14px; }
 .command-input-actions { position:absolute; right:7px; top:50%; transform:translateY(-50%); display:flex; align-items:center; gap:2px; }
 
 /* Finance / Journal / Brain / Settings. Scrolls within what is left after the
@@ -172,14 +172,14 @@ button { font: inherit; }
 /* ── Navigation ─────────────────────────────────────────────────────────
    Beneath the command box rather than above the orb: a line of quiet text,
    visible, one click deep, competing with nothing. */
-.bottom-nav { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:var(--sp-2) 0; width:min(560px,100%); margin:var(--sp-4) auto 0; }
-.bottom-nav-mark { display:grid; place-items:center; padding:0 var(--sp-4) 0 0; border:0; background:none; cursor:pointer; opacity:.92; transition:opacity .25s; }
+.bottom-nav { display:flex; flex-wrap:nowrap; align-items:center; justify-content:center; gap:0; width:min(448px,100%); margin:13px auto 0; overflow-x:auto; scrollbar-width:none; } .bottom-nav::-webkit-scrollbar { display:none; } .bottom-nav > * { flex:0 0 auto; }
+.bottom-nav-mark { display:grid; place-items:center; padding:0 13px 0 0; border:0; background:none; cursor:pointer; opacity:.92; transition:opacity .25s; }
 .bottom-nav-mark:hover { opacity:1; }
-.bottom-nav-mark img { height:38px; width:auto; object-fit:contain; filter:brightness(0) invert(1) drop-shadow(0 0 10px rgba(120,235,245,.35)); }
+.bottom-nav-mark img { height:30px; width:auto; object-fit:contain; filter:brightness(0) invert(1) drop-shadow(0 0 8px rgba(120,235,245,.35)); }
 /* Very subtle hairline between every tab (and before "More"). */
 .bottom-nav-item::before,
 .bottom-nav-more::before { content:''; position:absolute; left:0; top:50%; width:1px; height:14px; transform:translateY(-50%); background:rgba(207,240,242,.14); }
-.bottom-nav-item { position:relative; padding:6px var(--sp-3); border:0; background:none; cursor:pointer; font-family:var(--font-mono); font-size:13px; letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(207,240,242,.5); transition:color .25s; }
+.bottom-nav-item { position:relative; padding:5px 10px; border:0; background:none; cursor:pointer; font-family:var(--font-mono); font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:rgba(207,240,242,.5); transition:color .25s; }
 .bottom-nav-item:hover { color:rgba(255,255,255,.9); }
 .bottom-nav > .bottom-nav-item:nth-of-type(3),
 .bottom-nav > .bottom-nav-item:nth-of-type(4),
@@ -484,7 +484,7 @@ button.day-item:hover { color:#ffffff; }
 .command-stop,.command-mute { flex:0 0 auto; display:grid; place-items:center; border-radius:999px; }
 .command-stop { padding:6px var(--sp-3); font-family:var(--font-display); font-size:var(--fs-micro); letter-spacing:.2em; color:var(--caven-steel); border:1px solid rgba(149,212,224,.22); background:rgba(13,28,36,.6); }
 .command-stop:hover { color:#ffffff; }
-  .command-mute { width:32px; height:32px; color:var(--caven-steel-light); border:0; background:transparent; box-shadow:none; transition:color .2s, background .2s; }
+  .command-mute { width:26px; height:26px; color:var(--caven-steel-light); border:0; background:transparent; box-shadow:none; transition:color .2s, background .2s; }
  .command-mute svg { width:16px; height:16px; }
  .command-mute:hover { color:#ffffff; background:rgba(255,255,255,.07); }
  .command-mute.is-muted { color:#ff6969; border:0; background:transparent; box-shadow:none; }
@@ -921,7 +921,7 @@ button.day-item:hover { color:#ffffff; }
 @keyframes glint { 0%,100%{opacity:0;transform:rotate(var(--ga)) translateX(var(--gd)) scale(.6)} 45%{opacity:.75;transform:rotate(var(--ga)) translateX(var(--gd)) scale(1)} }
 @keyframes starTwinkle { 0%,100%{opacity:.55} 50%{opacity:.95} }
 
-/* ═══════════════════════════════════════════════════════════════════════
+/* ���══════════════════════════════════════════════════════════════════════
    RESPONSIVE
    ═════════════════════════���═════════════════════════════════════════════ */
 /* The old three-column board is gone, so there is nothing here to re-column.
@@ -1008,14 +1008,13 @@ button.day-item:hover { color:#ffffff; }
     padding-bottom:env(safe-area-inset-bottom);
     background:linear-gradient(to top, var(--background) 72%, transparent);
   }
-  .command-bar { margin-top:var(--sp-3); }
-  .command-bar .caven-text-input { height:44px; font-size:16px; }
-  /* One line at this width: the mark goes (Caven is the same destination) and
-     the tracking closes up. It still wraps rather than overflowing if a phone
-     is narrower still or the text size is turned up. */
-  .bottom-nav { margin-top:var(--sp-3); gap:var(--sp-2); }
+  .command-bar { margin-top:10px; }
+  .command-bar .caven-text-input { height:35px; font-size:13px; }
+  /* Keep every destination in one compact horizontal row. On very narrow
+     screens the row scrolls rather than wrapping into a second line. */
+  .bottom-nav { margin-top:10px; justify-content:flex-start; gap:0; }
   .bottom-nav-mark { display:none; }
-  .bottom-nav-item { font-size:var(--fs-micro); letter-spacing:.08em; padding:6px 1px; }
+  .bottom-nav-item { font-size:9px; letter-spacing:.08em; padding:5px 4px; }
 
   .page-reply { max-width:100%; }
   /* Wrap rather than squeeze: "Reload board" broke across two lines mid-word
@@ -1219,17 +1218,16 @@ button.day-item:hover { color:#ffffff; }
 .command-form { display:flex; align-items:center; gap:var(--sp-2); }
 .command-send {
   display:inline-flex; align-items:center; justify-content:center;
-  flex:0 0 auto; width:32px; height:32px; border-radius:999px; border:0; cursor:pointer;
+  flex:0 0 auto; width:26px; height:26px; border-radius:999px; border:0; cursor:pointer;
   background:rgba(63,208,255,.14); color:var(--caven-cyan);
 }
 .command-send svg { width:14px; height:14px; }
 .command-send:hover { background:rgba(63,208,255,.22); }
 .command-send:focus-visible { outline:2px solid var(--ring); outline-offset:2px; }
 
-/* Navigation was 26px tall — under the 44px minimum, on the control tapped most.
-   The text keeps its size; the hit area grows around it. */
-.bottom-nav-item { min-height:44px; display:inline-flex; align-items:center; padding-inline:10px; }
-.bottom-nav-mark { min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center; }
+  /* Keep the compact visual scale while preserving a single aligned hit row. */
+  .bottom-nav-item { min-height:35px; display:inline-flex; align-items:center; padding-inline:8px; }
+  .bottom-nav-mark { min-width:35px; min-height:35px; display:inline-flex; align-items:center; justify-content:center; }
 .bottom-nav-menu-item { min-height:44px; }
 
 /* The 8-character rule, said before it is tripped rather than after. */
