@@ -159,7 +159,7 @@ button { font: inherit; }
    time it is. No border and no navigation — a strip of chrome directly above the
    orb was the thing most in the way of the one control that matters. */
 .topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:var(--sp-4); padding:var(--sp-5) 32px var(--sp-4); text-align:justify; }
- .topbar-lead { min-width:0; display:flex; flex-direction:column; gap:32px; font-size:36px; }
+ .topbar-lead { min-width:0; display:flex; flex-direction:column; gap:7px; font-size:36px; }
  .topbar-greeting { margin:0; font-family:inherit; font-size:36px; font-weight:600; letter-spacing:.04em; line-height:1.1; color:#eaffff; text-shadow:0 0 18px rgba(120,235,245,.28); }
  .topbar-date { margin:0; font-family:var(--font-mono); font-size:18px; letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(149,212,224,.62); }
  .topbar-side { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
