@@ -66,8 +66,8 @@ function stopMeter() {
 // decided per utterance by shared/endpoint.ts, which is patient with a filler or
 // an unfinished clause and closes at once on "that's it".
 const WRAP_WARN_MS = 700; // how long before the cutoff the UI is warned
-const LEAD_IN_MS = 6000; // grace period before any speech has been heard
-const MAX_UTTERANCE_MS = 20000; // hard ceiling so the mic never hangs open
+  const LEAD_IN_MS = 8000; // grace period before any speech has been heard
+  const MAX_UTTERANCE_MS = 30000; // hard ceiling so the mic never hangs open
 
 let silenceTimer: ReturnType<typeof setTimeout> | null = null;
 let maxTimer: ReturnType<typeof setTimeout> | null = null;

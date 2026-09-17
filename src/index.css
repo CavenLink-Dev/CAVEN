@@ -148,7 +148,9 @@ button { font: inherit; }
 /* Sized just a touch larger than the nav bar beneath it, with the send +
    mute cluster docked inside the pill. */
 .command-input-wrap { position:relative; flex:1 1 0; display:flex; align-items:center; }
-.command-bar .caven-text-input { height:35px; font-size:12px; border-radius:999px; padding:0 61px 0 14px; }
+ .command-bar .caven-text-input { height:35px; font-size:12px; border-radius:999px; padding:0 61px 0 14px; }
+ .command-bar .caven-text-input:focus,
+ .command-bar .caven-text-input:focus-visible { outline:none; box-shadow:none; border-color:var(--caven-glass-border); }
 .command-input-actions { position:absolute; right:7px; top:50%; transform:translateY(-50%); display:flex; align-items:center; gap:2px; }
 
 /* Finance / Journal / Brain / Settings. Scrolls within what is left after the
@@ -159,15 +161,15 @@ button { font: inherit; }
    time it is. No border and no navigation — a strip of chrome directly above the
    orb was the thing most in the way of the one control that matters. */
 .topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:var(--sp-4); padding:var(--sp-5) 32px var(--sp-4); text-align:justify; }
- .topbar-lead { min-width:0; display:flex; flex-direction:column; gap:32px; font-size:36px; }
+ .topbar-lead { min-width:0; display:flex; flex-direction:column; gap:7px; font-size:36px; }
  .topbar-greeting { margin:0; font-family:inherit; font-size:36px; font-weight:600; letter-spacing:.04em; line-height:1.1; color:#eaffff; text-shadow:0 0 18px rgba(120,235,245,.28); }
  .topbar-date { margin:0; font-family:var(--font-mono); font-size:18px; letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(149,212,224,.62); }
- .topbar-side { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+ .topbar-side { display:flex; flex-direction:column; align-items:flex-end; gap:11px; }
  .topbar-clock { font-family:"Inter", sans-serif; font-size:36px; line-height:1.1; color:rgba(255,255,255,.92); font-variant-numeric:tabular-nums; }
 /* The volume / music control, scaled ~1.6x for a comfortable target. */
-.topbar-side > .relative > button { gap:10px; padding:11px 20px; font-size:15px; }
-.topbar-side > .relative > button svg { width:26px; height:26px; }
-.topbar-side > .relative > button .t-micro { font-size:13px; }
+ .topbar-side > .relative > button { gap:7px; padding:8px 14px; font-size:11px; }
+ .topbar-side > .relative > button svg { width:18px; height:18px; }
+ .topbar-side > .relative > button .t-micro { font-size:9px; }
 
 /* ── Navigation ─────────────────────────────────────────────────────────
    Beneath the command box rather than above the orb: a line of quiet text,
@@ -439,8 +441,10 @@ button { font: inherit; }
 .stage-core { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:43px; text-align:center; font-size:32px; }
   
   /* Fixed height, so a line arriving never shifts the core underneath it. */
-.stage-line { display:grid; place-items:center; min-height:26px; width:min(520px,92vw); }
-.stage-line-text { border:0; background:none; padding:0; cursor:pointer; text-align:center; font-size:36px; font-family:"Karla", sans-serif; font-weight:600; line-height:1.4; color:var(--caven-cyan-bright); }
+  .stage-line { display:grid; place-items:center; min-height:26px; width:min(720px,94vw); }
+ .stage-line-text { border:0; background:none; padding:0; cursor:pointer; text-align:center; font-size:14px; font-family:"Karla", sans-serif; font-weight:600; line-height:1.45; color:var(--caven-cyan-bright); }
+ .stage-line-phrase { display:inline-block; animation:replyPhraseIn .36s ease both; }
+ @keyframes replyPhraseIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
 .stage-line-text:hover { color:#ffffff; }
 .stage-line-idle { font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(149,212,224,.45); }
 .stage-line.is-wrapping .stage-line-text { color:rgba(255,214,170,.95); }
@@ -1034,7 +1038,7 @@ button.day-item:hover { color:#ffffff; }
    Extends the upgraded board's block to also calm the legacy production
    animations (plasma, wobble, bolts, anim-* spinners) and the new
    .core-* / .waveform motion.
-   ═══════════════════════════════════════════════════════════════════════ */
+   ══════════════════════════════════════════════════════════════════════��� */
 @media (prefers-reduced-motion:reduce) {
   *,*::before,*::after {
     animation-duration:8s!important;
