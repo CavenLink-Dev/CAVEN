@@ -11,16 +11,8 @@ import { useCaven } from './lib/cavenState';
 import { useCavenStore } from './lib/store';
 import { isMuted, setMuted } from './lib/sfx';
 
-/** How long the board stays up after something changed, before it stands down. */
-const BOARD_LINGER_MS = 45_000;
-
-/** Three of the examples from Settings → Help, surfaced where they are needed.
- *  Tapping one runs it, so the first turn costs no typing and no guesswork. */
-const STARTERS = [
-  'Remind me to take the tablets every weekday at nine',
-  'Add ring the dentist to my list',
-  "What have I got on today?",
-] as const;
+/** How long the board stays up after an action is shown, before it stands down. */
+const BOARD_LINGER_MS = 10_000;
 
 /** Keep the visible line readable without throwing away the rest of a reply. */
 function replyPhrases(text: string, wordsPerPhrase = 12): string[] {
@@ -90,13 +82,10 @@ export default function App() {
     useCaven();
   // Save/action failures used to be written to state and never shown. They now
   // surface here, above everything, on whichever page the user is looking at.
-  const { data, lastError, clearError, conflict, reload } = useCavenStore();
+  const { lastError, clearError, conflict, reload } = useCavenStore();
 
-  // The board is not furniture. It comes up when a turn wrote something, or when
-  // he asked about the board itself, and stands down again afterwards — so an
-  // idle screen is the core and nothing else. useCaven raises the cue for both
-  // occasions; `complete` alone would miss "what's on today?", which changes
-  // nothing and is precisely when you want to see it.
+  // The board is not furniture. It appears only after a real action changes
+  // something, then stands down again so an idle screen stays quiet.
   const [boardUp, setBoardUp] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
   useEffect(() => {
@@ -104,9 +93,8 @@ export default function App() {
   }, [boardCue]);
   useEffect(() => {
     // Opened on purpose means it stays until it is closed again; nothing should
-    // vanish from under someone who is reading it. boardCue is a dependency so
-    // that a second command restarts the clock rather than letting the board go
-    // dark partway through a run of them.
+    // vanish from under someone who is reading it. A fresh saved action restarts
+    // the ten-second timer when the compact board is not being read.
     if (!boardUp || boardOpen) return;
     const id = window.setTimeout(() => setBoardUp(false), BOARD_LINGER_MS);
     return () => window.clearTimeout(id);
@@ -126,20 +114,6 @@ export default function App() {
     setMuted(next);
     setMutedState(next);
   };
-
-  // What to say, for someone who has never said anything.
-  //
-  // The signed-in screen was a greeting, an unlabelled orb and an empty box. The
-  // examples that make it obvious existed all along — buried at More → Help,
-  // which is the last place a first-time user looks. These are the same lines,
-  // shown where the question is actually being asked, and gone the moment the
-  // board has anything on it.
-  const boardEmpty =
-    data.tasks.length === 0 &&
-    data.reminders.length === 0 &&
-    data.calendar.length === 0 &&
-    data.voiceNotes.length === 0 &&
-    data.journal.length === 0;
 
   const listening = state === 'listening';
   const line = listening ? transcript : reply;
@@ -214,17 +188,6 @@ export default function App() {
               )}
             </div>
 
-            {boardEmpty && !line && !conversing && (
-              <ul className="stage-hints">
-                {STARTERS.map((hint) => (
-                  <li key={hint}>
-                    <button type="button" onClick={() => runCommand(hint)}>
-                      &ldquo;{hint}&rdquo;
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
         </div>
       ) : (

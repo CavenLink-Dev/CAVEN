@@ -170,10 +170,8 @@ export function useCaven() {
   const [locked, setLocked] = useState(false);
   const [conversing, setConversing] = useState(false); // mic loop is running
   const [wrapUp, setWrapUp] = useState(false); // mic is about to close on silence
-  // Bumped whenever the board is worth putting on screen. Two occasions: a turn
-  // actually wrote something, or he asked about the board itself. The second one
-  // matters — without it "what's on today?" changes nothing, so the board would
-  // never appear, and there would be no way to look at it at all.
+  // Bumped whenever a turn actually changes the board, so the saved result can
+  // be shown briefly without making ordinary conversation open a card.
   const [boardCue, setBoardCue] = useState(0);
 
   const lockedRef = useRef(false);
@@ -443,9 +441,9 @@ export function useCaven() {
       // What "that" refers to next turn. Recorded here, where the engine's own
       // answer is in hand, rather than inferred later from the wording of a line.
       session.current.lastActionChanged = changed;
-      // A board intent counts even when nothing was written: asking what is on
-      // today is exactly when you want to see it.
-      if (changed || r) setBoardCue((n) => n + 1);
+      // Only a real saved change should raise the board. Questions and ordinary
+      // conversation must not create a popup.
+      if (changed) setBoardCue((n) => n + 1);
       const turns: ChatTurn[] = [
         { role: 'user', content: said },
         { role: 'assistant', content: line },
