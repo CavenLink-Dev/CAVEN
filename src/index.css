@@ -440,7 +440,7 @@ button { font: inherit; }
   
   /* Fixed height, so a line arriving never shifts the core underneath it. */
 .stage-line { display:grid; place-items:center; min-height:26px; width:min(520px,92vw); }
-.stage-line-text { border:0; background:none; padding:0; cursor:pointer; text-align:center; font-size:36px; font-family:"Karla", sans-serif; font-weight:600; line-height:1.4; color:var(--caven-cyan-bright); }
+ .stage-line-text { border:0; background:none; padding:0; cursor:pointer; text-align:center; font-size:17px; font-family:"Karla", sans-serif; font-weight:600; line-height:1.4; color:var(--caven-cyan-bright); }
 .stage-line-text:hover { color:#ffffff; }
 .stage-line-idle { font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(149,212,224,.45); }
 .stage-line.is-wrapping .stage-line-text { color:rgba(255,214,170,.95); }
@@ -1034,7 +1034,7 @@ button.day-item:hover { color:#ffffff; }
    Extends the upgraded board's block to also calm the legacy production
    animations (plasma, wobble, bolts, anim-* spinners) and the new
    .core-* / .waveform motion.
-   ═══════════════════════════════════════════════════════════════════════ */
+   ══════════════════════════════════════════════════════════════════════��� */
 @media (prefers-reduced-motion:reduce) {
   *,*::before,*::after {
     animation-duration:8s!important;
