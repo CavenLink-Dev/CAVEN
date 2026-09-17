@@ -13,7 +13,7 @@
      Orbitron  — production display font       (.font-display, .auth-*)
      Rajdhani  — production body/auth font     (.auth-input, .auth-intro h1)
    ───────────────────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Karla:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Merriweather:wght@400;700&family=Nunito:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Tomorrow:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Karla:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Merriweather:wght@400;700&family=Nunito:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Source+Sans+3:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Tomorrow:wght@400;600;700&display=swap');
 @import 'tailwindcss';
 
 /* ── Tokens ───────────────────────────────────────────────────────────────
@@ -160,10 +160,10 @@ button { font: inherit; }
    orb was the thing most in the way of the one control that matters. */
 .topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:var(--sp-4); padding:var(--sp-5) 32px var(--sp-4); text-align:justify; }
  .topbar-lead { min-width:0; display:flex; flex-direction:column; gap:32px; font-size:36px; }
- .topbar-greeting { margin:0; font-family:var(--font-display); font-size:36px; font-weight:600; letter-spacing:.04em; line-height:1.1; color:#eaffff; text-shadow:0 0 18px rgba(120,235,245,.28); }
+ .topbar-greeting { margin:0; font-family:inherit; font-size:36px; font-weight:600; letter-spacing:.04em; line-height:1.1; color:#eaffff; text-shadow:0 0 18px rgba(120,235,245,.28); }
  .topbar-date { margin:0; font-family:var(--font-mono); font-size:18px; letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(149,212,224,.62); }
- .topbar-side { display:flex; flex-direction:column; align-items:flex-end; gap:16px; }
- .topbar-clock { font-family:var(--font-mono); font-size:36px; line-height:1.1; color:rgba(255,255,255,.92); font-variant-numeric:tabular-nums; }
+ .topbar-side { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+ .topbar-clock { font-family:"Inter", sans-serif; font-size:36px; line-height:1.1; color:rgba(255,255,255,.92); font-variant-numeric:tabular-nums; }
 /* The volume / music control, scaled ~1.6x for a comfortable target. */
 .topbar-side > .relative > button { gap:10px; padding:11px 20px; font-size:15px; }
 .topbar-side > .relative > button svg { width:26px; height:26px; }
@@ -188,7 +188,7 @@ button { font: inherit; }
  .bottom-nav-item.is-active { color:var(--caven-cyan-bright); }
 .bottom-nav-item.is-active::after { content:''; position:absolute; left:0; right:0; bottom:0; height:1px; background:currentColor; box-shadow:0 0 8px currentColor; }
 .bottom-nav-caret { font-size:8px; vertical-align:middle; opacity:.7; }
-.bottom-nav-more { position:relative; padding-left:var(--sp-4); }
+ .bottom-nav-more { position:relative; padding-left:0; }
 /* Upward, because there is nothing below it but the edge of the screen. */
 .bottom-nav-menu { position:absolute; right:0; bottom:calc(100% + var(--sp-2)); z-index:30; display:flex; flex-direction:column; min-width:150px; padding:6px; border:1px solid rgba(149,212,224,.2); border-radius:14px; background:rgba(9,17,22,.96); box-shadow:0 14px 34px rgba(0,0,0,.5); backdrop-filter:blur(8px); }
 .bottom-nav-menu-item { padding:8px 10px; border:0; border-radius:9px; background:none; cursor:pointer; text-align:left; font-size:var(--fs-caption); color:rgba(255,255,255,.8); }
