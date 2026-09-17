@@ -148,7 +148,9 @@ button { font: inherit; }
 /* Sized just a touch larger than the nav bar beneath it, with the send +
    mute cluster docked inside the pill. */
 .command-input-wrap { position:relative; flex:1 1 0; display:flex; align-items:center; }
-.command-bar .caven-text-input { height:35px; font-size:12px; border-radius:999px; padding:0 61px 0 14px; }
+ .command-bar .caven-text-input { height:35px; font-size:12px; border-radius:999px; padding:0 61px 0 14px; }
+ .command-bar .caven-text-input:focus,
+ .command-bar .caven-text-input:focus-visible { outline:none; box-shadow:none; border-color:var(--caven-glass-border); }
 .command-input-actions { position:absolute; right:7px; top:50%; transform:translateY(-50%); display:flex; align-items:center; gap:2px; }
 
 /* Finance / Journal / Brain / Settings. Scrolls within what is left after the
@@ -439,8 +441,10 @@ button { font: inherit; }
 .stage-core { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:43px; text-align:center; font-size:32px; }
   
   /* Fixed height, so a line arriving never shifts the core underneath it. */
-.stage-line { display:grid; place-items:center; min-height:26px; width:min(520px,92vw); }
- .stage-line-text { border:0; background:none; padding:0; cursor:pointer; text-align:center; font-size:17px; font-family:"Karla", sans-serif; font-weight:600; line-height:1.4; color:var(--caven-cyan-bright); }
+  .stage-line { display:grid; place-items:center; min-height:26px; width:min(720px,94vw); }
+ .stage-line-text { border:0; background:none; padding:0; cursor:pointer; text-align:center; font-size:14px; font-family:"Karla", sans-serif; font-weight:600; line-height:1.45; color:var(--caven-cyan-bright); }
+ .stage-line-phrase { display:inline-block; animation:replyPhraseIn .36s ease both; }
+ @keyframes replyPhraseIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
 .stage-line-text:hover { color:#ffffff; }
 .stage-line-idle { font-family:var(--font-mono); font-size:var(--fs-meta); letter-spacing:var(--track-label); text-transform:uppercase; color:rgba(149,212,224,.45); }
 .stage-line.is-wrapping .stage-line-text { color:rgba(255,214,170,.95); }

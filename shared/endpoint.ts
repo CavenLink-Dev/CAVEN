@@ -15,7 +15,7 @@
 // browser API, so it loads unchanged in the tab and in `pnpm test`.
 
 /** He is still talking. Long enough for a breath, short of an awkward wait. */
-const PATIENT_MS = 2200;
+const PATIENT_MS = 3000;
 /** A routine step answer ("done", "skip") — little for the recogniser to chew on. */
 const SHORT_ANSWER_MS = 900;
 /** A sentence that reads as finished. */

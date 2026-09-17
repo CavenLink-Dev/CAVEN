@@ -22,15 +22,62 @@ const STARTERS = [
   "What have I got on today?",
 ] as const;
 
-/**
- * The spoken line, cut to a glanceable length. The point of this line is to be
- * read without being studied — a full reply below the core turned it into a
- * paragraph you had to stop and parse.
- */
-function glance(text: string, words = 9): string {
-  const parts = text.trim().split(/\s+/).filter(Boolean);
-  if (parts.length <= words) return parts.join(' ');
-  return `${parts.slice(0, words).join(' ')}…`;
+/** Keep the visible line readable without throwing away the rest of a reply. */
+function replyPhrases(text: string, wordsPerPhrase = 12): string[] {
+  const sentences = text.trim().match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [];
+  const phrases: string[] = [];
+  for (const sentence of sentences) {
+    const words = sentence.trim().split(/\s+/).filter(Boolean);
+    for (let i = 0; i < words.length; i += wordsPerPhrase) {
+      const phrase = words.slice(i, i + wordsPerPhrase).join(' ');
+      if (phrase) phrases.push(phrase);
+    }
+  }
+  return phrases.length ? phrases : [''];
+}
+
+function ReplyLine({
+  text,
+  listening,
+  transcript,
+  onClick,
+}: {
+  text: string;
+  listening: boolean;
+  transcript: string;
+  onClick: () => void;
+}) {
+  const phrases = useMemo(() => replyPhrases(text), [text]);
+  const [phraseIndex, setPhraseIndex] = useState(0);
+
+  useEffect(() => {
+    setPhraseIndex(0);
+  }, [text]);
+
+  useEffect(() => {
+    if (listening || phraseIndex >= phrases.length - 1) return;
+    const wordCount = phrases[phraseIndex]?.split(/\s+/).length ?? 1;
+    const timer = window.setTimeout(
+      () => setPhraseIndex((current) => Math.min(current + 1, phrases.length - 1)),
+      Math.max(2400, Math.min(3600, wordCount * 230)),
+    );
+    return () => window.clearTimeout(timer);
+  }, [listening, phraseIndex, phrases]);
+
+  const safePhraseIndex = Math.min(phraseIndex, phrases.length - 1);
+  const visibleText = listening ? phrases[phrases.length - 1] : phrases[safePhraseIndex];
+  return (
+    <button
+      type="button"
+      className="stage-line-text"
+      onClick={onClick}
+      title={transcript ? `Heard: “${transcript}” — click to correct it` : undefined}
+    >
+      <span key={`${text}-${phraseIndex}`} className="stage-line-phrase">
+        {visibleText}
+      </span>
+    </button>
+  );
 }
 
 export default function App() {
@@ -124,9 +171,9 @@ export default function App() {
         </div>
       )}
 
-      {/* The full line, for assistive tech — the visible one is cut short.
-          Only on the main screen: elsewhere .page-reply is itself a live region
-          showing the line in full, and both firing announced it twice. */}
+      {/* The full line, for assistive tech — the visible line advances in readable
+          phrases. Only on the main screen: elsewhere .page-reply is itself a live
+          region showing the line in full, and both firing announced it twice. */}
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {page !== 'main' ? '' : listening && transcript ? transcript : reply && !listening ? `CAVEN said: ${reply}` : ''}
       </div>
@@ -151,19 +198,17 @@ export default function App() {
               onLock={toggleLock}
             />
 
-            {/* One line, kept short. Clicking it drops what CAVEN heard into the
-                box so a mishearing is one edit rather than the whole sentence
-                said again — the affordance is the line itself, not another row. */}
+            {/* Phrases advance without dropping the rest of a reply. Clicking the
+                line drops what CAVEN heard into the box so a mishearing is one edit
+                rather than the whole sentence said again. */}
             <div className={`stage-line${wrapUp ? ' is-wrapping' : ''}`}>
               {line ? (
-                <button
-                  type="button"
-                  className="stage-line-text"
+                <ReplyLine
+                  text={line}
+                  listening={listening}
+                  transcript={transcript}
                   onClick={() => transcript && setTyped(transcript)}
-                  title={transcript ? `Heard: “${transcript}” — click to correct it` : undefined}
-                >
-                  {glance(line)}
-                </button>
+                />
               ) : (
                 <span className="stage-line-idle">{conversing ? 'Listening…' : ''}</span>
               )}
